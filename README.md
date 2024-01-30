@@ -6,6 +6,31 @@
 This repository contains the _Prometheus Metrics Reporter for Apache Kafka server and client components_ as proposed in [Strimzi Proposal #64](https://github.com/strimzi/proposals/blob/main/064-prometheus-metrics-reporter.md).
 The implementation is currently still in progress.
 
+## Build
+
+```shell
+mvn package assembly:single
+```
+
+## Run
+
+### Kafka Brokers
+Add the following to your broker configuration:
+```properties
+metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
+kafka.metrics.reporters=io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter
+```
+
+### Kafka Clients
+Add the following to your client configuration:
+```properties
+metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
+```
+
+## Access Metrics
+
+Metrics are exposed on [http://localhost:8080/metrics](http://localhost:8080/metrics)
+
 ## Getting help
 
 If you encounter any issues while using Strimzi, you can get help using:
