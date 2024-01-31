@@ -23,6 +23,7 @@ kafka.metrics.reporters=io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter
 ```
 
 ### Kafka Clients
+
 Add the following to your client configuration:
 ```properties
 metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
