@@ -29,7 +29,7 @@ metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
 
 ## Access Metrics
 
-Metrics are exposed on [http://localhost:8080/metrics](http://localhost:8080/metrics)
+Metrics are exposed on `http://localhost:8080/metrics`.
 
 ## Getting help
 
