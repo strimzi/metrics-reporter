@@ -15,6 +15,7 @@ mvn package assembly:single
 ## Run
 
 ### Kafka Brokers
+
 Add the following to your broker configuration:
 ```properties
 metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
