@@ -10,6 +10,9 @@ import kafka.utils.VerifiableProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * KafkaMetricsReporter to export Kafka broker metrics in the Prometheus format.
+ */
 public class YammerPrometheusMetricsReporter implements KafkaMetricsReporter {
 
     private static final Logger LOG = LoggerFactory.getLogger(YammerPrometheusMetricsReporter.class.getName());

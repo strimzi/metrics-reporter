@@ -17,6 +17,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
+/**
+ * Configuration for the reporter implementations.
+ */
 public class PrometheusMetricsReporterConfig extends AbstractConfig {
 
     private static final Logger LOG = LoggerFactory.getLogger(PrometheusMetricsReporterConfig.class.getName());

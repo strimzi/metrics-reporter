@@ -13,6 +13,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Helper class to convert Kafka metrics into the Prometheus format.
+ */
 public class MetricFamilySamplesBuilder {
 
     private final Collector.Type type;

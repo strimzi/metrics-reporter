@@ -25,6 +25,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * MetricsReporter implementation that expose Kafka metrics in the Prometheus format.
+ *
+ * This can be used by Kafka brokers and clients.
+ */
 public class YammerMetricsCollector extends Collector {
 
     private static final Logger LOG = LoggerFactory.getLogger(YammerMetricsCollector.class.getName());

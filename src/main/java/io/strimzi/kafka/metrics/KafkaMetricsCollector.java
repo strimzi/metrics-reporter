@@ -17,6 +17,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+/**
+ * Prometheus Collector to store and export metrics retrieved by the reporters.
+ */
 public class KafkaMetricsCollector extends Collector {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaMetricsCollector.class.getName());

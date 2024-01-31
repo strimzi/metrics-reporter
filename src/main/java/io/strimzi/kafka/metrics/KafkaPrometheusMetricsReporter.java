@@ -20,6 +20,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * MetricsReporter implementation that expose Kafka metrics in the Prometheus format.
+ *
+ * This can be used by Kafka brokers and clients.
+ */
 public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaPrometheusMetricsReporter.class.getName());
