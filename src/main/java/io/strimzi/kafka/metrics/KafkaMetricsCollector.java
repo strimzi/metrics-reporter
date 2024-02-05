@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -74,15 +75,15 @@ public class KafkaMetricsCollector extends Collector {
         String prefix = this.prefix
                 .replace('.', '_')
                 .replace('-', '_')
-                .toLowerCase();
+                .toLowerCase(Locale.ROOT);
         String group = metricName.group()
                 .replace('.', '_')
                 .replace('-', '_')
-                .toLowerCase();
+                .toLowerCase(Locale.ROOT);
         String name = metricName.name()
                 .replace('.', '_')
                 .replace('-', '_')
-                .toLowerCase();
+                .toLowerCase(Locale.ROOT);
         return prefix + '_' + group + '_' + name;
     }
 
@@ -98,7 +99,9 @@ public class KafkaMetricsCollector extends Collector {
                 .collect(Collectors.toMap(
                         e -> Collector.sanitizeMetricName(e.getKey()),
                         Map.Entry::getValue,
-                        (v1, v2) -> { throw new IllegalStateException("Unexpected duplicate key " + v1); },
+                        (v1, v2) -> {
+                            throw new IllegalStateException("Unexpected duplicate key " + v1);
+                        },
                         LinkedHashMap::new));
         return new MetricFamilySamplesBuilder(Type.GAUGE, help)
                 .addSample(name, ((Number) value).doubleValue(), sanitizedLabels)
