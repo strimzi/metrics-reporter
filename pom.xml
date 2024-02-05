@@ -41,6 +41,7 @@
     <maven.surefire.version>3.2.5</maven.surefire.version>
     <maven.failsafe.version>3.2.5</maven.failsafe.version>
     <maven.javadoc.version>3.6.3</maven.javadoc.version>
+    <maven.dependency.version>3.6.1</maven.dependency.version>
     <maven.source.version>3.2.1</maven.source.version>
     <maven.jar.version>3.3.0</maven.jar.version>
     <!-- <maven.assembly.version>3.4.2</maven.assembly.version> -->
@@ -178,6 +179,22 @@
           <!-- Configures the file for excluding warnings -->
           <excludeFilterFile>${project.basedir}/.spotbugs/spotbugs-exclude.xml</excludeFilterFile>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>${maven.dependency.version}</version>
+        <executions>
+          <execution>
+            <id>analyze</id>
+            <goals>
+              <goal>analyze-only</goal>
+            </goals>
+            <configuration>
+              <failOnWarning>true</failOnWarning>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
