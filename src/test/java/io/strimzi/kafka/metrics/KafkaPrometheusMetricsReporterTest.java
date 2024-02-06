@@ -28,9 +28,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-
 public class KafkaPrometheusMetricsReporterTest {
-
     private final MetricConfig metricConfig = new MetricConfig();
     private final Time time = Time.SYSTEM;
     private final Map<String, String> labels = Collections.singletonMap("key", "value");

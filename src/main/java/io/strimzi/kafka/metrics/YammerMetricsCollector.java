@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -89,7 +90,7 @@ public class YammerMetricsCollector extends Collector {
                 "kafka_server_" +
                 metricName.getGroup() + '_' +
                 metricName.getType() + '_' +
-                metricName.getName()).toLowerCase();
+                metricName.getName()).toLowerCase(Locale.ROOT);
         LOG.info("metricName group {}, type {}, name {} converted into {}", metricName.getGroup(), metricName.getType(), metricName.getName(), metricNameStr);
         return metricNameStr;
     }
