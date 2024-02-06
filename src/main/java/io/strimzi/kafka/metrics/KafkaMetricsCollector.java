@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.metrics;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.prometheus.client.Collector;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
@@ -27,6 +28,7 @@ public class KafkaMetricsCollector extends Collector {
 
     private final Map<MetricName, KafkaMetric> metrics;
     private final PrometheusMetricsReporterConfig config;
+    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // Should be investigated as part of https://github.com/strimzi/metrics-reporter/issues/12
     private String prefix;
 
     public KafkaMetricsCollector(PrometheusMetricsReporterConfig config) {
