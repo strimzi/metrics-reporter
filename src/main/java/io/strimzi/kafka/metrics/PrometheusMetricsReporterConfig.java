@@ -25,30 +25,29 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
     private static final Logger LOG = LoggerFactory.getLogger(PrometheusMetricsReporterConfig.class.getName());
 
     public static final String CONFIG_PREFIX = "prometheus.metrics.reporter.";
-
-    public static final String PORT_CONFIG = CONFIG_PREFIX + "port";
-    public static final int PORT_CONFIG_DEFAULT = 8080;
-    public static final String PORT_CONFIG_DOC = "The HTTP port to expose the metrics.";
+    public static final String LISTENER_CONFIG = CONFIG_PREFIX + "listener";
+    public static final String LISTENER_CONFIG_DEFAULT = "http://:8080";
+    public static final String LISTENER_CONFIG_DOC = "The HTTP listener to expose the metrics.";
 
     public static final String ALLOWLIST_CONFIG = CONFIG_PREFIX + "allowlist";
     public static final String ALLOWLIST_CONFIG_DEFAULT = ".*";
     public static final String ALLOWLIST_CONFIG_DOC = "A comma separated list of regex Patterns to specify the metrics to collect.";
 
     private static final ConfigDef CONFIG_DEF = new ConfigDef()
-            .define(PORT_CONFIG, ConfigDef.Type.INT, PORT_CONFIG_DEFAULT, ConfigDef.Importance.HIGH, PORT_CONFIG_DOC)
+            .define(LISTENER_CONFIG, ConfigDef.Type.STRING, LISTENER_CONFIG_DEFAULT, ConfigDef.Importance.HIGH, LISTENER_CONFIG_DOC)
             .define(ALLOWLIST_CONFIG, ConfigDef.Type.LIST, ALLOWLIST_CONFIG_DEFAULT, ConfigDef.Importance.HIGH, ALLOWLIST_CONFIG_DOC);
 
-    private final int port;
+    private final String listener;
     private final Pattern allowlist;
 
     public PrometheusMetricsReporterConfig(Map<?, ?> props) {
         super(CONFIG_DEF, props);
-        this.port = getInt(PORT_CONFIG);
+        this.listener = getString(LISTENER_CONFIG);
         this.allowlist = compileAllowlist(getList(ALLOWLIST_CONFIG));
     }
 
-    public int port() {
-        return port;
+    public String listener() {
+        return listener;
     }
 
     public boolean isAllowed(String name) {
@@ -64,14 +63,57 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
     public String toString() {
         return "PrometheusMetricsReporterConfig{" +
                 "allowlist=" + allowlist +
-                ", port=" + port +
+                ", listener=" + listener +
                 '}';
+    }
+
+    public static class HostPort {
+        private final String host;
+        private final int port;
+
+        public HostPort(String host, int port) {
+            this.host = host;
+            this.port = port;
+        }
+
+        public String getHost() {
+            return host;
+        }
+
+        public int getPort() {
+            return port;
+        }
+
+        public static HostPort parseListener(String listener) throws IOException {
+            if (listener.equals("http://"))
+                throw new IOException("Invalid listener: Must contain a port number");
+            if (listener.startsWith("http://")) {
+                char targetLastColon = ':';
+                int lastIndex = listener.lastIndexOf(targetLastColon);
+                String host = listener.substring("http://".length(), lastIndex);
+                System.out.println("Host: " + host);
+                if (host.isEmpty()) {
+                    host = "localhost";
+                }
+                String portString = listener.substring(lastIndex + 1);
+                if (!portString.matches("\\d+")) {
+                    throw new IOException("Invalid port: Port must be a number");
+                }
+                int port = Integer.parseInt(portString);
+                return new HostPort(host, port);
+            } else {
+                throw new IOException("Invalid listener: Must start with 'http://'");
+            }
+        }
     }
 
     public synchronized Optional<HTTPServer> startHttpServer() {
         try {
-            HTTPServer httpServer = new HTTPServer(port, true);
-            LOG.info("HTTP server started on port " + port);
+            HostPort parsedListener = HostPort.parseListener(listener);
+            String host = parsedListener.getHost();
+            int port = parsedListener.getPort();
+            HTTPServer httpServer = new HTTPServer(host, port, true);
+            LOG.info("HTTP server started on listener " + host + ":" + port);
             return Optional.of(httpServer);
         } catch (BindException be) {
             LOG.info("HTTP server already started");
@@ -81,5 +123,4 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
             throw new RuntimeException(ioe);
         }
     }
-
 }

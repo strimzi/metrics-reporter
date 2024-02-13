@@ -19,18 +19,18 @@ public class PrometheusMetricsReporterConfigTest {
     public void testDefaults() {
         PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(Collections.emptyMap());
 
-        assertEquals(PrometheusMetricsReporterConfig.PORT_CONFIG_DEFAULT, config.port());
+        assertEquals(PrometheusMetricsReporterConfig.LISTENER_CONFIG_DEFAULT, config.listener());
         assertTrue(config.isAllowed("random_name"));
     }
 
     @Test
     public void testOverrides() {
         Map<String, String> props = new HashMap<>();
-        props.put(PrometheusMetricsReporterConfig.PORT_CONFIG, "1234");
+        props.put(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");
         props.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server.*");
         PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props);
 
-        assertEquals(1234, config.port());
+        assertEquals("http://:0", config.listener());
         assertFalse(config.isAllowed("random_name"));
         assertTrue(config.isAllowed("kafka_server_metric"));
     }
