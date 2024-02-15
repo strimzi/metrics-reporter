@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.metrics;
 
+import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -12,13 +13,14 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
 
 public class PrometheusMetricsReporterConfigTest {
     @Test
     public void testDefaults() {
         PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(Collections.emptyMap());
-
         assertEquals(PrometheusMetricsReporterConfig.LISTENER_CONFIG_DEFAULT, config.listener());
         assertTrue(config.isAllowed("random_name"));
     }
@@ -44,5 +46,21 @@ public class PrometheusMetricsReporterConfigTest {
         assertFalse(config.isAllowed("random_name"));
         assertTrue(config.isAllowed("kafka_server_metric"));
         assertTrue(config.isAllowed("kafka_network_metric"));
+    }
+
+    @Test
+    public void testListenerParseListener() {
+        assertEquals(new PrometheusMetricsReporterConfig.Listener("", 8080), PrometheusMetricsReporterConfig.Listener.parseListener("http://:8080"));
+        assertEquals(new PrometheusMetricsReporterConfig.Listener("123", 8080), PrometheusMetricsReporterConfig.Listener.parseListener("http://123:8080"));
+        assertEquals(new PrometheusMetricsReporterConfig.Listener("::1", 8080), PrometheusMetricsReporterConfig.Listener.parseListener("http://::1:8080"));
+        assertEquals(new PrometheusMetricsReporterConfig.Listener("::1", 8080), PrometheusMetricsReporterConfig.Listener.parseListener("http://[::1]:8080"));
+        assertEquals(new PrometheusMetricsReporterConfig.Listener("random", 8080), PrometheusMetricsReporterConfig.Listener.parseListener("http://random:8080"));
+
+        assertThrows(ConfigException.class, () -> PrometheusMetricsReporterConfig.Listener.parseListener("http"));
+        assertThrows(ConfigException.class, () -> PrometheusMetricsReporterConfig.Listener.parseListener("http://"));
+        assertThrows(ConfigException.class, () -> PrometheusMetricsReporterConfig.Listener.parseListener("http://random"));
+        assertThrows(ConfigException.class, () -> PrometheusMetricsReporterConfig.Listener.parseListener("http://random:"));
+        assertThrows(ConfigException.class, () -> PrometheusMetricsReporterConfig.Listener.parseListener("http://:-8080"));
+        assertThrows(ConfigException.class, () -> PrometheusMetricsReporterConfig.Listener.parseListener("http://random:-8080"));
     }
 }
