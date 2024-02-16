@@ -76,12 +76,12 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
 
         public static Listener parseListener(String listener) {
             Matcher matcher = PATTERN.matcher(listener);
-            if (matcher.find()) {
+            if (matcher.matches()) {
                 String host = matcher.group(1);
                 int port = Integer.parseInt(matcher.group(2));
                 return new Listener(host, port);
             } else {
-                throw new ConfigException("Invalid listener format: " + listener);
+                throw new ConfigException("Invalid listener format: " + listener + ". Must be of format http:// [host]:[port]");
             }
         }
 
@@ -115,7 +115,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
     public synchronized Optional<HTTPServer> startHttpServer() {
         try {
             HTTPServer httpServer = new HTTPServer(listener.host, listener.port);
-            LOG.info("HTTP server started on listener " + listener);
+            LOG.info("HTTP server started on listener " + listener.host + ":" + httpServer.getPort());
             return Optional.of(httpServer);
         } catch (BindException be) {
             LOG.info("HTTP server already started");
@@ -130,10 +130,9 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
 
         @Override
         public void ensureValid(String name, Object value) {
-            String str = (String) value;
-            Matcher matcher = Listener.PATTERN.matcher(str);
+            Matcher matcher = Listener.PATTERN.matcher(String.valueOf(value));
             if (!matcher.matches()) {
-                throw new ConfigException(value + " is an invalid listener format. Must be of format http:// [host]:[port] ");
+                throw new ConfigException("Invalid listener format: " + value + ". Must be of format http:// [host]:[port]");
             }
         }
     }
