@@ -62,7 +62,9 @@ public class PrometheusMetricsReporterConfigTest {
         assertThrows(ConfigException.class, () -> PrometheusMetricsReporterConfig.Listener.parseListener("http://random:"));
         assertThrows(ConfigException.class, () -> PrometheusMetricsReporterConfig.Listener.parseListener("http://:-8080"));
         assertThrows(ConfigException.class, () -> PrometheusMetricsReporterConfig.Listener.parseListener("http://random:-8080"));
+        assertThrows(ConfigException.class, () -> PrometheusMetricsReporterConfig.Listener.parseListener("http://:8080random"));
         assertThrows(ConfigException.class, () -> PrometheusMetricsReporterConfig.Listener.parseListener("randomhttp://:8080random"));
+        assertThrows(ConfigException.class, () -> PrometheusMetricsReporterConfig.Listener.parseListener("randomhttp://:8080"));
     }
 
     @Test
