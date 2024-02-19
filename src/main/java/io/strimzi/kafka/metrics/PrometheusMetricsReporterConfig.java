@@ -114,7 +114,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
 
     public synchronized Optional<HTTPServer> startHttpServer() {
         try {
-            HTTPServer httpServer = new HTTPServer(listener.host, listener.port);
+            HTTPServer httpServer = new HTTPServer(listener.host, listener.port, true);
             LOG.info("HTTP server started on listener " + "http://" +  listener.host + ":" + httpServer.getPort());
             return Optional.of(httpServer);
         } catch (BindException be) {
