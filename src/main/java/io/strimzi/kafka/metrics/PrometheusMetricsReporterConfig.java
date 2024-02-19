@@ -81,7 +81,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
                 int port = Integer.parseInt(matcher.group(2));
                 return new Listener(host, port);
             } else {
-                throw new ConfigException(LISTENER_CONFIG + ": " +  listener +  " Listener be of format http:// [host]:[port]");
+                throw new ConfigException(LISTENER_CONFIG, listener, "Listener be of format http:// [host]:[port]");
             }
         }
 
@@ -132,7 +132,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
         public void ensureValid(String name, Object value) {
             Matcher matcher = Listener.PATTERN.matcher(String.valueOf(value));
             if (!matcher.matches()) {
-                throw new ConfigException(name + ": "  + value + " Listener must be of format http:// [host]:[port]");
+                throw new ConfigException(name, value, "Listener must be of format http:// [host]:[port]");
             }
         }
     }

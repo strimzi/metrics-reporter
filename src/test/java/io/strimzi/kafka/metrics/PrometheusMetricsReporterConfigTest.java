@@ -71,6 +71,10 @@ public class PrometheusMetricsReporterConfigTest {
     public void testValidator() {
         PrometheusMetricsReporterConfig.ListenerValidator validator = new PrometheusMetricsReporterConfig.ListenerValidator();
         validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");
+        validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://123:8080");
+        validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://::1:8080");
+        validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://[::1]:8080");
+        validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://random:8080");
 
         assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http"));
         assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://"));
@@ -78,6 +82,8 @@ public class PrometheusMetricsReporterConfigTest {
         assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://random:"));
         assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:-8080"));
         assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://random:-8080"));
+        assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:8080random"));
         assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "randomhttp://:8080random"));
+        assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "randomhttp://:8080"));
     }
 }
