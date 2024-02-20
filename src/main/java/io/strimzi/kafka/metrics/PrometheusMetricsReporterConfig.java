@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.BindException;
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -21,19 +22,46 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Configuration for the reporter implementations.
+ /**
+ * Configuration for the PrometheusMetricsReporter implementation.
  */
 public class PrometheusMetricsReporterConfig extends AbstractConfig {
 
     private static final Logger LOG = LoggerFactory.getLogger(PrometheusMetricsReporterConfig.class.getName());
 
+    /**
+     * Configuration prefix for Prometheus Metrics Reporter.
+     */
     public static final String CONFIG_PREFIX = "prometheus.metrics.reporter.";
+
+    /**
+     * Configuration key for the listener to expose the metrics.
+     */
     public static final String LISTENER_CONFIG = CONFIG_PREFIX + "listener";
+
+    /**
+     * Default value for the listener configuration.
+     */
     public static final String LISTENER_CONFIG_DEFAULT = "http://:8080";
+
+    /**
+     * Documentation for the listener configuration.
+     */
     public static final String LISTENER_CONFIG_DOC = "The HTTP listener to expose the metrics.";
 
+    /**
+     * Configuration key for the allowlist of metrics to collect.
+     */
     public static final String ALLOWLIST_CONFIG = CONFIG_PREFIX + "allowlist";
+
+    /**
+     * Default value for the allowlist configuration.
+     */
     public static final String ALLOWLIST_CONFIG_DEFAULT = ".*";
+
+    /**
+     * Documentation for the allowlist configuration.
+     */
     public static final String ALLOWLIST_CONFIG_DOC = "A comma separated list of regex Patterns to specify the metrics to collect.";
 
     private static final ConfigDef CONFIG_DEF = new ConfigDef()
@@ -43,12 +71,23 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
     private final Listener listener;
     private final Pattern allowlist;
 
+    /**
+     * Constructor.
+     *
+     * @param props the configuration properties.
+     */
     public PrometheusMetricsReporterConfig(Map<?, ?> props) {
         super(CONFIG_DEF, props);
         this.listener = Listener.parseListener(getString(LISTENER_CONFIG));
         this.allowlist = compileAllowlist(getList(ALLOWLIST_CONFIG));
     }
 
+    /**
+     * Check if a metric is allowed.
+     *
+     * @param name the name of the metric.
+     * @return true if the metric is allowed, false otherwise.
+     */
     public boolean isAllowed(String name) {
         return allowlist.matcher(name).matches();
     }
@@ -58,8 +97,52 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
         return Pattern.compile(joined);
     }
 
+    /**
+     * Gets the listener.
+     *
+     * @return the listener.
+     */
     public String listener() {
         return listener.toString();
+    }
+
+    @Override
+     public String toString() {
+        return "PrometheusMetricsReporterConfig{" +
+                "allowlist=" + allowlist +
+                ", listener=" + listener +
+                '}';
+    }
+
+    /**
+     * Start the HTTP server for exposing metrics.
+     *
+     * @return An optional HTTPServer instance if started successfully, otherwise empty.
+     */
+    public synchronized Optional<HTTPServer> startHttpServer() {
+        try {
+            InetSocketAddress address = listener.getInetSocketAddress();
+            HTTPServer httpServer = new HTTPServer(address.getPort(), true);
+            LOG.info("HTTP server started on listener http://{}:{}", listener.host, httpServer.getPort());
+            return Optional.of(httpServer);
+        } catch (BindException be) {
+            LOG.info("HTTP server already started");
+            return Optional.empty();
+        } catch (IOException ioe) {
+            LOG.error("Failed starting HTTP server", ioe);
+            throw new RuntimeException(ioe);
+        }
+    }
+
+    static class ListenerValidator implements ConfigDef.Validator {
+
+        @Override
+         public void ensureValid(String name, Object value) {
+            Matcher matcher = Listener.PATTERN.matcher(String.valueOf(value));
+            if (!matcher.matches()) {
+                throw new ConfigException(name, value, "Listener must be of format http://[host]:[port]");
+            }
+        }
     }
 
     static class Listener {
@@ -69,12 +152,14 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
         final String host;
         final int port;
 
-        public Listener(String host, int port) {
+        Listener(String host, int port) {
+
+
             this.host = host;
             this.port = port;
         }
 
-        public static Listener parseListener(String listener) {
+        static Listener parseListener(String listener) {
             Matcher matcher = PATTERN.matcher(listener);
             if (matcher.matches()) {
                 String host = matcher.group(1);
@@ -83,6 +168,10 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
             } else {
                 throw new ConfigException(LISTENER_CONFIG, listener, "Listener be of format http://[host]:[port]");
             }
+        }
+
+        public InetSocketAddress getInetSocketAddress() {
+            return host == null ? new InetSocketAddress(port) : InetSocketAddress.createUnresolved(host, port);
         }
 
         @Override
@@ -101,39 +190,6 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
         @Override
          public int hashCode() {
             return Objects.hash(host, port);
-        }
-    }
-
-    @Override
-    public String toString() {
-        return "PrometheusMetricsReporterConfig{" +
-                "allowlist=" + allowlist +
-                ", listener=" + listener +
-                '}';
-    }
-
-    public synchronized Optional<HTTPServer> startHttpServer() {
-        try {
-            HTTPServer httpServer = new HTTPServer(listener.host, listener.port, true);
-            LOG.info("HTTP server started on listener " + "http://" +  listener.host + ":" + httpServer.getPort());
-            return Optional.of(httpServer);
-        } catch (BindException be) {
-            LOG.info("HTTP server already started");
-            return Optional.empty();
-        } catch (IOException ioe) {
-            LOG.error("Failed starting HTTP server", ioe);
-            throw new RuntimeException(ioe);
-        }
-    }
-
-    static class ListenerValidator implements ConfigDef.Validator {
-
-        @Override
-        public void ensureValid(String name, Object value) {
-            Matcher matcher = Listener.PATTERN.matcher(String.valueOf(value));
-            if (!matcher.matches()) {
-                throw new ConfigException(name, value, "Listener must be of format http://[host]:[port]");
-            }
         }
     }
 }
