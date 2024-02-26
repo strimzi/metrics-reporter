@@ -43,11 +43,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
      * Default value for the listener configuration.
      */
     public static final String LISTENER_CONFIG_DEFAULT = "http://:8080";
-
-    /**
-     * Documentation for the listener configuration.
-     */
-    public static final String LISTENER_CONFIG_DOC = "The HTTP listener to expose the metrics.";
+    private static final String LISTENER_CONFIG_DOC = "The HTTP listener to expose the metrics.";
 
     /**
      * Configuration key for the allowlist of metrics to collect.
@@ -58,11 +54,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
      * Default value for the allowlist configuration.
      */
     public static final String ALLOWLIST_CONFIG_DEFAULT = ".*";
-
-    /**
-     * Documentation for the allowlist configuration.
-     */
-    public static final String ALLOWLIST_CONFIG_DOC = "A comma separated list of regex Patterns to specify the metrics to collect.";
+    private static final String ALLOWLIST_CONFIG_DOC = "A comma separated list of regex Patterns to specify the metrics to collect.";
 
     private static final ConfigDef CONFIG_DEF = new ConfigDef()
             .define(LISTENER_CONFIG, ConfigDef.Type.STRING, LISTENER_CONFIG_DEFAULT, new ListenerValidator(), ConfigDef.Importance.HIGH, LISTENER_CONFIG_DOC)
@@ -153,8 +145,6 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
         final int port;
 
         Listener(String host, int port) {
-
-
             this.host = host;
             this.port = port;
         }
@@ -171,7 +161,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
         }
 
         public InetSocketAddress getInetSocketAddress() {
-            return host == null ? new InetSocketAddress(port) : InetSocketAddress.createUnresolved(host, port);
+            return host == null || host.isEmpty() ? new InetSocketAddress(port) : InetSocketAddress.createUnresolved(host, port);
         }
 
         @Override
