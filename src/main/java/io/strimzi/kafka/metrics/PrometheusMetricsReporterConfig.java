@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.BindException;
-import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -22,17 +21,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- /**
- * Configuration for the PrometheusMetricsReporter implementation.
- */
+* Configuration for the PrometheusMetricsReporter implementation.
+*/
 public class PrometheusMetricsReporterConfig extends AbstractConfig {
 
     private static final Logger LOG = LoggerFactory.getLogger(PrometheusMetricsReporterConfig.class.getName());
-
-    /**
-     * Configuration prefix for Prometheus Metrics Reporter.
-     */
-    public static final String CONFIG_PREFIX = "prometheus.metrics.reporter.";
+    private static final String CONFIG_PREFIX = "prometheus.metrics.reporter.";
 
     /**
      * Configuration key for the listener to expose the metrics.
@@ -43,7 +37,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
      * Default value for the listener configuration.
      */
     public static final String LISTENER_CONFIG_DEFAULT = "http://:8080";
-    private static final String LISTENER_CONFIG_DOC = "The HTTP listener to expose the metrics.";
+    public static final String LISTENER_CONFIG_DOC = "The HTTP listener to expose the metrics.";
 
     /**
      * Configuration key for the allowlist of metrics to collect.
@@ -54,7 +48,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
      * Default value for the allowlist configuration.
      */
     public static final String ALLOWLIST_CONFIG_DEFAULT = ".*";
-    private static final String ALLOWLIST_CONFIG_DOC = "A comma separated list of regex Patterns to specify the metrics to collect.";
+    private static final String ALLOWLIST_CONFIG_DOC = "A comma separated list of regex patterns to specify the metrics to collect.";
 
     private static final ConfigDef CONFIG_DEF = new ConfigDef()
             .define(LISTENER_CONFIG, ConfigDef.Type.STRING, LISTENER_CONFIG_DEFAULT, new ListenerValidator(), ConfigDef.Importance.HIGH, LISTENER_CONFIG_DOC)
@@ -99,7 +93,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
     }
 
     @Override
-     public String toString() {
+    public String toString() {
         return "PrometheusMetricsReporterConfig{" +
                 "allowlist=" + allowlist +
                 ", listener=" + listener +
@@ -113,8 +107,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
      */
     public synchronized Optional<HTTPServer> startHttpServer() {
         try {
-            InetSocketAddress address = listener.getInetSocketAddress();
-            HTTPServer httpServer = new HTTPServer(address.getPort(), true);
+            HTTPServer httpServer = new HTTPServer(listener.host, listener.port, true);
             LOG.info("HTTP server started on listener http://{}:{}", listener.host, httpServer.getPort());
             return Optional.of(httpServer);
         } catch (BindException be) {
@@ -123,17 +116,6 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
         } catch (IOException ioe) {
             LOG.error("Failed starting HTTP server", ioe);
             throw new RuntimeException(ioe);
-        }
-    }
-
-    static class ListenerValidator implements ConfigDef.Validator {
-
-        @Override
-         public void ensureValid(String name, Object value) {
-            Matcher matcher = Listener.PATTERN.matcher(String.valueOf(value));
-            if (!matcher.matches()) {
-                throw new ConfigException(name, value, "Listener must be of format http://[host]:[port]");
-            }
         }
     }
 
@@ -156,12 +138,8 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
                 int port = Integer.parseInt(matcher.group(2));
                 return new Listener(host, port);
             } else {
-                throw new ConfigException(LISTENER_CONFIG, listener, "Listener be of format http://[host]:[port]");
+                throw new ConfigException(LISTENER_CONFIG, listener, "Listener must be of format http://[host]:[port]");
             }
-        }
-
-        public InetSocketAddress getInetSocketAddress() {
-            return host == null || host.isEmpty() ? new InetSocketAddress(port) : InetSocketAddress.createUnresolved(host, port);
         }
 
         @Override
@@ -180,6 +158,17 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
         @Override
          public int hashCode() {
             return Objects.hash(host, port);
+        }
+    }
+
+    static class ListenerValidator implements ConfigDef.Validator {
+
+        @Override
+        public void ensureValid(String name, Object value) {
+            Matcher matcher = Listener.PATTERN.matcher(String.valueOf(value));
+            if (!matcher.matches()) {
+                throw new ConfigException(name, value, "Listener must be of format http://[host]:[port]");
+            }
         }
     }
 }
