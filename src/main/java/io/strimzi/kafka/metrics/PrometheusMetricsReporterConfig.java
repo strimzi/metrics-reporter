@@ -37,7 +37,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
      * Default value for the listener configuration.
      */
     public static final String LISTENER_CONFIG_DEFAULT = "http://:8080";
-    public static final String LISTENER_CONFIG_DOC = "The HTTP listener to expose the metrics.";
+    private static final String LISTENER_CONFIG_DOC = "The HTTP listener to expose the metrics.";
 
     /**
      * Configuration key for the allowlist of metrics to collect.
