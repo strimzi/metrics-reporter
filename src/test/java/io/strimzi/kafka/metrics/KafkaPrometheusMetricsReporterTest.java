@@ -42,7 +42,7 @@ public class KafkaPrometheusMetricsReporterTest {
     public void testLifeCycle() throws Exception {
         KafkaPrometheusMetricsReporter reporter = new KafkaPrometheusMetricsReporter();
         Map<String, String> configs = new HashMap<>();
-        configs.put(PrometheusMetricsReporterConfig.PORT_CONFIG, "0");
+        configs.put(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");
         reporter.configure(configs);
         reporter.contextChange(new KafkaMetricsContext("kafka.server"));
         int port = reporter.getPort();
@@ -75,7 +75,7 @@ public class KafkaPrometheusMetricsReporterTest {
     @Test
     public void testMultipleReporters() throws Exception {
         Map<String, String> configs = new HashMap<>();
-        configs.put(PrometheusMetricsReporterConfig.PORT_CONFIG, "0");
+        configs.put(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");
 
         KafkaPrometheusMetricsReporter reporter1 = new KafkaPrometheusMetricsReporter();
         reporter1.configure(configs);
@@ -84,7 +84,7 @@ public class KafkaPrometheusMetricsReporterTest {
         int initialMetrics = getMetrics(port).size();
 
         KafkaPrometheusMetricsReporter reporter2 = new KafkaPrometheusMetricsReporter();
-        configs.put(PrometheusMetricsReporterConfig.PORT_CONFIG, String.valueOf(port));
+        configs.put(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");
         reporter2.configure(configs);
         reporter2.contextChange(new KafkaMetricsContext("kafka.server"));
 

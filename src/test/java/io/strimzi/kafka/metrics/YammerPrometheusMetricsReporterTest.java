@@ -23,7 +23,7 @@ public class YammerPrometheusMetricsReporterTest {
         YammerPrometheusMetricsReporter reporter = new YammerPrometheusMetricsReporter();
         Properties configs = new Properties();
         configs.put("broker.id", "0");
-        configs.put(PrometheusMetricsReporterConfig.PORT_CONFIG, "0");
+        configs.put(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");
         reporter.init(new VerifiableProperties(configs));
     }
 }
