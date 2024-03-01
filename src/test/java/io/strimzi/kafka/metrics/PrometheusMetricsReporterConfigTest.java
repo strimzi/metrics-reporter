@@ -86,4 +86,21 @@ public class PrometheusMetricsReporterConfigTest {
         assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "randomhttp://:8080random"));
         assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "randomhttp://:8080"));
     }
+
+    @Test
+    public void testIsListenerEnabled() {
+        Map<String, Boolean> props = new HashMap<>();
+        props.put(PrometheusMetricsReporterConfig.LISTENER_ENABLE_CONFIG, true);
+        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props);
+        assertTrue(config.isListenerEnabled());
+    }
+
+    @Test
+    public void testIsListenerDisabled() {
+        Map<String, Boolean> props = new HashMap<>();
+        props.put(PrometheusMetricsReporterConfig.LISTENER_ENABLE_CONFIG, false);
+        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props);
+        assertFalse(config.isListenerEnabled());
+    }
 }
+
