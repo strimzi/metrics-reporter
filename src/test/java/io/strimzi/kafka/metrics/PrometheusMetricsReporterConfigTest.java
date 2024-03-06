@@ -4,12 +4,14 @@
  */
 package io.strimzi.kafka.metrics;
 
+import io.prometheus.client.exporter.HTTPServer;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -92,6 +94,9 @@ public class PrometheusMetricsReporterConfigTest {
         Map<String, Boolean> props = new HashMap<>();
         props.put(PrometheusMetricsReporterConfig.LISTENER_ENABLE_CONFIG, true);
         PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props);
+        Optional<HTTPServer> httpServerOptional = config.startHttpServer();
+
+        assertFalse(httpServerOptional.isEmpty());
         assertTrue(config.isListenerEnabled());
     }
 
@@ -100,6 +105,9 @@ public class PrometheusMetricsReporterConfigTest {
         Map<String, Boolean> props = new HashMap<>();
         props.put(PrometheusMetricsReporterConfig.LISTENER_ENABLE_CONFIG, false);
         PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props);
+        Optional<HTTPServer> httpServerOptional = config.startHttpServer();
+
+        assertTrue(httpServerOptional.isEmpty());
         assertFalse(config.isListenerEnabled());
     }
 }

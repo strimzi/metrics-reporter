@@ -122,7 +122,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
         return "PrometheusMetricsReporterConfig{" +
                 ", listener=" + listener +
                 ", listenerEnabled=" + listenerEnabled +
-                "allowlist=" + allowlist +
+                ", allowlist=" + allowlist +
                 '}';
     }
 
@@ -132,11 +132,11 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
      * @return An optional HTTPServer instance if started successfully, otherwise empty.
      */
     public synchronized Optional<HTTPServer> startHttpServer() {
+        if (!listenerEnabled) {
+            LOG.info("HTTP server listener not enabled");
+            return Optional.empty();
+        }
         try {
-            if (!listenerEnabled) {
-                LOG.info("HTTP server listener not enabled");
-                return Optional.empty();
-            }
             HTTPServer httpServer = new HTTPServer(listener.host, listener.port, true);
             LOG.info("HTTP server started on listener http://{}:{}", listener.host, httpServer.getPort());
             return Optional.of(httpServer);
