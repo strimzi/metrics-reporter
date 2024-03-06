@@ -98,9 +98,7 @@ public class PrometheusMetricsReporterConfigTest {
 
         assertTrue(httpServerOptional.isPresent());
         assertTrue(config.isListenerEnabled());
-
-        HTTPServer httpServer = httpServerOptional.get();
-        httpServer.close();
+        httpServerOptional.ifPresent(HTTPServer::close);
     }
 
     @Test
