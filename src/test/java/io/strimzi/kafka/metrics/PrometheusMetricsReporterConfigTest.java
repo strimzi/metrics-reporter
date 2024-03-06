@@ -96,8 +96,11 @@ public class PrometheusMetricsReporterConfigTest {
         PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props);
         Optional<HTTPServer> httpServerOptional = config.startHttpServer();
 
-        assertFalse(httpServerOptional.isEmpty());
+        assertTrue(httpServerOptional.isPresent());
         assertTrue(config.isListenerEnabled());
+
+        HTTPServer httpServer = httpServerOptional.get();
+        httpServer.close();
     }
 
     @Test

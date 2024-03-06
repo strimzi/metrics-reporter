@@ -47,7 +47,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
     /**
      * Default value for the listener enabled configuration.
      */
-    public static final Boolean LISTENER_ENABLE_DEFAULT = true;
+    public static final Boolean LISTENER_ENABLE_CONFIG_DEFAULT = true;
     private static final String LISTENER_ENABLE_CONFIG_DOC = "Enable the listener to expose the metrics.";
 
     /**
@@ -64,7 +64,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
     private static final ConfigDef CONFIG_DEF = new ConfigDef()
             .define(LISTENER_CONFIG, ConfigDef.Type.STRING, LISTENER_CONFIG_DEFAULT, new ListenerValidator(), ConfigDef.Importance.HIGH, LISTENER_CONFIG_DOC)
             .define(ALLOWLIST_CONFIG, ConfigDef.Type.LIST, ALLOWLIST_CONFIG_DEFAULT, ConfigDef.Importance.HIGH, ALLOWLIST_CONFIG_DOC)
-            .define(LISTENER_ENABLE_CONFIG, ConfigDef.Type.BOOLEAN, LISTENER_ENABLE_DEFAULT, ConfigDef.Importance.HIGH, LISTENER_ENABLE_CONFIG_DOC);
+            .define(LISTENER_ENABLE_CONFIG, ConfigDef.Type.BOOLEAN, LISTENER_ENABLE_CONFIG_DEFAULT, ConfigDef.Importance.HIGH, LISTENER_ENABLE_CONFIG_DOC);
 
     private final Listener listener;
     private final boolean listenerEnabled;
@@ -77,11 +77,9 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
      */
     public PrometheusMetricsReporterConfig(Map<?, ?> props) {
         super(CONFIG_DEF, props);
-
         this.listener = Listener.parseListener(getString(LISTENER_CONFIG));
         this.allowlist = compileAllowlist(getList(ALLOWLIST_CONFIG));
         this.listenerEnabled = getBoolean(LISTENER_ENABLE_CONFIG);
-
     }
 
     /**
