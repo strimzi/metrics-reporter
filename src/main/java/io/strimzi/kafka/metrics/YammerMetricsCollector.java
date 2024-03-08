@@ -38,6 +38,11 @@ public class YammerMetricsCollector extends Collector {
     private final List<MetricsRegistry> registries;
     private final PrometheusMetricsReporterConfig config;
 
+    /**
+     * Constructs a new YammerMetricsCollector with the provided configuration.
+     *
+     * @param config The configuration for the YammerMetricsCollector.
+     */
     public YammerMetricsCollector(PrometheusMetricsReporterConfig config) {
         this.config = config;
         this.registries = Arrays.asList(KafkaYammerMetrics.defaultRegistry(), Metrics.defaultRegistry());

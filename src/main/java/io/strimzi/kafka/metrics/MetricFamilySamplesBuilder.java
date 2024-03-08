@@ -22,6 +22,12 @@ public class MetricFamilySamplesBuilder {
     private final String help;
     private final List<Collector.MetricFamilySamples.Sample> samples;
 
+    /**
+     * Constructor for MetricFamilySamplesBuilder.
+     *
+     * @param type The type of the metric family.
+     * @param help help string for the metric family.
+     */
     public MetricFamilySamplesBuilder(Collector.Type type, String help) {
         this.type = type;
         this.help = help;

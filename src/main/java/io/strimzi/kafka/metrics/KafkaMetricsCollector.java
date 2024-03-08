@@ -31,11 +31,21 @@ public class KafkaMetricsCollector extends Collector {
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // Should be investigated as part of https://github.com/strimzi/metrics-reporter/issues/12
     private String prefix;
 
+    /**
+     * Constructs a new KafkaMetricsCollector with provided configuration.
+     *
+     * @param config The configuration for the PrometheusMetricsReporter.
+     */
     public KafkaMetricsCollector(PrometheusMetricsReporterConfig config) {
         this.config = config;
         this.metrics = new ConcurrentHashMap<>();
     }
 
+    /**
+     * Sets the prefix to be used for metric names.
+     *
+     * @param prefix The prefix to set.
+     */
     public void setPrefix(String prefix) {
         this.prefix = prefix;
     }
@@ -65,10 +75,20 @@ public class KafkaMetricsCollector extends Collector {
         return samples;
     }
 
+    /**
+     * Adds a Kafka metric to be collected.
+     *
+     * @param metric The Kafka metric to add.
+     */
     public void addMetric(KafkaMetric metric) {
         metrics.put(metric.metricName(), metric);
     }
 
+    /**
+     * Removes a Kafka metric from collection.
+     *
+     * @param metric The Kafka metric to remove.
+     */
     public void removeMetric(KafkaMetric metric) {
         metrics.remove(metric.metricName());
     }

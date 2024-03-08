@@ -89,6 +89,12 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
         kafkaMetricsCollector.setPrefix(prefix);
     }
 
+    /**
+     *
+     Retrieves the port number on which the HTTP server is running.
+     *
+     @return The port number of the HTTP server.
+     */
     public int getPort() {
         return httpServer.get().getPort();
     }
