@@ -4,12 +4,14 @@
  */
 package io.strimzi.kafka.metrics;
 
+import io.prometheus.client.exporter.HTTPServer;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -86,4 +88,28 @@ public class PrometheusMetricsReporterConfigTest {
         assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "randomhttp://:8080random"));
         assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "randomhttp://:8080"));
     }
+
+    @Test
+    public void testIsListenerEnabled() {
+        Map<String, Boolean> props = new HashMap<>();
+        props.put(PrometheusMetricsReporterConfig.LISTENER_ENABLE_CONFIG, true);
+        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props);
+        Optional<HTTPServer> httpServerOptional = config.startHttpServer();
+
+        assertTrue(httpServerOptional.isPresent());
+        assertTrue(config.isListenerEnabled());
+        httpServerOptional.ifPresent(HTTPServer::close);
+    }
+
+    @Test
+    public void testIsListenerDisabled() {
+        Map<String, Boolean> props = new HashMap<>();
+        props.put(PrometheusMetricsReporterConfig.LISTENER_ENABLE_CONFIG, false);
+        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props);
+        Optional<HTTPServer> httpServerOptional = config.startHttpServer();
+
+        assertTrue(httpServerOptional.isEmpty());
+        assertFalse(config.isListenerEnabled());
+    }
 }
+

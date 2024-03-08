@@ -40,6 +40,17 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
     private static final String LISTENER_CONFIG_DOC = "The HTTP listener to expose the metrics.";
 
     /**
+     * Configuration key to determine if the listener is enabled or not.
+     */
+    public static final String LISTENER_ENABLE_CONFIG = CONFIG_PREFIX + "listener.enable";
+
+    /**
+     * Default value for the listener enabled configuration.
+     */
+    public static final Boolean LISTENER_ENABLE_CONFIG_DEFAULT = true;
+    private static final String LISTENER_ENABLE_CONFIG_DOC = "Enable the listener to expose the metrics.";
+
+    /**
      * Configuration key for the allowlist of metrics to collect.
      */
     public static final String ALLOWLIST_CONFIG = CONFIG_PREFIX + "allowlist";
@@ -52,9 +63,11 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
 
     private static final ConfigDef CONFIG_DEF = new ConfigDef()
             .define(LISTENER_CONFIG, ConfigDef.Type.STRING, LISTENER_CONFIG_DEFAULT, new ListenerValidator(), ConfigDef.Importance.HIGH, LISTENER_CONFIG_DOC)
-            .define(ALLOWLIST_CONFIG, ConfigDef.Type.LIST, ALLOWLIST_CONFIG_DEFAULT, ConfigDef.Importance.HIGH, ALLOWLIST_CONFIG_DOC);
+            .define(ALLOWLIST_CONFIG, ConfigDef.Type.LIST, ALLOWLIST_CONFIG_DEFAULT, ConfigDef.Importance.HIGH, ALLOWLIST_CONFIG_DOC)
+            .define(LISTENER_ENABLE_CONFIG, ConfigDef.Type.BOOLEAN, LISTENER_ENABLE_CONFIG_DEFAULT, ConfigDef.Importance.HIGH, LISTENER_ENABLE_CONFIG_DOC);
 
     private final Listener listener;
+    private final boolean listenerEnabled;
     private final Pattern allowlist;
 
     /**
@@ -66,6 +79,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
         super(CONFIG_DEF, props);
         this.listener = Listener.parseListener(getString(LISTENER_CONFIG));
         this.allowlist = compileAllowlist(getList(ALLOWLIST_CONFIG));
+        this.listenerEnabled = getBoolean(LISTENER_ENABLE_CONFIG);
     }
 
     /**
@@ -92,11 +106,21 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
         return listener.toString();
     }
 
+    /**
+     * Check whether the listener is enabled.
+     *
+     * @return {@code true} if the listener is enabled, {@code false} otherwise.
+     */
+    public boolean isListenerEnabled() {
+        return listenerEnabled;
+    }
+
     @Override
     public String toString() {
         return "PrometheusMetricsReporterConfig{" +
-                "allowlist=" + allowlist +
                 ", listener=" + listener +
+                ", listenerEnabled=" + listenerEnabled +
+                ", allowlist=" + allowlist +
                 '}';
     }
 
@@ -106,6 +130,10 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
      * @return An optional HTTPServer instance if started successfully, otherwise empty.
      */
     public synchronized Optional<HTTPServer> startHttpServer() {
+        if (!listenerEnabled) {
+            LOG.info("HTTP server listener not enabled");
+            return Optional.empty();
+        }
         try {
             HTTPServer httpServer = new HTTPServer(listener.host, listener.port, true);
             LOG.info("HTTP server started on listener http://{}:{}", listener.host, httpServer.getPort());
