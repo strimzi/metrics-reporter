@@ -26,7 +26,7 @@ public class MetricFamilySamplesBuilder {
      * Constructor for MetricFamilySamplesBuilder.
      *
      * @param type The type of the metric family.
-     * @param help help string for the metric family.
+     * @param help The help string for the metric family.
      */
     public MetricFamilySamplesBuilder(Collector.Type type, String help) {
         this.type = type;
