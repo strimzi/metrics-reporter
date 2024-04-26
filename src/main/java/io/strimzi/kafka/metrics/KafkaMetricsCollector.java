@@ -4,7 +4,6 @@
  */
 package io.strimzi.kafka.metrics;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.prometheus.client.Collector;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
@@ -27,8 +26,7 @@ public class KafkaMetricsCollector extends Collector {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaMetricsCollector.class.getName());
 
     private final Map<MetricName, KafkaMetric> metrics;
-    private final PrometheusMetricsReporterConfig config;
-    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // Should be investigated as part of https://github.com/strimzi/metrics-reporter/issues/12
+    private PrometheusMetricsReporterConfig config;
     private String prefix;
 
     /**
@@ -39,6 +37,7 @@ public class KafkaMetricsCollector extends Collector {
     public KafkaMetricsCollector(PrometheusMetricsReporterConfig config) {
         this.config = config;
         this.metrics = new ConcurrentHashMap<>();
+        this.prefix = config.getMetricNamePrefix();
     }
 
     /**
@@ -48,6 +47,16 @@ public class KafkaMetricsCollector extends Collector {
      */
     public void setPrefix(String prefix) {
         this.prefix = prefix;
+    }
+
+    /**
+     * Configure the KafkaMetricsCollector with the provided configuration.
+     *
+     * @param config The PrometheusMetricsReporterConfig object containing the configuration.
+     */
+    public void configure(PrometheusMetricsReporterConfig config) {
+        this.config = config;
+        this.prefix = config.getMetricNamePrefix();
     }
 
     @Override

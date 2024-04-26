@@ -26,7 +26,18 @@ import java.util.regex.Pattern;
 public class PrometheusMetricsReporterConfig extends AbstractConfig {
 
     private static final Logger LOG = LoggerFactory.getLogger(PrometheusMetricsReporterConfig.class.getName());
+
     private static final String CONFIG_PREFIX = "prometheus.metrics.reporter.";
+    /**
+     * Configuration key for the metric name prefix.
+     */
+    public static final String METRIC_NAME_PREFIX_CONFIG = CONFIG_PREFIX + "metric.prefix";
+
+    /**
+     * Default value for the metric name prefix configuration.
+     */
+    public static final String METRIC_NAME_PREFIX_DEFAULT = "";
+    private static final String METRIC_NAME_PREFIX_DOC = "The prefix to be used for metric names.";
 
     /**
      * Configuration key for the listener to expose the metrics.
@@ -64,11 +75,15 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
     private static final ConfigDef CONFIG_DEF = new ConfigDef()
             .define(LISTENER_CONFIG, ConfigDef.Type.STRING, LISTENER_CONFIG_DEFAULT, new ListenerValidator(), ConfigDef.Importance.HIGH, LISTENER_CONFIG_DOC)
             .define(ALLOWLIST_CONFIG, ConfigDef.Type.LIST, ALLOWLIST_CONFIG_DEFAULT, ConfigDef.Importance.HIGH, ALLOWLIST_CONFIG_DOC)
-            .define(LISTENER_ENABLE_CONFIG, ConfigDef.Type.BOOLEAN, LISTENER_ENABLE_CONFIG_DEFAULT, ConfigDef.Importance.HIGH, LISTENER_ENABLE_CONFIG_DOC);
+            .define(LISTENER_ENABLE_CONFIG, ConfigDef.Type.BOOLEAN, LISTENER_ENABLE_CONFIG_DEFAULT, ConfigDef.Importance.HIGH, LISTENER_ENABLE_CONFIG_DOC)
+            .define(METRIC_NAME_PREFIX_CONFIG, ConfigDef.Type.STRING, METRIC_NAME_PREFIX_DEFAULT, ConfigDef.Importance.HIGH, METRIC_NAME_PREFIX_DOC);
+
 
     private final Listener listener;
     private final boolean listenerEnabled;
     private final Pattern allowlist;
+    private final String metricNamePrefix;
+
 
     /**
      * Constructor.
@@ -80,6 +95,16 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
         this.listener = Listener.parseListener(getString(LISTENER_CONFIG));
         this.allowlist = compileAllowlist(getList(ALLOWLIST_CONFIG));
         this.listenerEnabled = getBoolean(LISTENER_ENABLE_CONFIG);
+        this.metricNamePrefix = getString(METRIC_NAME_PREFIX_CONFIG);
+    }
+
+    /**
+     * Retrieves the prefix used for metric names.
+     *
+     * @return The prefix used for metric names.
+     */
+    public String getMetricNamePrefix() {
+        return metricNamePrefix;
     }
 
     /**
@@ -121,6 +146,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
                 ", listener=" + listener +
                 ", listenerEnabled=" + listenerEnabled +
                 ", allowlist=" + allowlist +
+                ", metricNamePrefix=" + metricNamePrefix +
                 '}';
     }
 
