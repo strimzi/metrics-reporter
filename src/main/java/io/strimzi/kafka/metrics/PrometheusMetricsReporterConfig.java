@@ -26,6 +26,7 @@ import java.util.regex.Pattern;
 public class PrometheusMetricsReporterConfig extends AbstractConfig {
 
     private static final Logger LOG = LoggerFactory.getLogger(PrometheusMetricsReporterConfig.class.getName());
+
     private static final String CONFIG_PREFIX = "prometheus.metrics.reporter.";
 
     /**

@@ -4,7 +4,6 @@
  */
 package io.strimzi.kafka.metrics;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.exporter.HTTPServer;
 import io.prometheus.client.hotspot.DefaultExports;
@@ -29,19 +28,15 @@ import java.util.Set;
 public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaPrometheusMetricsReporter.class.getName());
-
-    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // Should be investigated as part of https://github.com/strimzi/metrics-reporter/issues/12
-    private KafkaMetricsCollector kafkaMetricsCollector;
-    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // Should be investigated as part of https://github.com/strimzi/metrics-reporter/issues/12
-    private Optional<HTTPServer> httpServer;
+    private KafkaMetricsCollector kafkaMetricsCollector = new KafkaMetricsCollector();
+    private Optional<HTTPServer> httpServer = Optional.empty();
 
     @Override
     public void configure(Map<String, ?> map) {
-        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(map);
-        kafkaMetricsCollector = new KafkaMetricsCollector(config);
+        kafkaMetricsCollector.configure(map);
         // Add JVM metrics
         DefaultExports.initialize();
-        httpServer = config.startHttpServer();
+        httpServer = kafkaMetricsCollector.config().startHttpServer();
     }
 
     @Override
