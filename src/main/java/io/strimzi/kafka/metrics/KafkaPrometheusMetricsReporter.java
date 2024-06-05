@@ -28,16 +28,15 @@ import java.util.Set;
 public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaPrometheusMetricsReporter.class.getName());
-    private KafkaMetricsCollector kafkaMetricsCollector = new KafkaMetricsCollector(new PrometheusMetricsReporterConfig(Collections.emptyMap()));
+    private KafkaMetricsCollector kafkaMetricsCollector = new KafkaMetricsCollector();
     private Optional<HTTPServer> httpServer = Optional.empty();
 
     @Override
     public void configure(Map<String, ?> map) {
-        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(map);
-        kafkaMetricsCollector.configure(config);
+        kafkaMetricsCollector.configure(map);
         // Add JVM metrics
         DefaultExports.initialize();
-        httpServer = config.startHttpServer();
+        httpServer = kafkaMetricsCollector.config().startHttpServer();
     }
 
     @Override

@@ -4,7 +4,9 @@
  */
 package io.strimzi.kafka.metrics;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.prometheus.client.Collector;
+import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.slf4j.Logger;
@@ -21,23 +23,26 @@ import java.util.stream.Collectors;
 /**
  * Prometheus Collector to store and export metrics retrieved by the reporters.
  */
-public class KafkaMetricsCollector extends Collector {
+public class KafkaMetricsCollector extends Collector implements Configurable {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaMetricsCollector.class.getName());
 
-    private final Map<MetricName, KafkaMetric> metrics;
+    private final Map<MetricName, KafkaMetric> metrics = new ConcurrentHashMap<>();
     private PrometheusMetricsReporterConfig config;
+    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // Should be investigated as part of https://github.com/strimzi/metrics-reporter/issues/12
     private String prefix;
 
-    /**
-     * Constructs a new KafkaMetricsCollector with provided configuration.
-     *
-     * @param config The configuration for the PrometheusMetricsReporter.
-     */
-    public KafkaMetricsCollector(PrometheusMetricsReporterConfig config) {
-        this.config = config;
-        this.metrics = new ConcurrentHashMap<>();
-        this.prefix = config.getMetricNamePrefix();
+    public KafkaMetricsCollector() {
+        this.config = new PrometheusMetricsReporterConfig(new LinkedHashMap<>());
+    }
+
+    public PrometheusMetricsReporterConfig config() {
+        return config;
+    }
+
+    @Override
+    public void configure(Map<String, ?> map) {
+        config = new PrometheusMetricsReporterConfig(map);
     }
 
     /**
@@ -47,16 +52,6 @@ public class KafkaMetricsCollector extends Collector {
      */
     public void setPrefix(String prefix) {
         this.prefix = prefix;
-    }
-
-    /**
-     * Configure the KafkaMetricsCollector with the provided configuration.
-     *
-     * @param config The PrometheusMetricsReporterConfig object containing the configuration.
-     */
-    public void configure(PrometheusMetricsReporterConfig config) {
-        this.config = config;
-        this.prefix = config.getMetricNamePrefix();
     }
 
     @Override
