@@ -111,12 +111,6 @@ public class KafkaMetricsCollector extends Collector {
 
     static MetricFamilySamples convert(String name, String help, KafkaMetric metric, Map<String, String> labels) {
         Object value = metric.metricValue();
-        if (!(value instanceof Number)) {
-            // Prometheus only accepts numeric metrics.
-            // Kafka gauges can have arbitrary types, so skip them for now
-            // TODO move non-numeric values to labels
-            return null;
-        }
         Map<String, String> sanitizedLabels = labels.entrySet().stream()
                 .collect(Collectors.toMap(
                         e -> Collector.sanitizeMetricName(e.getKey()),
@@ -125,6 +119,16 @@ public class KafkaMetricsCollector extends Collector {
                             throw new IllegalStateException("Unexpected duplicate key " + v1);
                         },
                         LinkedHashMap::new));
+
+        if (!(value instanceof Number)) {
+            // If the value is non-numeric, add it as a label and set the metric value to 1.0
+            LOG.info("*******Converting non-numeric metric {} with value {} to label", name, value);
+            sanitizedLabels.put("value", value.toString());
+            return new MetricFamilySamplesBuilder(Type.GAUGE, help)
+                    .addSample(name, 1.0, sanitizedLabels)
+                    .build();
+        }
+
         return new MetricFamilySamplesBuilder(Type.GAUGE, help)
                 .addSample(name, ((Number) value).doubleValue(), sanitizedLabels)
                 .build();

@@ -22,7 +22,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-
 public class KafkaMetricsCollectorTest {
 
     private final MetricConfig metricConfig = new MetricConfig();
@@ -51,10 +50,15 @@ public class KafkaMetricsCollectorTest {
         metrics = collector.collect();
         assertTrue(metrics.isEmpty());
 
-        // Adding a non-numeric metric does nothing
-        collector.addMetric(buildNonNumericMetric("name2", "group"));
+        // Adding a non-numeric metric converted
+        KafkaMetric nonNumericMetric = buildNonNumericMetric("name", "group");
+        collector.addMetric(nonNumericMetric);
         metrics = collector.collect();
-        assertTrue(metrics.isEmpty());
+        assertEquals(1, metrics.size());
+        assertEquals("kafka_server_group_name", metrics.get(0).name);
+        assertEquals(1, metrics.get(0).samples.size());
+        assertEquals(1.0, metrics.get(0).samples.get(0).value, 1.0);
+        assertTrue(metrics.get(0).samples.get(0).labelNames.contains("value"));
 
         // Adding a metric that matches the allowlist
         collector.addMetric(buildMetric("name", "group", 1.0));
