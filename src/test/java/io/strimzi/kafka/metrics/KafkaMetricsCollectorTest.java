@@ -50,33 +50,27 @@ public class KafkaMetricsCollectorTest {
         metrics = collector.collect();
         assertTrue(metrics.isEmpty());
 
-        // Adding a non-numeric metric converted
-        KafkaMetric nonNumericMetric = buildNonNumericMetric("name", "group");
-        collector.addMetric(nonNumericMetric);
-        metrics = collector.collect();
-        assertEquals(1, metrics.size());
-        assertEquals("kafka_server_group_name", metrics.get(0).name);
-        assertEquals(1, metrics.get(0).samples.size());
-        assertEquals(1.0, metrics.get(0).samples.get(0).value, 1.0);
-        assertTrue(metrics.get(0).samples.get(0).labelNames.contains("value"));
-
         // Adding a metric that matches the allowlist
         collector.addMetric(buildMetric("name", "group", 1.0));
         metrics = collector.collect();
+        Collector.MetricFamilySamples getMetrics = metrics.get(0);
+
         assertEquals(1, metrics.size());
-        assertEquals("kafka_server_group_name", metrics.get(0).name);
-        assertEquals(1, metrics.get(0).samples.size());
-        assertEquals(1.0, metrics.get(0).samples.get(0).value, 0.1);
-        assertEquals(new ArrayList<>(labels.keySet()), metrics.get(0).samples.get(0).labelNames);
-        assertEquals(new ArrayList<>(labels.values()), metrics.get(0).samples.get(0).labelValues);
+        assertEquals("kafka_server_group_name", getMetrics.name);
+        assertEquals(1, getMetrics.samples.size());
+        assertEquals(1.0, getMetrics.samples.get(0).value, 0.1);
+        assertEquals(new ArrayList<>(labels.keySet()), getMetrics.samples.get(0).labelNames);
+        assertEquals(new ArrayList<>(labels.values()), getMetrics.samples.get(0).labelValues);
 
         // Adding the same metric updates its value
         collector.addMetric(buildMetric("name", "group", 3.0));
         metrics = collector.collect();
+        Collector.MetricFamilySamples getMetrics1 = metrics.get(0);
+
         assertEquals(1, metrics.size());
-        assertEquals("kafka_server_group_name", metrics.get(0).name);
-        assertEquals(1, metrics.get(0).samples.size());
-        assertEquals(3.0, metrics.get(0).samples.get(0).value, 0.1);
+        assertEquals("kafka_server_group_name", getMetrics1.name);
+        assertEquals(1, getMetrics1.samples.size());
+        assertEquals(3.0, getMetrics1.samples.get(0).value, 0.1);
 
         // Removing the metric
         collector.removeMetric(buildMetric("name", "group", 4.0));
@@ -102,6 +96,30 @@ public class KafkaMetricsCollectorTest {
                 measurable,
                 metricConfig,
                 time);
+    }
+
+    @Test
+    public void testCollectNonNumericMetric() {
+        Map<String, String> props = new HashMap<>();
+        props.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server_group_name.*");
+        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props);
+        KafkaMetricsCollector collector = new KafkaMetricsCollector(config);
+        collector.setPrefix("kafka.server");
+
+        List<Collector.MetricFamilySamples> metrics = collector.collect();
+        assertTrue(metrics.isEmpty());
+
+        // Adding a non-numeric metric converted
+        KafkaMetric nonNumericMetric = buildNonNumericMetric("name", "group");
+        collector.addMetric(nonNumericMetric);
+        metrics = collector.collect();
+        Collector.MetricFamilySamples getMetrics = metrics.get(0);
+
+        assertEquals(1, metrics.size());
+        assertEquals("kafka_server_group_name", getMetrics.name);
+        assertEquals(1, getMetrics.samples.size());
+        assertEquals(1.0, getMetrics.samples.get(0).value, 0);
+        assertTrue(getMetrics.samples.get(0).labelNames.contains("kafka_server_group_name"));
     }
 
 }

@@ -110,7 +110,8 @@ public class KafkaMetricsCollector extends Collector {
     }
 
     static MetricFamilySamples convert(String name, String help, KafkaMetric metric, Map<String, String> labels) {
-        Object value = metric.metricValue();
+        Object valueObj = metric.metricValue();
+        final double value;
         Map<String, String> sanitizedLabels = labels.entrySet().stream()
                 .collect(Collectors.toMap(
                         e -> Collector.sanitizeMetricName(e.getKey()),
@@ -120,17 +121,16 @@ public class KafkaMetricsCollector extends Collector {
                         },
                         LinkedHashMap::new));
 
-        if (!(value instanceof Number)) {
-            // If the value is non-numeric, add it as a label and set the metric value to 1.0
-            LOG.info("*******Converting non-numeric metric {} with value {} to label", name, value);
-            sanitizedLabels.put("value", value.toString());
-            return new MetricFamilySamplesBuilder(Type.GAUGE, help)
-                    .addSample(name, 1.0, sanitizedLabels)
-                    .build();
+        if (valueObj instanceof Number) {
+            value = ((Number) valueObj).doubleValue();
+        } else {
+            value = 1.0;
+            sanitizedLabels.put(name, String.valueOf(valueObj));
         }
 
         return new MetricFamilySamplesBuilder(Type.GAUGE, help)
-                .addSample(name, ((Number) value).doubleValue(), sanitizedLabels)
+                .addSample(name, value, sanitizedLabels)
                 .build();
     }
+
 }
