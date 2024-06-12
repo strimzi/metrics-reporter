@@ -53,29 +53,82 @@ public class KafkaMetricsCollectorTest {
         // Adding a metric that matches the allowlist
         collector.addMetric(buildMetric("name", "group", 1.0));
         metrics = collector.collect();
-        Collector.MetricFamilySamples getMetrics = metrics.get(0);
-
+        assertMetric(metrics, "kafka_server_group_name", 1.0, labels);
         assertEquals(1, metrics.size());
-        assertEquals("kafka_server_group_name", getMetrics.name);
-        assertEquals(1, getMetrics.samples.size());
-        assertEquals(1.0, getMetrics.samples.get(0).value, 0.1);
-        assertEquals(new ArrayList<>(labels.keySet()), getMetrics.samples.get(0).labelNames);
-        assertEquals(new ArrayList<>(labels.values()), getMetrics.samples.get(0).labelValues);
+
+        Collector.MetricFamilySamples metricFamilySamples = metrics.get(0);
+        Collector.MetricFamilySamples.Sample serverGroupNameSamples = metricFamilySamples.samples.get(0);
+
+        assertEquals("kafka_server_group_name", metricFamilySamples.name);
+        assertEquals(1, metricFamilySamples.samples.size());
+        assertEquals(1.0, serverGroupNameSamples.value, 0.1);
+        assertEquals(new ArrayList<>(labels.keySet()), serverGroupNameSamples.labelNames);
+        assertEquals(new ArrayList<>(labels.values()), serverGroupNameSamples.labelValues);
 
         // Adding the same metric updates its value
         collector.addMetric(buildMetric("name", "group", 3.0));
         metrics = collector.collect();
-        Collector.MetricFamilySamples getMetrics1 = metrics.get(0);
-
+        assertMetric(metrics, "kafka_server_group_name", 3.0, labels);
         assertEquals(1, metrics.size());
-        assertEquals("kafka_server_group_name", getMetrics1.name);
-        assertEquals(1, getMetrics1.samples.size());
-        assertEquals(3.0, getMetrics1.samples.get(0).value, 0.1);
+
+        Collector.MetricFamilySamples metricFamilySamples1 = metrics.get(0);
+        Collector.MetricFamilySamples.Sample serverGroupNameSamples1 = metricFamilySamples1.samples.get(0);
+
+        assertEquals("kafka_server_group_name", metricFamilySamples1.name);
+        assertEquals(1, metricFamilySamples1.samples.size());
+        assertEquals(3.0, serverGroupNameSamples1.value, 0.1);
 
         // Removing the metric
         collector.removeMetric(buildMetric("name", "group", 4.0));
         metrics = collector.collect();
         assertTrue(metrics.isEmpty());
+    }
+
+    @Test
+    public void testCollectNonNumericMetric() {
+        Map<String, String> props = new HashMap<>();
+        props.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server_group_name.*");
+        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props);
+        KafkaMetricsCollector collector = new KafkaMetricsCollector(config);
+        collector.setPrefix("kafka.server");
+
+        List<Collector.MetricFamilySamples> metrics = collector.collect();
+        assertTrue(metrics.isEmpty());
+
+        // Adding a non-numeric metric converted
+        KafkaMetric nonNumericMetric = buildNonNumericMetric("name", "group");
+        collector.addMetric(nonNumericMetric);
+        metrics = collector.collect();
+
+        Map<String, String> expectedLabels = new HashMap<>(labels);
+        expectedLabels.put("kafka_server_group_name", "hello");
+        assertMetric(metrics, "kafka_server_group_name", 1.0, expectedLabels);
+        assertEquals(1, metrics.size());
+
+        Collector.MetricFamilySamples metricFamilySamples = metrics.get(0);
+        Collector.MetricFamilySamples.Sample serverGroupNameSamples = metricFamilySamples.samples.get(0);
+
+        assertEquals("kafka_server_group_name", metricFamilySamples.name);
+        assertEquals(1, metricFamilySamples.samples.size());
+        assertEquals(1.0, serverGroupNameSamples.value, 0);
+        assertTrue(serverGroupNameSamples.labelNames.contains("kafka_server_group_name"));
+    }
+
+    public void assertMetric(List<Collector.MetricFamilySamples> metrics, String expectedName, double expectedValue, Map<String, String> expectedLabels) {
+        boolean metricFound = false;
+        for (Collector.MetricFamilySamples metricFamilySamples : metrics) {
+            if (metricFamilySamples.name.equals(expectedName)) {
+                for (Collector.MetricFamilySamples.Sample sample : metricFamilySamples.samples) {
+                    if (sample.value == expectedValue &&
+                            sample.labelNames.equals(new ArrayList<>(expectedLabels.keySet())) &&
+                            sample.labelValues.equals(new ArrayList<>(expectedLabels.values()))) {
+                        metricFound = true;
+                        break;
+                    }
+                }
+            }
+        }
+        assertTrue(metricFound, "Expected metric not found: " + expectedName);
     }
 
     private KafkaMetric buildMetric(String name, String group, double value) {
@@ -96,30 +149,6 @@ public class KafkaMetricsCollectorTest {
                 measurable,
                 metricConfig,
                 time);
-    }
-
-    @Test
-    public void testCollectNonNumericMetric() {
-        Map<String, String> props = new HashMap<>();
-        props.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server_group_name.*");
-        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props);
-        KafkaMetricsCollector collector = new KafkaMetricsCollector(config);
-        collector.setPrefix("kafka.server");
-
-        List<Collector.MetricFamilySamples> metrics = collector.collect();
-        assertTrue(metrics.isEmpty());
-
-        // Adding a non-numeric metric converted
-        KafkaMetric nonNumericMetric = buildNonNumericMetric("name", "group");
-        collector.addMetric(nonNumericMetric);
-        metrics = collector.collect();
-        Collector.MetricFamilySamples getMetrics = metrics.get(0);
-
-        assertEquals(1, metrics.size());
-        assertEquals("kafka_server_group_name", getMetrics.name);
-        assertEquals(1, getMetrics.samples.size());
-        assertEquals(1.0, getMetrics.samples.get(0).value, 0);
-        assertTrue(getMetrics.samples.get(0).labelNames.contains("kafka_server_group_name"));
     }
 
 }

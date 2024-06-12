@@ -111,7 +111,7 @@ public class KafkaMetricsCollector extends Collector {
 
     static MetricFamilySamples convert(String name, String help, KafkaMetric metric, Map<String, String> labels) {
         Object valueObj = metric.metricValue();
-        final double value;
+        double value;
         Map<String, String> sanitizedLabels = labels.entrySet().stream()
                 .collect(Collectors.toMap(
                         e -> Collector.sanitizeMetricName(e.getKey()),

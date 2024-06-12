@@ -25,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * MetricsReporter implementation that expose Kafka metrics in the Prometheus format.
@@ -121,14 +122,26 @@ public class YammerMetricsCollector extends Collector {
     }
 
     static MetricFamilySamples convert(String name, Gauge<?> gauge, Map<String, String> labels) {
-        Object value = gauge.value();
-        if (!(value instanceof Number)) {
-            // Prometheus only accepts numeric metrics.
-            // Some Kafka gauges have string values (for example kafka.server:type=KafkaServer,name=ClusterId), so skip them
-            return null;
+        Object valueObj = gauge.value();
+        double value;
+        Map<String, String> sanitizedLabels = labels.entrySet().stream()
+                .collect(Collectors.toMap(
+                        e -> Collector.sanitizeMetricName(e.getKey()),
+                        Map.Entry::getValue,
+                        (v1, v2) -> {
+                            throw new IllegalStateException("Unexpected duplicate key " + v1);
+                        },
+                        LinkedHashMap::new));
+
+        if (valueObj instanceof Number) {
+            value = ((Number) valueObj).doubleValue();
+        } else {
+            value = 1.0;
+            sanitizedLabels.put("value", String.valueOf(valueObj));
         }
+
         return new MetricFamilySamplesBuilder(Type.GAUGE, "")
-                .addSample(name, ((Number) value).doubleValue(), labels)
+                .addSample(name, value, sanitizedLabels)
                 .build();
     }
 
