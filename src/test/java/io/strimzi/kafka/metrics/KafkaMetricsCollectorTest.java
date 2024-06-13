@@ -11,7 +11,6 @@ import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Measurable;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.utils.Time;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -26,16 +25,10 @@ public class KafkaMetricsCollectorTest {
 
     private final MetricConfig metricConfig = new MetricConfig();
     private final Time time = Time.SYSTEM;
-    private Map<String, String> labels;
-
-    @BeforeEach
-    public void setup() {
-        labels = new HashMap<>();
-        labels.put("key", "value");
-    }
+    private final Map<String, String> labels = Map.of("key", "value");
 
     @Test
-    public void testCollect() {
+    public void testMetricLifecycle() {
         Map<String, String> props = new HashMap<>();
         props.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server_group_name.*");
         PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props);
@@ -53,30 +46,18 @@ public class KafkaMetricsCollectorTest {
         // Adding a metric that matches the allowlist
         collector.addMetric(buildMetric("name", "group", 1.0));
         metrics = collector.collect();
-        assertMetric(metrics, "kafka_server_group_name", 1.0, labels);
         assertEquals(1, metrics.size());
 
         Collector.MetricFamilySamples metricFamilySamples = metrics.get(0);
-        Collector.MetricFamilySamples.Sample serverGroupNameSamples = metricFamilySamples.samples.get(0);
-
-        assertEquals("kafka_server_group_name", metricFamilySamples.name);
-        assertEquals(1, metricFamilySamples.samples.size());
-        assertEquals(1.0, serverGroupNameSamples.value, 0.1);
-        assertEquals(new ArrayList<>(labels.keySet()), serverGroupNameSamples.labelNames);
-        assertEquals(new ArrayList<>(labels.values()), serverGroupNameSamples.labelValues);
+        assertMetricFamilySample(metricFamilySamples, "kafka_server_group_name", 1.0, labels);
 
         // Adding the same metric updates its value
         collector.addMetric(buildMetric("name", "group", 3.0));
         metrics = collector.collect();
-        assertMetric(metrics, "kafka_server_group_name", 3.0, labels);
         assertEquals(1, metrics.size());
 
-        Collector.MetricFamilySamples metricFamilySamples1 = metrics.get(0);
-        Collector.MetricFamilySamples.Sample serverGroupNameSamples1 = metricFamilySamples1.samples.get(0);
-
-        assertEquals("kafka_server_group_name", metricFamilySamples1.name);
-        assertEquals(1, metricFamilySamples1.samples.size());
-        assertEquals(3.0, serverGroupNameSamples1.value, 0.1);
+        Collector.MetricFamilySamples updatedMetrics = metrics.get(0);
+        assertMetricFamilySample(updatedMetrics, "kafka_server_group_name", 3.0, labels);
 
         // Removing the metric
         collector.removeMetric(buildMetric("name", "group", 4.0));
@@ -96,39 +77,31 @@ public class KafkaMetricsCollectorTest {
         assertTrue(metrics.isEmpty());
 
         // Adding a non-numeric metric converted
-        KafkaMetric nonNumericMetric = buildNonNumericMetric("name", "group");
+        String nonNumericValue = "myValue";
+        KafkaMetric nonNumericMetric = buildNonNumericMetric("name", "group", nonNumericValue);
         collector.addMetric(nonNumericMetric);
         metrics = collector.collect();
 
         Map<String, String> expectedLabels = new HashMap<>(labels);
-        expectedLabels.put("kafka_server_group_name", "hello");
-        assertMetric(metrics, "kafka_server_group_name", 1.0, expectedLabels);
+        expectedLabels.put("kafka_server_group_name", nonNumericValue);
         assertEquals(1, metrics.size());
 
         Collector.MetricFamilySamples metricFamilySamples = metrics.get(0);
-        Collector.MetricFamilySamples.Sample serverGroupNameSamples = metricFamilySamples.samples.get(0);
 
         assertEquals("kafka_server_group_name", metricFamilySamples.name);
         assertEquals(1, metricFamilySamples.samples.size());
-        assertEquals(1.0, serverGroupNameSamples.value, 0);
-        assertTrue(serverGroupNameSamples.labelNames.contains("kafka_server_group_name"));
+        assertMetricFamilySample(metricFamilySamples, "kafka_server_group_name", 1.0, expectedLabels);
     }
 
-    public void assertMetric(List<Collector.MetricFamilySamples> metrics, String expectedName, double expectedValue, Map<String, String> expectedLabels) {
-        boolean metricFound = false;
-        for (Collector.MetricFamilySamples metricFamilySamples : metrics) {
-            if (metricFamilySamples.name.equals(expectedName)) {
-                for (Collector.MetricFamilySamples.Sample sample : metricFamilySamples.samples) {
-                    if (sample.value == expectedValue &&
-                            sample.labelNames.equals(new ArrayList<>(expectedLabels.keySet())) &&
-                            sample.labelValues.equals(new ArrayList<>(expectedLabels.values()))) {
-                        metricFound = true;
-                        break;
-                    }
-                }
-            }
-        }
-        assertTrue(metricFound, "Expected metric not found: " + expectedName);
+    private void assertMetricFamilySample(Collector.MetricFamilySamples actual, String expectedSampleName, double expectedValue, Map<String, String> expectedLabels) {
+        assertEquals(expectedSampleName, actual.name, "unexpected name");
+        assertEquals(1, actual.samples.size(), "unexpected number of samples");
+
+        Collector.MetricFamilySamples.Sample actualSample = actual.samples.get(0);
+
+        assertEquals(expectedValue, actualSample.value, 0.1, "unexpected value");
+        assertEquals(new ArrayList<>(expectedLabels.keySet()), actualSample.labelNames, "sample has unexpected label names");
+        assertEquals(new ArrayList<>(expectedLabels.values()), actualSample.labelValues, "sample has unexpected label values");
     }
 
     private KafkaMetric buildMetric(String name, String group, double value) {
@@ -141,8 +114,8 @@ public class KafkaMetricsCollectorTest {
                 time);
     }
 
-    private KafkaMetric buildNonNumericMetric(String name, String group) {
-        Gauge<String> measurable = (config, now) -> "hello";
+    private KafkaMetric buildNonNumericMetric(String name, String group, String nonNumericValue) {
+        Gauge<String> measurable = (config, now) -> nonNumericValue;
         return new KafkaMetric(
                 new Object(),
                 new MetricName(name, group, "", labels),

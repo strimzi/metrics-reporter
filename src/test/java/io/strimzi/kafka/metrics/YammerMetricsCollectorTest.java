@@ -39,7 +39,7 @@ public class YammerMetricsCollectorTest {
 
     @Test
     @Order(1)
-    public void testCollect() {
+    public void testMetricLifeCycle() {
         Map<String, String> props = new HashMap<>();
         props.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server_group_name.*");
         PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props);
@@ -56,7 +56,6 @@ public class YammerMetricsCollectorTest {
         // Adding a metric that matches the allowlist
         Counter counter = newCounter("group", "name", "type");
         metrics = collector.collect();
-        assertMetric(metrics, "kafka_server_group_name_type_count", 0.0, tags);
         assertEquals(1, metrics.size());
 
         Collector.MetricFamilySamples metricFamilySamples = metrics.get(0);
@@ -71,7 +70,6 @@ public class YammerMetricsCollectorTest {
         // Updating the value of the metric
         counter.inc(10);
         metrics = collector.collect();
-        assertMetric(metrics, "kafka_server_group_name_type_count", 10.0, tags);
         assertEquals(1, metrics.size());
 
         Collector.MetricFamilySamples metricFamilySamples1 = metrics.get(0);
@@ -100,35 +98,27 @@ public class YammerMetricsCollectorTest {
 
         newNonNumericGauge("group", "name", "type");
         metrics = collector.collect();
-        // Including the additional "value" label
+
         Map<String, String> expectedTags = new LinkedHashMap<>(tags);
         expectedTags.put("value", "value");
-        assertMetric(metrics, "kafka_server_group_name_type", 1.0, expectedTags);
         assertEquals(1, metrics.size());
 
         Collector.MetricFamilySamples metricFamilySamples = metrics.get(0);
-        Collector.MetricFamilySamples.Sample serverGroupNameSamples = metricFamilySamples.samples.get(0);
 
         assertEquals("kafka_server_group_name_type", metricFamilySamples.name);
         assertEquals(1, metricFamilySamples.samples.size());
-        assertEquals(1.0, serverGroupNameSamples.value, 0.1);
+        assertMetricFamilySample(metricFamilySamples, "kafka_server_group_name_type", 1.0, expectedTags);
     }
 
-    public void assertMetric(List<Collector.MetricFamilySamples> metrics, String expectedName, double expectedValue, Map<String, String> expectedLabels) {
-        boolean metricFound = false;
-        for (Collector.MetricFamilySamples metricFamilySamples : metrics) {
-            if (metricFamilySamples.name.equals(expectedName)) {
-                for (Collector.MetricFamilySamples.Sample sample : metricFamilySamples.samples) {
-                    if (sample.value == expectedValue &&
-                            sample.labelNames.equals(new ArrayList<>(expectedLabels.keySet())) &&
-                            sample.labelValues.equals(new ArrayList<>(expectedLabels.values()))) {
-                        metricFound = true;
-                        break;
-                    }
-                }
-            }
-        }
-        assertTrue(metricFound, "Expected metric not found: " + expectedName);
+    private void assertMetricFamilySample(Collector.MetricFamilySamples actual, String expectedSampleName, double expectedValue, Map<String, String> expectedTags) {
+        assertEquals(expectedSampleName, actual.name, "unexpected name");
+        assertEquals(1, actual.samples.size(), "unexpected number of samples");
+
+        Collector.MetricFamilySamples.Sample actualSample = actual.samples.get(0);
+
+        assertEquals(expectedValue, actualSample.value, 0.1, "unexpected value");
+        assertEquals(new ArrayList<>(expectedTags.keySet()), actualSample.labelNames, "sample has unexpected label names");
+        assertEquals(new ArrayList<>(expectedTags.values()), actualSample.labelValues, "sample has unexpected label values");
     }
 
     @Test
