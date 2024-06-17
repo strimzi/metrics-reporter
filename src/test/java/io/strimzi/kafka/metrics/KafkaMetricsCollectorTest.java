@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -82,8 +83,8 @@ public class KafkaMetricsCollectorTest {
         collector.addMetric(nonNumericMetric);
         metrics = collector.collect();
 
-        Map<String, String> expectedLabels = new HashMap<>(labels);
-        expectedLabels.put("kafka_server_group_name", nonNumericValue);
+        Map<String, String> expectedLabels = new LinkedHashMap<>(labels);
+        expectedLabels.put("name", nonNumericValue);
         assertEquals(1, metrics.size());
 
         Collector.MetricFamilySamples metricFamilySamples = metrics.get(0);
@@ -99,7 +100,7 @@ public class KafkaMetricsCollectorTest {
 
         Collector.MetricFamilySamples.Sample actualSample = actual.samples.get(0);
 
-        assertEquals(expectedValue, actualSample.value, 0.1, "unexpected value");
+        assertEquals(actualSample.value, expectedValue, 0.1, "unexpected value");
         assertEquals(new ArrayList<>(expectedLabels.keySet()), actualSample.labelNames, "sample has unexpected label names");
         assertEquals(new ArrayList<>(expectedLabels.values()), actualSample.labelValues, "sample has unexpected label values");
     }

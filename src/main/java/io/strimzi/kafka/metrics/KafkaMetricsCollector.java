@@ -66,8 +66,7 @@ public class KafkaMetricsCollector extends Collector {
                 continue;
             }
             LOG.info("Kafka metric {} is allowed", name);
-            LOG.info("labels " + metricName.tags());
-            MetricFamilySamples sample = convert(name, metricName.description(), kafkaMetric, metricName.tags());
+            MetricFamilySamples sample = convert(name, metricName.description(), kafkaMetric, metricName.tags(), metricName);
             if (sample != null) {
                 samples.add(sample);
             }
@@ -109,28 +108,28 @@ public class KafkaMetricsCollector extends Collector {
         return prefix + '_' + group + '_' + name;
     }
 
-    static MetricFamilySamples convert(String name, String help, KafkaMetric metric, Map<String, String> labels) {
-        Object valueObj = metric.metricValue();
-        double value;
+    static MetricFamilySamples convert(String name, String help, KafkaMetric metric, Map<String, String> labels, MetricName metricName) {
         Map<String, String> sanitizedLabels = labels.entrySet().stream()
                 .collect(Collectors.toMap(
                         e -> Collector.sanitizeMetricName(e.getKey()),
                         Map.Entry::getValue,
                         (v1, v2) -> {
-                            throw new IllegalStateException("Unexpected duplicate key " + v1);
+                            LOG.warn("Unexpected duplicate key" +  v1);
+                            return v1;
                         },
                         LinkedHashMap::new));
-
+        Object valueObj = metric.metricValue();
+        double value;
         if (valueObj instanceof Number) {
             value = ((Number) valueObj).doubleValue();
         } else {
             value = 1.0;
-            sanitizedLabels.put(name, String.valueOf(valueObj));
+            String attributeName = metricName.name();
+            sanitizedLabels.put(attributeName, String.valueOf(valueObj));
         }
 
         return new MetricFamilySamplesBuilder(Type.GAUGE, help)
                 .addSample(name, value, sanitizedLabels)
                 .build();
     }
-
 }

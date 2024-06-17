@@ -10,10 +10,7 @@ import com.yammer.metrics.core.MetricName;
 import io.prometheus.client.Collector;
 import org.apache.kafka.server.metrics.KafkaYammerMetrics;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,7 +21,6 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 
 public class YammerMetricsCollectorTest {
 
@@ -38,7 +34,6 @@ public class YammerMetricsCollectorTest {
     }
 
     @Test
-    @Order(1)
     public void testMetricLifeCycle() {
         Map<String, String> props = new HashMap<>();
         props.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server_group_name.*");
@@ -59,10 +54,10 @@ public class YammerMetricsCollectorTest {
         assertEquals(1, metrics.size());
 
         Collector.MetricFamilySamples metricFamilySamples = metrics.get(0);
-        Collector.MetricFamilySamples.Sample serverGroupNameSamples = metricFamilySamples.samples.get(0);
-
         assertEquals("kafka_server_group_name_type_count", metrics.get(0).name);
         assertEquals(1, metricFamilySamples.samples.size());
+
+        Collector.MetricFamilySamples.Sample serverGroupNameSamples = metricFamilySamples.samples.get(0);
         assertEquals(0.0, serverGroupNameSamples.value, 0.1);
         assertEquals(new ArrayList<>(tags.keySet()), serverGroupNameSamples.labelNames);
         assertEquals(new ArrayList<>(tags.values()), serverGroupNameSamples.labelValues);
@@ -72,12 +67,12 @@ public class YammerMetricsCollectorTest {
         metrics = collector.collect();
         assertEquals(1, metrics.size());
 
-        Collector.MetricFamilySamples metricFamilySamples1 = metrics.get(0);
-        Collector.MetricFamilySamples.Sample serverGroupNameSamples1 = metricFamilySamples1.samples.get(0);
+        metricFamilySamples = metrics.get(0);
+        serverGroupNameSamples = metricFamilySamples.samples.get(0);
 
-        assertEquals("kafka_server_group_name_type_count", metricFamilySamples1.name);
-        assertEquals(1, metricFamilySamples1.samples.size());
-        assertEquals(10.0, serverGroupNameSamples1.value, 0.1);
+        assertEquals("kafka_server_group_name_type_count", metricFamilySamples.name);
+        assertEquals(1, metricFamilySamples.samples.size());
+        assertEquals(10.0, serverGroupNameSamples.value, 0.1);
 
         // Removing the metric
         removeMetric("group", "name", "type");
@@ -86,7 +81,6 @@ public class YammerMetricsCollectorTest {
     }
 
     @Test
-    @Order(2)
     public void testCollectNonNumericMetric() {
         Map<String, String> props = new HashMap<>();
         props.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server_group_name.*");
@@ -100,7 +94,7 @@ public class YammerMetricsCollectorTest {
         metrics = collector.collect();
 
         Map<String, String> expectedTags = new LinkedHashMap<>(tags);
-        expectedTags.put("value", "value");
+        expectedTags.put("type", "value");
         assertEquals(1, metrics.size());
 
         Collector.MetricFamilySamples metricFamilySamples = metrics.get(0);

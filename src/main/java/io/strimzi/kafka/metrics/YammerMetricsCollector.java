@@ -73,7 +73,7 @@ public class YammerMetricsCollector extends Collector {
                 if (metric instanceof Counter) {
                     sample = convert(name, (Counter) metric, labels);
                 } else if (metric instanceof Gauge) {
-                    sample = convert(name, (Gauge<?>) metric, labels);
+                    sample = convert(name, (Gauge<?>) metric, labels, metricName);
                 } else if (metric instanceof Histogram) {
                     sample = convert(name, (Histogram) metric, labels);
                 } else if (metric instanceof Meter) {
@@ -121,23 +121,24 @@ public class YammerMetricsCollector extends Collector {
                 .build();
     }
 
-    static MetricFamilySamples convert(String name, Gauge<?> gauge, Map<String, String> labels) {
-        Object valueObj = gauge.value();
-        double value;
+    static MetricFamilySamples convert(String name, Gauge<?> gauge, Map<String, String> labels, MetricName metricName) {
         Map<String, String> sanitizedLabels = labels.entrySet().stream()
                 .collect(Collectors.toMap(
                         e -> Collector.sanitizeMetricName(e.getKey()),
                         Map.Entry::getValue,
                         (v1, v2) -> {
-                            throw new IllegalStateException("Unexpected duplicate key " + v1);
+                            LOG.warn("Unexpected duplicate key " + v1);
+                            return v1;
                         },
                         LinkedHashMap::new));
-
+        Object valueObj = gauge.value();
+        double value;
         if (valueObj instanceof Number) {
             value = ((Number) valueObj).doubleValue();
         } else {
             value = 1.0;
-            sanitizedLabels.put("value", String.valueOf(valueObj));
+            String attributeName = metricName.getName();
+            sanitizedLabels.put(attributeName, String.valueOf(valueObj));
         }
 
         return new MetricFamilySamplesBuilder(Type.GAUGE, "")
