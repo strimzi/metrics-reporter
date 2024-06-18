@@ -59,27 +59,27 @@ public class YammerMetricsCollector extends Collector {
                 Metric metric = entry.getValue();
                 LOG.trace("Collecting Yammer metric {}", metricName);
 
-                String name = metricName(metricName);
+                String prometheusMetricName = metricName(metricName);
                 // TODO Filtering should take labels into account
-                if (!config.isAllowed(name)) {
-                    LOG.info("Yammer metric {} is not allowed", name);
+                if (!config.isAllowed(prometheusMetricName)) {
+                    LOG.info("Yammer metric {} is not allowed", prometheusMetricName);
                     continue;
                 }
-                LOG.info("Yammer metric {} is allowed", name);
+                LOG.info("Yammer metric {} is allowed", prometheusMetricName);
                 Map<String, String> labels = labelsFromScope(metricName.getScope());
                 LOG.info("labels " + labels);
 
                 MetricFamilySamples sample = null;
                 if (metric instanceof Counter) {
-                    sample = convert(name, (Counter) metric, labels);
+                    sample = convert(prometheusMetricName, (Counter) metric, labels);
                 } else if (metric instanceof Gauge) {
-                    sample = convert(name, (Gauge<?>) metric, labels, metricName);
+                    sample = convert(prometheusMetricName, (Gauge<?>) metric, labels, metricName);
                 } else if (metric instanceof Histogram) {
-                    sample = convert(name, (Histogram) metric, labels);
+                    sample = convert(prometheusMetricName, (Histogram) metric, labels);
                 } else if (metric instanceof Meter) {
-                    sample = convert(name, (Meter) metric, labels);
+                    sample = convert(prometheusMetricName, (Meter) metric, labels);
                 } else if (metric instanceof Timer) {
-                    sample = convert(name, (Timer) metric, labels);
+                    sample = convert(prometheusMetricName, (Timer) metric, labels);
                 } else {
                     LOG.error("The metric " + metric.getClass().getName() + " has an unexpected type.");
                 }
@@ -115,19 +115,19 @@ public class YammerMetricsCollector extends Collector {
         return Collections.emptyMap();
     }
 
-    static MetricFamilySamples convert(String name, Counter counter, Map<String, String> labels) {
+    static MetricFamilySamples convert(String prometheusMetricName, Counter counter, Map<String, String> labels) {
         return new MetricFamilySamplesBuilder(Type.GAUGE, "")
-                .addSample(name + "_count", counter.count(), labels)
+                .addSample(prometheusMetricName + "_count", counter.count(), labels)
                 .build();
     }
 
-    static MetricFamilySamples convert(String name, Gauge<?> gauge, Map<String, String> labels, MetricName metricName) {
+    private static MetricFamilySamples convert(String prometheusMetricName, Gauge<?> gauge, Map<String, String> labels, MetricName metricName) {
         Map<String, String> sanitizedLabels = labels.entrySet().stream()
                 .collect(Collectors.toMap(
                         e -> Collector.sanitizeMetricName(e.getKey()),
                         Map.Entry::getValue,
                         (v1, v2) -> {
-                            LOG.warn("Unexpected duplicate key " + v1);
+                            LOG.warn("Ignoring metric value duplicate key {}", v1);
                             return v1;
                         },
                         LinkedHashMap::new));
@@ -142,27 +142,27 @@ public class YammerMetricsCollector extends Collector {
         }
 
         return new MetricFamilySamplesBuilder(Type.GAUGE, "")
-                .addSample(name, value, sanitizedLabels)
+                .addSample(prometheusMetricName, value, sanitizedLabels)
                 .build();
     }
 
-    static MetricFamilySamples convert(String name, Meter meter, Map<String, String> labels) {
+    static MetricFamilySamples convert(String prometheusMetricName, Meter meter, Map<String, String> labels) {
         return new MetricFamilySamplesBuilder(Type.COUNTER, "")
-                .addSample(name + "_count", meter.count(), labels)
+                .addSample(prometheusMetricName + "_count", meter.count(), labels)
                 .build();
     }
 
-    static MetricFamilySamples convert(String name, Histogram histogram, Map<String, String> labels) {
+    static MetricFamilySamples convert(String prometheusMetricName, Histogram histogram, Map<String, String> labels) {
         return new MetricFamilySamplesBuilder(Type.SUMMARY, "")
-                .addSample(name + "_count", histogram.count(), labels)
-                .addQuantileSamples(name, histogram.getSnapshot(), labels)
+                .addSample(prometheusMetricName + "_count", histogram.count(), labels)
+                .addQuantileSamples(prometheusMetricName, histogram.getSnapshot(), labels)
                 .build();
     }
 
-    static MetricFamilySamples convert(String name, Timer metric, Map<String, String> labels) {
+    static MetricFamilySamples convert(String prometheusMetricName, Timer metric, Map<String, String> labels) {
         return new MetricFamilySamplesBuilder(Type.SUMMARY, "")
-                .addSample(name + "_count", metric.count(), labels)
-                .addQuantileSamples(name, metric.getSnapshot(), labels)
+                .addSample(prometheusMetricName + "_count", metric.count(), labels)
+                .addQuantileSamples(prometheusMetricName, metric.getSnapshot(), labels)
                 .build();
     }
 }

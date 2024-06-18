@@ -59,14 +59,14 @@ public class KafkaMetricsCollector extends Collector {
             KafkaMetric kafkaMetric = entry.getValue();
             LOG.trace("Collecting Kafka metric {}", metricName);
 
-            String name = metricName(metricName);
+            String prometheusMetricName = metricName(metricName);
             // TODO Filtering should take labels into account
-            if (!config.isAllowed(name)) {
-                LOG.info("Kafka metric {} is not allowed", name);
+            if (!config.isAllowed(prometheusMetricName)) {
+                LOG.info("Kafka metric {} is not allowed", prometheusMetricName);
                 continue;
             }
-            LOG.info("Kafka metric {} is allowed", name);
-            MetricFamilySamples sample = convert(name, metricName.description(), kafkaMetric, metricName.tags(), metricName);
+            LOG.info("Kafka metric {} is allowed", prometheusMetricName);
+            MetricFamilySamples sample = convert(prometheusMetricName, kafkaMetric, metricName);
             if (sample != null) {
                 samples.add(sample);
             }
@@ -108,13 +108,13 @@ public class KafkaMetricsCollector extends Collector {
         return prefix + '_' + group + '_' + name;
     }
 
-    static MetricFamilySamples convert(String name, String help, KafkaMetric metric, Map<String, String> labels, MetricName metricName) {
-        Map<String, String> sanitizedLabels = labels.entrySet().stream()
+    private static MetricFamilySamples convert(String prometheusMetricName, KafkaMetric metric, MetricName metricName) {
+        Map<String, String> sanitizedLabels = metricName.tags().entrySet().stream()
                 .collect(Collectors.toMap(
                         e -> Collector.sanitizeMetricName(e.getKey()),
                         Map.Entry::getValue,
                         (v1, v2) -> {
-                            LOG.warn("Unexpected duplicate key" +  v1);
+                            LOG.warn("Ignoring metric value duplicate key {}", v1);
                             return v1;
                         },
                         LinkedHashMap::new));
@@ -128,8 +128,8 @@ public class KafkaMetricsCollector extends Collector {
             sanitizedLabels.put(attributeName, String.valueOf(valueObj));
         }
 
-        return new MetricFamilySamplesBuilder(Type.GAUGE, help)
-                .addSample(name, value, sanitizedLabels)
+        return new MetricFamilySamplesBuilder(Type.GAUGE, metric.metricName().description())
+                .addSample(prometheusMetricName, value, sanitizedLabels)
                 .build();
     }
 }
