@@ -54,10 +54,11 @@ public class YammerMetricsCollectorTest {
         assertEquals(1, metrics.size());
 
         Collector.MetricFamilySamples metricFamilySamples = metrics.get(0);
+
         assertEquals("kafka_server_group_name_type_count", metrics.get(0).name);
-        assertEquals(1, metricFamilySamples.samples.size());
 
         Collector.MetricFamilySamples.Sample serverGroupNameSamples = metricFamilySamples.samples.get(0);
+
         assertEquals(0.0, serverGroupNameSamples.value, 0.1);
         assertEquals(new ArrayList<>(tags.keySet()), serverGroupNameSamples.labelNames);
         assertEquals(new ArrayList<>(tags.values()), serverGroupNameSamples.labelValues);
@@ -71,7 +72,6 @@ public class YammerMetricsCollectorTest {
         serverGroupNameSamples = metricFamilySamples.samples.get(0);
 
         assertEquals("kafka_server_group_name_type_count", metricFamilySamples.name);
-        assertEquals(1, metricFamilySamples.samples.size());
         assertEquals(10.0, serverGroupNameSamples.value, 0.1);
 
         // Removing the metric
@@ -107,7 +107,8 @@ public class YammerMetricsCollectorTest {
 
         Collector.MetricFamilySamples.Sample actualSample = actual.samples.get(0);
 
-        assertEquals(1.0, actualSample.value, 0.1, "unexpected value");
+        assertEquals(1, actual.samples.size());
+        assertEquals(1.0, actualSample.value, 0.1);
         assertEquals(new ArrayList<>(expectedTags.keySet()), actualSample.labelNames);
         assertEquals(new ArrayList<>(expectedTags.values()), actualSample.labelValues);
     }

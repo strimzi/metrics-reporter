@@ -11,6 +11,7 @@ import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Measurable;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.utils.Time;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -26,7 +27,13 @@ public class KafkaMetricsCollectorTest {
 
     private final MetricConfig metricConfig = new MetricConfig();
     private final Time time = Time.SYSTEM;
-    private final Map<String, String> labels = Map.of("key", "value");
+    private Map<String, String> labels;
+
+    @BeforeEach
+    public void setup() {
+        labels = new HashMap<>();
+        labels.put("key", "value");
+    }
 
     @Test
     public void testMetricLifecycle() {
@@ -90,7 +97,6 @@ public class KafkaMetricsCollectorTest {
         Collector.MetricFamilySamples metricFamilySamples = metrics.get(0);
 
         assertEquals("kafka_server_group_name", metricFamilySamples.name);
-        assertEquals(1, metricFamilySamples.samples.size());
         assertMetricFamilySample(metricFamilySamples, 1.0, expectedLabels);
     }
 
@@ -98,6 +104,7 @@ public class KafkaMetricsCollectorTest {
 
         Collector.MetricFamilySamples.Sample actualSample = actual.samples.get(0);
 
+        assertEquals(1, actual.samples.size());
         assertEquals(actualSample.value, expectedValue, 0.1);
         assertEquals(new ArrayList<>(expectedLabels.keySet()), actualSample.labelNames);
         assertEquals(new ArrayList<>(expectedLabels.values()), actualSample.labelValues);
@@ -113,8 +120,8 @@ public class KafkaMetricsCollectorTest {
                 time);
     }
 
-    private KafkaMetric buildNonNumericMetric(String name, String group, String nonNumericValue) {
-        Gauge<String> measurable = (config, now) -> nonNumericValue;
+    private KafkaMetric buildNonNumericMetric(String name, String group, String value) {
+        Gauge<String> measurable = (config, now) -> value;
         return new KafkaMetric(
                 new Object(),
                 new MetricName(name, group, "", labels),

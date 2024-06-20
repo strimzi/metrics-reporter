@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  */
 public class MetricFamilySamplesBuilder {
 
-    private static final Logger LOG = LoggerFactory.getLogger(KafkaMetricsCollector.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(MetricFamilySamplesBuilder.class.getName());
     private final Collector.Type type;
     private final String help;
     private final List<Collector.MetricFamilySamples.Sample> samples;
