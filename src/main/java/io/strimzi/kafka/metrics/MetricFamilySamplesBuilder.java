@@ -64,6 +64,15 @@ public class MetricFamilySamplesBuilder {
         return new Collector.MetricFamilySamples(samples.get(0).name, type, help, samples);
     }
 
+    /**
+     * Sanitizes the given map of labels by replacing any characters in the label keys
+     * that are not allowed in Prometheus metric names with an underscore ('_').
+     * If there are duplicate keys after sanitization, a warning is logged, and the first value is retained.
+     *
+     * @param labels The map of labels to be sanitized. The keys of this map are label names,
+     *               and the values are label values.
+     * @return A new map with sanitized label names and the same label values.
+     */
     public static Map<String, String> sanitizeLabels(Map<String, String> labels) {
         return labels.entrySet().stream()
                 .collect(Collectors.toMap(
