@@ -25,7 +25,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * MetricsReporter implementation that expose Kafka metrics in the Prometheus format.
@@ -67,7 +66,7 @@ public class YammerMetricsCollector extends Collector {
                 }
                 LOG.info("Yammer metric {} is allowed", prometheusMetricName);
                 Map<String, String> labels = labelsFromScope(metricName.getScope());
-                LOG.info("labels " + labels);
+                LOG.info("labels {} ", labels);
 
                 MetricFamilySamples sample = null;
                 if (metric instanceof Counter) {
@@ -122,15 +121,7 @@ public class YammerMetricsCollector extends Collector {
     }
 
     private static MetricFamilySamples convert(String prometheusMetricName, Gauge<?> gauge, Map<String, String> labels, MetricName metricName) {
-        Map<String, String> sanitizedLabels = labels.entrySet().stream()
-                .collect(Collectors.toMap(
-                        e -> Collector.sanitizeMetricName(e.getKey()),
-                        Map.Entry::getValue,
-                        (v1, v2) -> {
-                            LOG.warn("Ignoring metric value duplicate key {}", v1);
-                            return v1;
-                        },
-                        LinkedHashMap::new));
+        Map<String, String> sanitizedLabels = MetricFamilySamplesBuilder.sanitizeLabels(labels);
         Object valueObj = gauge.value();
         double value;
         if (valueObj instanceof Number) {
@@ -138,7 +129,7 @@ public class YammerMetricsCollector extends Collector {
         } else {
             value = 1.0;
             String attributeName = metricName.getName();
-            sanitizedLabels.put(attributeName, String.valueOf(valueObj));
+            sanitizedLabels.put(Collector.sanitizeMetricName(attributeName), String.valueOf(valueObj));
         }
 
         return new MetricFamilySamplesBuilder(Type.GAUGE, "")

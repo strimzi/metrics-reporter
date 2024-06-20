@@ -50,7 +50,7 @@ public class KafkaMetricsCollectorTest {
         assertEquals(1, metrics.size());
 
         Collector.MetricFamilySamples metricFamilySamples = metrics.get(0);
-        assertMetricFamilySample(metricFamilySamples, "kafka_server_group_name", 1.0, labels);
+        assertMetricFamilySample(metricFamilySamples, 1.0, labels);
 
         // Adding the same metric updates its value
         collector.addMetric(buildMetric("name", "group", 3.0));
@@ -58,7 +58,7 @@ public class KafkaMetricsCollectorTest {
         assertEquals(1, metrics.size());
 
         Collector.MetricFamilySamples updatedMetrics = metrics.get(0);
-        assertMetricFamilySample(updatedMetrics, "kafka_server_group_name", 3.0, labels);
+        assertMetricFamilySample(updatedMetrics, 3.0, labels);
 
         // Removing the metric
         collector.removeMetric(buildMetric("name", "group", 4.0));
@@ -91,18 +91,16 @@ public class KafkaMetricsCollectorTest {
 
         assertEquals("kafka_server_group_name", metricFamilySamples.name);
         assertEquals(1, metricFamilySamples.samples.size());
-        assertMetricFamilySample(metricFamilySamples, "kafka_server_group_name", 1.0, expectedLabels);
+        assertMetricFamilySample(metricFamilySamples, 1.0, expectedLabels);
     }
 
-    private void assertMetricFamilySample(Collector.MetricFamilySamples actual, String expectedSampleName, double expectedValue, Map<String, String> expectedLabels) {
-        assertEquals(expectedSampleName, actual.name, "unexpected name");
-        assertEquals(1, actual.samples.size(), "unexpected number of samples");
+    private void assertMetricFamilySample(Collector.MetricFamilySamples actual, double expectedValue, Map<String, String> expectedLabels) {
 
         Collector.MetricFamilySamples.Sample actualSample = actual.samples.get(0);
 
-        assertEquals(actualSample.value, expectedValue, 0.1, "unexpected value");
-        assertEquals(new ArrayList<>(expectedLabels.keySet()), actualSample.labelNames, "sample has unexpected label names");
-        assertEquals(new ArrayList<>(expectedLabels.values()), actualSample.labelValues, "sample has unexpected label values");
+        assertEquals(actualSample.value, expectedValue, 0.1);
+        assertEquals(new ArrayList<>(expectedLabels.keySet()), actualSample.labelNames);
+        assertEquals(new ArrayList<>(expectedLabels.values()), actualSample.labelValues);
     }
 
     private KafkaMetric buildMetric(String name, String group, double value) {

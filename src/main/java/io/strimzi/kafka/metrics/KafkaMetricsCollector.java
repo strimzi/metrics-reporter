@@ -12,12 +12,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * Prometheus Collector to store and export metrics retrieved by the reporters.
@@ -109,15 +107,7 @@ public class KafkaMetricsCollector extends Collector {
     }
 
     private static MetricFamilySamples convert(String prometheusMetricName, KafkaMetric metric, MetricName metricName) {
-        Map<String, String> sanitizedLabels = metricName.tags().entrySet().stream()
-                .collect(Collectors.toMap(
-                        e -> Collector.sanitizeMetricName(e.getKey()),
-                        Map.Entry::getValue,
-                        (v1, v2) -> {
-                            LOG.warn("Ignoring metric value duplicate key {}", v1);
-                            return v1;
-                        },
-                        LinkedHashMap::new));
+        Map<String, String> sanitizedLabels = MetricFamilySamplesBuilder.sanitizeLabels(metricName.tags());
         Object valueObj = metric.metricValue();
         double value;
         if (valueObj instanceof Number) {
@@ -125,11 +115,11 @@ public class KafkaMetricsCollector extends Collector {
         } else {
             value = 1.0;
             String attributeName = metricName.name();
-            sanitizedLabels.put(attributeName, String.valueOf(valueObj));
+            sanitizedLabels.put(Collector.sanitizeMetricName(attributeName), String.valueOf(valueObj));
         }
 
         return new MetricFamilySamplesBuilder(Type.GAUGE, metric.metricName().description())
-                .addSample(prometheusMetricName, value, sanitizedLabels)
-                .build();
+                   .addSample(prometheusMetricName, value, sanitizedLabels)
+                   .build();
     }
 }

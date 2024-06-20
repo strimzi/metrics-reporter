@@ -6,18 +6,23 @@ package io.strimzi.kafka.metrics;
 
 import com.yammer.metrics.stats.Snapshot;
 import io.prometheus.client.Collector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Helper class to convert Kafka metrics into the Prometheus format.
  */
 public class MetricFamilySamplesBuilder {
 
+    private static final Logger LOG = LoggerFactory.getLogger(KafkaMetricsCollector.class.getName());
     private final Collector.Type type;
     private final String help;
     private final List<Collector.MetricFamilySamples.Sample> samples;
@@ -57,5 +62,17 @@ public class MetricFamilySamplesBuilder {
             throw new IllegalStateException("There are no samples");
         }
         return new Collector.MetricFamilySamples(samples.get(0).name, type, help, samples);
+    }
+
+    public static Map<String, String> sanitizeLabels(Map<String, String> labels) {
+        return labels.entrySet().stream()
+                .collect(Collectors.toMap(
+                        e -> Collector.sanitizeMetricName(e.getKey()),
+                        Map.Entry::getValue,
+                        (v1, v2) -> {
+                            LOG.warn("Ignoring metric value duplicate key {}", v1);
+                            return v1;
+                        },
+                        LinkedHashMap::new));
     }
 }

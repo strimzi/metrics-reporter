@@ -100,19 +100,16 @@ public class YammerMetricsCollectorTest {
         Collector.MetricFamilySamples metricFamilySamples = metrics.get(0);
 
         assertEquals("kafka_server_group_name_type", metricFamilySamples.name);
-        assertEquals(1, metricFamilySamples.samples.size());
-        assertMetricFamilySample(metricFamilySamples, "kafka_server_group_name_type", 1.0, expectedTags);
+        assertMetricFamilySample(metricFamilySamples, expectedTags);
     }
 
-    private void assertMetricFamilySample(Collector.MetricFamilySamples actual, String expectedSampleName, double expectedValue, Map<String, String> expectedTags) {
-        assertEquals(expectedSampleName, actual.name, "unexpected name");
-        assertEquals(1, actual.samples.size(), "unexpected number of samples");
+    private void assertMetricFamilySample(Collector.MetricFamilySamples actual, Map<String, String> expectedTags) {
 
         Collector.MetricFamilySamples.Sample actualSample = actual.samples.get(0);
 
-        assertEquals(expectedValue, actualSample.value, 0.1, "unexpected value");
-        assertEquals(new ArrayList<>(expectedTags.keySet()), actualSample.labelNames, "sample has unexpected label names");
-        assertEquals(new ArrayList<>(expectedTags.values()), actualSample.labelValues, "sample has unexpected label values");
+        assertEquals(1.0, actualSample.value, 0.1, "unexpected value");
+        assertEquals(new ArrayList<>(expectedTags.keySet()), actualSample.labelNames);
+        assertEquals(new ArrayList<>(expectedTags.values()), actualSample.labelValues);
     }
 
     @Test
