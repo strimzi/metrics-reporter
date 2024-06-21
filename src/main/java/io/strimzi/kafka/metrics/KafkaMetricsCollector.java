@@ -12,12 +12,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * Prometheus Collector to store and export metrics retrieved by the reporters.
@@ -59,15 +57,14 @@ public class KafkaMetricsCollector extends Collector {
             KafkaMetric kafkaMetric = entry.getValue();
             LOG.trace("Collecting Kafka metric {}", metricName);
 
-            String name = metricName(metricName);
+            String prometheusMetricName = metricName(metricName);
             // TODO Filtering should take labels into account
-            if (!config.isAllowed(name)) {
-                LOG.info("Kafka metric {} is not allowed", name);
+            if (!config.isAllowed(prometheusMetricName)) {
+                LOG.info("Kafka metric {} is not allowed", prometheusMetricName);
                 continue;
             }
-            LOG.info("Kafka metric {} is allowed", name);
-            LOG.info("labels " + metricName.tags());
-            MetricFamilySamples sample = convert(name, metricName.description(), kafkaMetric, metricName.tags());
+            LOG.info("Kafka metric {} is allowed", prometheusMetricName);
+            MetricFamilySamples sample = convert(prometheusMetricName, kafkaMetric, metricName);
             if (sample != null) {
                 samples.add(sample);
             }
@@ -109,24 +106,20 @@ public class KafkaMetricsCollector extends Collector {
         return prefix + '_' + group + '_' + name;
     }
 
-    static MetricFamilySamples convert(String name, String help, KafkaMetric metric, Map<String, String> labels) {
-        Object value = metric.metricValue();
-        if (!(value instanceof Number)) {
-            // Prometheus only accepts numeric metrics.
-            // Kafka gauges can have arbitrary types, so skip them for now
-            // TODO move non-numeric values to labels
-            return null;
+    private static MetricFamilySamples convert(String prometheusMetricName, KafkaMetric metric, MetricName metricName) {
+        Map<String, String> sanitizedLabels = MetricFamilySamplesBuilder.sanitizeLabels(metricName.tags());
+        Object valueObj = metric.metricValue();
+        double value;
+        if (valueObj instanceof Number) {
+            value = ((Number) valueObj).doubleValue();
+        } else {
+            value = 1.0;
+            String attributeName = metricName.name();
+            sanitizedLabels.put(Collector.sanitizeMetricName(attributeName), String.valueOf(valueObj));
         }
-        Map<String, String> sanitizedLabels = labels.entrySet().stream()
-                .collect(Collectors.toMap(
-                        e -> Collector.sanitizeMetricName(e.getKey()),
-                        Map.Entry::getValue,
-                        (v1, v2) -> {
-                            throw new IllegalStateException("Unexpected duplicate key " + v1);
-                        },
-                        LinkedHashMap::new));
-        return new MetricFamilySamplesBuilder(Type.GAUGE, help)
-                .addSample(name, ((Number) value).doubleValue(), sanitizedLabels)
-                .build();
+
+        return new MetricFamilySamplesBuilder(Type.GAUGE, metric.metricName().description())
+                   .addSample(prometheusMetricName, value, sanitizedLabels)
+                   .build();
     }
 }

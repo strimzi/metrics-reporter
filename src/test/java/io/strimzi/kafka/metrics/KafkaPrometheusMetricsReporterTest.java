@@ -63,11 +63,11 @@ public class KafkaPrometheusMetricsReporterTest {
         KafkaMetric metric3 = buildNonNumericMetric("name3", "group");
         reporter.metricChange(metric3);
         metrics = getMetrics(port);
-        assertEquals(initialMetrics + 2, metrics.size());
+        assertEquals(initialMetrics + 3, metrics.size());
 
         reporter.metricRemoval(metric1);
         metrics = getMetrics(port);
-        assertEquals(initialMetrics + 1, metrics.size());
+        assertEquals(initialMetrics + 2, metrics.size());
 
         reporter.close();
     }
