@@ -13,25 +13,30 @@ import com.yammer.metrics.core.Metric;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.core.Timer;
-import io.prometheus.client.Collector;
+import io.prometheus.metrics.model.registry.MultiCollector;
+import io.prometheus.metrics.model.snapshots.CounterSnapshot;
+import io.prometheus.metrics.model.snapshots.GaugeSnapshot;
+import io.prometheus.metrics.model.snapshots.InfoSnapshot;
+import io.prometheus.metrics.model.snapshots.Labels;
+import io.prometheus.metrics.model.snapshots.MetricSnapshot;
+import io.prometheus.metrics.model.snapshots.MetricSnapshots;
+import io.prometheus.metrics.model.snapshots.PrometheusNaming;
+import io.prometheus.metrics.model.snapshots.SummarySnapshot;
 import org.apache.kafka.server.metrics.KafkaYammerMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 /**
- * MetricsReporter implementation that expose Kafka metrics in the Prometheus format.
- *
- * This can be used by Kafka brokers and clients.
+ * Prometheus Collector to store and export metrics retrieved by {@link YammerPrometheusMetricsReporter}.
  */
-public class YammerMetricsCollector extends Collector {
+public class YammerMetricsCollector implements MultiCollector {
 
     private static final Logger LOG = LoggerFactory.getLogger(YammerMetricsCollector.class.getName());
 
@@ -48,9 +53,16 @@ public class YammerMetricsCollector extends Collector {
         this.registries = Arrays.asList(KafkaYammerMetrics.defaultRegistry(), Metrics.defaultRegistry());
     }
 
+    /**
+     * Called when the Prometheus server scrapes metrics.
+     * @return metrics that match the configured allowlist
+     */
     @Override
-    public List<MetricFamilySamples> collect() {
-        List<MetricFamilySamples> samples = new ArrayList<>();
+    public MetricSnapshots collect() {
+        Map<String, CounterSnapshot.Builder> counterBuilders = new HashMap<>();
+        Map<String, GaugeSnapshot.Builder> gaugeBuilders = new HashMap<>();
+        Map<String, InfoSnapshot.Builder> infoBuilders = new HashMap<>();
+        Map<String, SummarySnapshot.Builder> summaryBuilders = new HashMap<>();
 
         for (MetricsRegistry registry : registries) {
             for (Map.Entry<MetricName, Metric> entry : registry.allMetrics().entrySet()) {
@@ -65,33 +77,54 @@ public class YammerMetricsCollector extends Collector {
                     continue;
                 }
                 LOG.info("Yammer metric {} is allowed", prometheusMetricName);
-                Map<String, String> labels = labelsFromScope(metricName.getScope());
-                LOG.info("labels {} ", labels);
+                Labels labels = labelsFromScope(metricName.getScope());
+                LOG.info("labels {}", labels);
 
-                MetricFamilySamples sample = null;
                 if (metric instanceof Counter) {
-                    sample = convert(prometheusMetricName, (Counter) metric, labels);
+                    CounterSnapshot.Builder builder = counterBuilders.computeIfAbsent(prometheusMetricName, k -> CounterSnapshot.builder().name(prometheusMetricName));
+                    builder.dataPoint(DataPointSnapshotBuilder.convert((Number) ((Counter) metric).count(), labels));
                 } else if (metric instanceof Gauge) {
-                    sample = convert(prometheusMetricName, (Gauge<?>) metric, labels, metricName);
-                } else if (metric instanceof Histogram) {
-                    sample = convert(prometheusMetricName, (Histogram) metric, labels);
-                } else if (metric instanceof Meter) {
-                    sample = convert(prometheusMetricName, (Meter) metric, labels);
+                    Object valueObj = ((Gauge<?>) metric).value();
+                    if (valueObj instanceof Number) {
+                        double value = ((Number) valueObj).doubleValue();
+                        GaugeSnapshot.Builder builder = gaugeBuilders.computeIfAbsent(prometheusMetricName, k -> GaugeSnapshot.builder().name(prometheusMetricName));
+                        builder.dataPoint(DataPointSnapshotBuilder.convert(value, labels));
+                    } else {
+                        InfoSnapshot.Builder builder = infoBuilders.computeIfAbsent(prometheusMetricName, k -> InfoSnapshot.builder().name(prometheusMetricName));
+                        builder.dataPoint(DataPointSnapshotBuilder.convert(valueObj, labels, metricName.getName()));
+                    }
                 } else if (metric instanceof Timer) {
-                    sample = convert(prometheusMetricName, (Timer) metric, labels);
+                    SummarySnapshot.Builder builder = summaryBuilders.computeIfAbsent(prometheusMetricName, k -> SummarySnapshot.builder().name(prometheusMetricName));
+                    builder.dataPoint(DataPointSnapshotBuilder.convert((Timer) metric, labels));
+                } else if (metric instanceof Histogram) {
+                    SummarySnapshot.Builder builder = summaryBuilders.computeIfAbsent(prometheusMetricName, k -> SummarySnapshot.builder().name(prometheusMetricName));
+                    builder.dataPoint(DataPointSnapshotBuilder.convert((Histogram) metric, labels));
+                } else if (metric instanceof Meter) {
+                    CounterSnapshot.Builder builder = counterBuilders.computeIfAbsent(prometheusMetricName, k -> CounterSnapshot.builder().name(prometheusMetricName));
+                    builder.dataPoint(DataPointSnapshotBuilder.convert((Number) ((Meter) metric).count(), labels));
                 } else {
-                    LOG.error("The metric " + metric.getClass().getName() + " has an unexpected type.");
-                }
-                if (sample != null) {
-                    samples.add(sample);
+                    LOG.error("The metric {} has an unexpected type.", metric.getClass().getName());
                 }
             }
         }
-        return samples;
+        List<MetricSnapshot> snapshots = new ArrayList<>();
+        for (GaugeSnapshot.Builder builder : gaugeBuilders.values()) {
+            snapshots.add(builder.build());
+        }
+        for (CounterSnapshot.Builder builder : counterBuilders.values()) {
+            snapshots.add(builder.build());
+        }
+        for (InfoSnapshot.Builder builder : infoBuilders.values()) {
+            snapshots.add(builder.build());
+        }
+        for (SummarySnapshot.Builder builder : summaryBuilders.values()) {
+            snapshots.add(builder.build());
+        }
+        return new MetricSnapshots(snapshots);
     }
 
-    static String metricName(MetricName metricName) {
-        String metricNameStr = Collector.sanitizeMetricName(
+    private static String metricName(MetricName metricName) {
+        String metricNameStr = PrometheusNaming.sanitizeMetricName(
                 "kafka_server_" +
                 metricName.getGroup() + '_' +
                 metricName.getType() + '_' +
@@ -100,60 +133,16 @@ public class YammerMetricsCollector extends Collector {
         return metricNameStr;
     }
 
-    static Map<String, String> labelsFromScope(String scope) {
+    static Labels labelsFromScope(String scope) {
+        Labels.Builder builder = Labels.builder();
         if (scope != null) {
             String[] parts = scope.split("\\.");
             if (parts.length % 2 == 0) {
-                Map<String, String> labels = new LinkedHashMap<>();
                 for (int i = 0; i < parts.length; i += 2) {
-                    labels.put(Collector.sanitizeMetricName(parts[i]), parts[i + 1]);
+                    builder.label(PrometheusNaming.sanitizeLabelName(parts[i]), parts[i + 1]);
                 }
-                return labels;
             }
         }
-        return Collections.emptyMap();
-    }
-
-    static MetricFamilySamples convert(String prometheusMetricName, Counter counter, Map<String, String> labels) {
-        return new MetricFamilySamplesBuilder(Type.GAUGE, "")
-                .addSample(prometheusMetricName + "_count", counter.count(), labels)
-                .build();
-    }
-
-    private static MetricFamilySamples convert(String prometheusMetricName, Gauge<?> gauge, Map<String, String> labels, MetricName metricName) {
-        Map<String, String> sanitizedLabels = MetricFamilySamplesBuilder.sanitizeLabels(labels);
-        Object valueObj = gauge.value();
-        double value;
-        if (valueObj instanceof Number) {
-            value = ((Number) valueObj).doubleValue();
-        } else {
-            value = 1.0;
-            String attributeName = metricName.getName();
-            sanitizedLabels.put(Collector.sanitizeMetricName(attributeName), String.valueOf(valueObj));
-        }
-
-        return new MetricFamilySamplesBuilder(Type.GAUGE, "")
-                .addSample(prometheusMetricName, value, sanitizedLabels)
-                .build();
-    }
-
-    static MetricFamilySamples convert(String prometheusMetricName, Meter meter, Map<String, String> labels) {
-        return new MetricFamilySamplesBuilder(Type.COUNTER, "")
-                .addSample(prometheusMetricName + "_count", meter.count(), labels)
-                .build();
-    }
-
-    static MetricFamilySamples convert(String prometheusMetricName, Histogram histogram, Map<String, String> labels) {
-        return new MetricFamilySamplesBuilder(Type.SUMMARY, "")
-                .addSample(prometheusMetricName + "_count", histogram.count(), labels)
-                .addQuantileSamples(prometheusMetricName, histogram.getSnapshot(), labels)
-                .build();
-    }
-
-    static MetricFamilySamples convert(String prometheusMetricName, Timer metric, Map<String, String> labels) {
-        return new MetricFamilySamplesBuilder(Type.SUMMARY, "")
-                .addSample(prometheusMetricName + "_count", metric.count(), labels)
-                .addQuantileSamples(prometheusMetricName, metric.getSnapshot(), labels)
-                .build();
+        return builder.build();
     }
 }

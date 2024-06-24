@@ -4,23 +4,17 @@
  */
 package io.strimzi.kafka.metrics;
 
-import io.prometheus.client.CollectorRegistry;
+import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import kafka.utils.VerifiableProperties;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Properties;
 
 public class YammerPrometheusMetricsReporterTest {
 
-    @BeforeEach
-    public void setup() {
-        CollectorRegistry.defaultRegistry.clear();
-    }
-
     @Test
     public void testLifeCycle() {
-        YammerPrometheusMetricsReporter reporter = new YammerPrometheusMetricsReporter();
+        YammerPrometheusMetricsReporter reporter = new YammerPrometheusMetricsReporter(new PrometheusRegistry());
         Properties configs = new Properties();
         configs.put("broker.id", "0");
         configs.put(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");

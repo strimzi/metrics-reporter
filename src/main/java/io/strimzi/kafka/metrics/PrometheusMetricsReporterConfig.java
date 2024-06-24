@@ -4,7 +4,8 @@
  */
 package io.strimzi.kafka.metrics;
 
-import io.prometheus.client.exporter.HTTPServer;
+import io.prometheus.metrics.exporter.httpserver.HTTPServer;
+import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
@@ -69,17 +70,20 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
     private final Listener listener;
     private final boolean listenerEnabled;
     private final Pattern allowlist;
+    private final PrometheusRegistry registry;
 
     /**
      * Constructor.
      *
      * @param props the configuration properties.
+     * @param registry the metrics registry
      */
-    public PrometheusMetricsReporterConfig(Map<?, ?> props) {
+    public PrometheusMetricsReporterConfig(Map<?, ?> props, PrometheusRegistry registry) {
         super(CONFIG_DEF, props);
         this.listener = Listener.parseListener(getString(LISTENER_CONFIG));
         this.allowlist = compileAllowlist(getList(ALLOWLIST_CONFIG));
         this.listenerEnabled = getBoolean(LISTENER_ENABLE_CONFIG);
+        this.registry = registry;
     }
 
     /**
@@ -135,7 +139,11 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
             return Optional.empty();
         }
         try {
-            HTTPServer httpServer = new HTTPServer(listener.host, listener.port, true);
+            HTTPServer httpServer = HTTPServer.builder()
+                    .hostname(listener.host)
+                    .port(listener.port)
+                    .registry(registry)
+                    .buildAndStart();
             LOG.info("HTTP server started on listener http://{}:{}", listener.host, httpServer.getPort());
             return Optional.of(httpServer);
         } catch (BindException be) {

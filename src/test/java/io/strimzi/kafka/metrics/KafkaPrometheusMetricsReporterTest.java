@@ -4,7 +4,7 @@
  */
 package io.strimzi.kafka.metrics;
 
-import io.prometheus.client.CollectorRegistry;
+import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.KafkaMetric;
@@ -12,7 +12,6 @@ import org.apache.kafka.common.metrics.KafkaMetricsContext;
 import org.apache.kafka.common.metrics.Measurable;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.utils.Time;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
@@ -33,20 +32,14 @@ public class KafkaPrometheusMetricsReporterTest {
     private final Time time = Time.SYSTEM;
     private final Map<String, String> labels = Collections.singletonMap("key", "value");
 
-    @BeforeEach
-    public void setup() {
-        CollectorRegistry.defaultRegistry.clear();
-    }
-
     @Test
     public void testLifeCycle() throws Exception {
-        KafkaPrometheusMetricsReporter reporter = new KafkaPrometheusMetricsReporter();
+        KafkaPrometheusMetricsReporter reporter = new KafkaPrometheusMetricsReporter(new PrometheusRegistry());
         Map<String, String> configs = new HashMap<>();
         configs.put(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");
         reporter.configure(configs);
         reporter.contextChange(new KafkaMetricsContext("kafka.server"));
         int port = reporter.getPort();
-        // The first test that runs will
         int initialMetrics = getMetrics(port).size();
 
         KafkaMetric metric1 = buildMetric("name1", "group", 0);
@@ -77,13 +70,13 @@ public class KafkaPrometheusMetricsReporterTest {
         Map<String, String> configs = new HashMap<>();
         configs.put(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");
 
-        KafkaPrometheusMetricsReporter reporter1 = new KafkaPrometheusMetricsReporter();
+        KafkaPrometheusMetricsReporter reporter1 = new KafkaPrometheusMetricsReporter(new PrometheusRegistry());
         reporter1.configure(configs);
         reporter1.contextChange(new KafkaMetricsContext("kafka.server"));
         int port = reporter1.getPort();
         int initialMetrics = getMetrics(port).size();
 
-        KafkaPrometheusMetricsReporter reporter2 = new KafkaPrometheusMetricsReporter();
+        KafkaPrometheusMetricsReporter reporter2 = new KafkaPrometheusMetricsReporter(new PrometheusRegistry());
         configs.put(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");
         reporter2.configure(configs);
         reporter2.contextChange(new KafkaMetricsContext("kafka.server"));

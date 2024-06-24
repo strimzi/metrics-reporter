@@ -5,5 +5,7 @@
         "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
 
 <suppressions>
-  <!-- No suppressions here -->
+  <suppress checks="CyclomaticComplexity" files="YammerMetricsCollector.java"/>
+  <suppress checks="NPathComplexity" files="YammerMetricsCollector.java"/>
+  <suppress checks="JavaNCSS" files="YammerMetricsCollector.java"/>
 </suppressions>
