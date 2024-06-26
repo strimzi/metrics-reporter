@@ -8,4 +8,5 @@
   <suppress checks="CyclomaticComplexity" files="YammerMetricsCollector.java"/>
   <suppress checks="NPathComplexity" files="YammerMetricsCollector.java"/>
   <suppress checks="JavaNCSS" files="YammerMetricsCollector.java"/>
+  <suppress checks="ClassFanOutComplexity" files="YammerMetricsCollector.java"/>
 </suppressions>

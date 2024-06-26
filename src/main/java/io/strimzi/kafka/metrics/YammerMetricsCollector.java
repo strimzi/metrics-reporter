@@ -12,6 +12,7 @@ import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.Metric;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.MetricsRegistry;
+import com.yammer.metrics.core.Sampling;
 import com.yammer.metrics.core.Timer;
 import io.prometheus.metrics.model.registry.MultiCollector;
 import io.prometheus.metrics.model.snapshots.CounterSnapshot;
@@ -21,6 +22,8 @@ import io.prometheus.metrics.model.snapshots.Labels;
 import io.prometheus.metrics.model.snapshots.MetricSnapshot;
 import io.prometheus.metrics.model.snapshots.MetricSnapshots;
 import io.prometheus.metrics.model.snapshots.PrometheusNaming;
+import io.prometheus.metrics.model.snapshots.Quantile;
+import io.prometheus.metrics.model.snapshots.Quantiles;
 import io.prometheus.metrics.model.snapshots.SummarySnapshot;
 import org.apache.kafka.server.metrics.KafkaYammerMetrics;
 import org.slf4j.Logger;
@@ -39,6 +42,7 @@ import java.util.Map;
 public class YammerMetricsCollector implements MultiCollector {
 
     private static final Logger LOG = LoggerFactory.getLogger(YammerMetricsCollector.class.getName());
+    private static final List<Double> QUANTILES = Arrays.asList(0.50, 0.75, 0.95, 0.98, 0.99, 0.999);
 
     private final List<MetricsRegistry> registries;
     private final PrometheusMetricsReporterConfig config;
@@ -81,27 +85,31 @@ public class YammerMetricsCollector implements MultiCollector {
                 LOG.info("labels {}", labels);
 
                 if (metric instanceof Counter) {
+                    Counter counter = (Counter) metric;
                     CounterSnapshot.Builder builder = counterBuilders.computeIfAbsent(prometheusMetricName, k -> CounterSnapshot.builder().name(prometheusMetricName));
-                    builder.dataPoint(DataPointSnapshotBuilder.convert((Number) ((Counter) metric).count(), labels));
+                    builder.dataPoint(DataPointSnapshotBuilder.counterDataPoint(labels, counter.count()));
                 } else if (metric instanceof Gauge) {
                     Object valueObj = ((Gauge<?>) metric).value();
                     if (valueObj instanceof Number) {
                         double value = ((Number) valueObj).doubleValue();
                         GaugeSnapshot.Builder builder = gaugeBuilders.computeIfAbsent(prometheusMetricName, k -> GaugeSnapshot.builder().name(prometheusMetricName));
-                        builder.dataPoint(DataPointSnapshotBuilder.convert(value, labels));
+                        builder.dataPoint(DataPointSnapshotBuilder.gaugeDataPoint(labels, value));
                     } else {
                         InfoSnapshot.Builder builder = infoBuilders.computeIfAbsent(prometheusMetricName, k -> InfoSnapshot.builder().name(prometheusMetricName));
-                        builder.dataPoint(DataPointSnapshotBuilder.convert(valueObj, labels, metricName.getName()));
+                        builder.dataPoint(DataPointSnapshotBuilder.infoDataPoint(labels, valueObj, metricName.getName()));
                     }
                 } else if (metric instanceof Timer) {
+                    Timer timer = (Timer) metric;
                     SummarySnapshot.Builder builder = summaryBuilders.computeIfAbsent(prometheusMetricName, k -> SummarySnapshot.builder().name(prometheusMetricName));
-                    builder.dataPoint(DataPointSnapshotBuilder.convert((Timer) metric, labels));
+                    builder.dataPoint(DataPointSnapshotBuilder.summaryDataPoint(labels, timer.count(), timer.sum(), quantiles(timer)));
                 } else if (metric instanceof Histogram) {
+                    Histogram histogram = (Histogram) metric;
                     SummarySnapshot.Builder builder = summaryBuilders.computeIfAbsent(prometheusMetricName, k -> SummarySnapshot.builder().name(prometheusMetricName));
-                    builder.dataPoint(DataPointSnapshotBuilder.convert((Histogram) metric, labels));
+                    builder.dataPoint(DataPointSnapshotBuilder.summaryDataPoint(labels, histogram.count(), histogram.sum(), quantiles(histogram)));
                 } else if (metric instanceof Meter) {
+                    Meter meter = (Meter) metric;
                     CounterSnapshot.Builder builder = counterBuilders.computeIfAbsent(prometheusMetricName, k -> CounterSnapshot.builder().name(prometheusMetricName));
-                    builder.dataPoint(DataPointSnapshotBuilder.convert((Number) ((Meter) metric).count(), labels));
+                    builder.dataPoint(DataPointSnapshotBuilder.counterDataPoint(labels, meter.count()));
                 } else {
                     LOG.error("The metric {} has an unexpected type.", metric.getClass().getName());
                 }
@@ -144,5 +152,13 @@ public class YammerMetricsCollector implements MultiCollector {
             }
         }
         return builder.build();
+    }
+
+    private static Quantiles quantiles(Sampling sampling) {
+        Quantiles.Builder quantilesBuilder = Quantiles.builder();
+        for (double quantile : QUANTILES) {
+            quantilesBuilder.quantile(new Quantile(quantile, sampling.getSnapshot().getValue(quantile)));
+        }
+        return quantilesBuilder.build();
     }
 }

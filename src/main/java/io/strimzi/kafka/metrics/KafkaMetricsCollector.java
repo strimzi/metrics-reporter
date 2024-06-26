@@ -100,10 +100,10 @@ public class KafkaMetricsCollector implements MultiCollector {
             if (valueObj instanceof Number) {
                 double value = ((Number) valueObj).doubleValue();
                 GaugeSnapshot.Builder builder = gaugeBuilders.computeIfAbsent(prometheusMetricName, k -> GaugeSnapshot.builder().name(prometheusMetricName));
-                builder.dataPoint(DataPointSnapshotBuilder.convert(value, labels));
+                builder.dataPoint(DataPointSnapshotBuilder.gaugeDataPoint(labels, value));
             } else {
                 InfoSnapshot.Builder builder = infoBuilders.computeIfAbsent(prometheusMetricName, k -> InfoSnapshot.builder().name(prometheusMetricName));
-                builder.dataPoint(DataPointSnapshotBuilder.convert(valueObj, labels, metricName.name()));
+                builder.dataPoint(DataPointSnapshotBuilder.infoDataPoint(labels, valueObj, metricName.name()));
             }
         }
         List<MetricSnapshot> snapshots = new ArrayList<>();
