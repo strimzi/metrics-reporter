@@ -4,7 +4,8 @@
  */
 package io.strimzi.kafka.metrics;
 
-import io.prometheus.client.exporter.HTTPServer;
+import io.prometheus.metrics.exporter.httpserver.HTTPServer;
+import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class PrometheusMetricsReporterConfigTest {
     @Test
     public void testDefaults() {
-        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(Collections.emptyMap());
+        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(Collections.emptyMap(), new PrometheusRegistry());
         assertEquals(PrometheusMetricsReporterConfig.LISTENER_CONFIG_DEFAULT, config.listener());
         assertTrue(config.isAllowed("random_name"));
     }
@@ -32,7 +33,7 @@ public class PrometheusMetricsReporterConfigTest {
         Map<String, String> props = new HashMap<>();
         props.put(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");
         props.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server.*");
-        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props);
+        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props, new PrometheusRegistry());
 
         assertEquals("http://:0", config.listener());
         assertFalse(config.isAllowed("random_name"));
@@ -40,10 +41,10 @@ public class PrometheusMetricsReporterConfigTest {
     }
 
     @Test
-    public void testAllowlist() {
+    public void testAllowList() {
         Map<String, String> props = new HashMap<>();
         props.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server.*,kafka_network.*");
-        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props);
+        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props, new PrometheusRegistry());
 
         assertFalse(config.isAllowed("random_name"));
         assertTrue(config.isAllowed("kafka_server_metric"));
@@ -91,13 +92,14 @@ public class PrometheusMetricsReporterConfigTest {
 
     @Test
     public void testIsListenerEnabled() {
-        Map<String, Boolean> props = new HashMap<>();
-        props.put(PrometheusMetricsReporterConfig.LISTENER_ENABLE_CONFIG, true);
-        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props);
+        Map<String, String> props = new HashMap<>();
+        props.put(PrometheusMetricsReporterConfig.LISTENER_ENABLE_CONFIG, "true");
+        props.put(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");
+        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props, new PrometheusRegistry());
         Optional<HTTPServer> httpServerOptional = config.startHttpServer();
 
-        assertTrue(httpServerOptional.isPresent());
         assertTrue(config.isListenerEnabled());
+        assertTrue(httpServerOptional.isPresent());
         httpServerOptional.ifPresent(HTTPServer::close);
     }
 
@@ -105,7 +107,7 @@ public class PrometheusMetricsReporterConfigTest {
     public void testIsListenerDisabled() {
         Map<String, Boolean> props = new HashMap<>();
         props.put(PrometheusMetricsReporterConfig.LISTENER_ENABLE_CONFIG, false);
-        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props);
+        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props, new PrometheusRegistry());
         Optional<HTTPServer> httpServerOptional = config.startHttpServer();
 
         assertTrue(httpServerOptional.isEmpty());

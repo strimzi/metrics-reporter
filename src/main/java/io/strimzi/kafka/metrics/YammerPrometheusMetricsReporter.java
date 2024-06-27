@@ -4,7 +4,7 @@
  */
 package io.strimzi.kafka.metrics;
 
-import io.prometheus.client.CollectorRegistry;
+import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import kafka.metrics.KafkaMetricsReporter;
 import kafka.utils.VerifiableProperties;
 import org.slf4j.Logger;
@@ -17,12 +17,25 @@ public class YammerPrometheusMetricsReporter implements KafkaMetricsReporter {
 
     private static final Logger LOG = LoggerFactory.getLogger(YammerPrometheusMetricsReporter.class.getName());
 
+    private final PrometheusRegistry registry;
+
+    /**
+     * Constructor
+     */
+    public YammerPrometheusMetricsReporter() {
+        this(PrometheusRegistry.defaultRegistry);
+    }
+
+    // for testing
+    YammerPrometheusMetricsReporter(PrometheusRegistry registry) {
+        this.registry = registry;
+    }
+
     @Override
     public void init(VerifiableProperties props) {
         LOG.info(">>> in init() yammer");
-        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props.props());
-        LOG.info("yammer defaultRegistry" + CollectorRegistry.defaultRegistry);
-        CollectorRegistry.defaultRegistry.register(new YammerMetricsCollector(config));
+        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props.props(), registry);
+        registry.register(new YammerMetricsCollector(config));
     }
 
 }

@@ -5,9 +5,9 @@
 package io.strimzi.kafka.metrics;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.prometheus.client.CollectorRegistry;
-import io.prometheus.client.exporter.HTTPServer;
-import io.prometheus.client.hotspot.DefaultExports;
+import io.prometheus.metrics.exporter.httpserver.HTTPServer;
+import io.prometheus.metrics.instrumentation.jvm.JvmMetrics;
+import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.MetricsContext;
@@ -30,23 +30,37 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaPrometheusMetricsReporter.class.getName());
 
+    private final PrometheusRegistry registry;
+
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // Should be investigated as part of https://github.com/strimzi/metrics-reporter/issues/12
     private KafkaMetricsCollector kafkaMetricsCollector;
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // Should be investigated as part of https://github.com/strimzi/metrics-reporter/issues/12
     private Optional<HTTPServer> httpServer;
 
+    /**
+     * Constructor
+     */
+    public KafkaPrometheusMetricsReporter() {
+        registry = PrometheusRegistry.defaultRegistry;
+    }
+
+    // for testing
+    KafkaPrometheusMetricsReporter(PrometheusRegistry registry) {
+        this.registry = registry;
+    }
+
     @Override
     public void configure(Map<String, ?> map) {
-        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(map);
+        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(map, registry);
         kafkaMetricsCollector = new KafkaMetricsCollector(config);
         // Add JVM metrics
-        DefaultExports.initialize();
+        JvmMetrics.builder().register(registry);
         httpServer = config.startHttpServer();
     }
 
     @Override
     public void init(List<KafkaMetric> metrics) {
-        CollectorRegistry.defaultRegistry.register(kafkaMetricsCollector);
+        registry.register(kafkaMetricsCollector);
         for (KafkaMetric metric : metrics) {
             metricChange(metric);
         }
@@ -54,18 +68,19 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     @Override
     public void metricChange(KafkaMetric metric) {
-        LOG.info("Kafka metricChange " + metric.metricName());
+        LOG.info("Kafka metricChange {}", metric.metricName());
         kafkaMetricsCollector.addMetric(metric);
     }
 
     @Override
     public void metricRemoval(KafkaMetric metric) {
-        LOG.info("Kafka metricRemoval " + metric.metricName());
+        LOG.info("Kafka metricRemoval {}", metric.metricName());
         kafkaMetricsCollector.removeMetric(metric);
     }
 
     @Override
     public void close() {
+        registry.unregister(kafkaMetricsCollector);
         LOG.info("Closing the HTTP server");
     }
 
@@ -84,18 +99,12 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     @Override
     public void contextChange(MetricsContext metricsContext) {
-        LOG.info("Kafka contextChange with " + metricsContext.contextLabels());
+        LOG.info("Kafka contextChange with {}", metricsContext.contextLabels());
         String prefix = metricsContext.contextLabels().get(MetricsContext.NAMESPACE);
         kafkaMetricsCollector.setPrefix(prefix);
     }
 
-    /**
-     *
-     Retrieves the port number on which the HTTP server is running.
-     *
-     @return The port number of the HTTP server.
-     */
-    public int getPort() {
+    int getPort() {
         return httpServer.get().getPort();
     }
 }
