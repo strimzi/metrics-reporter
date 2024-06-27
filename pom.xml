@@ -107,7 +107,7 @@
     <maven.dependency.version>3.6.1</maven.dependency.version>
     <maven.source.version>3.2.1</maven.source.version>
     <maven.jar.version>3.3.0</maven.jar.version>
-    <!-- <maven.assembly.version>3.4.2</maven.assembly.version> -->
+    <maven.assembly.version>3.4.2</maven.assembly.version>
     <maven.gpg.version>3.1.0</maven.gpg.version>
     <sonatype.nexus.staging>1.6.13</sonatype.nexus.staging>
 
@@ -230,6 +230,26 @@
               <goal>integration-test</goal>
               <goal>verify</goal>
             </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>${maven.assembly.version}</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+              <appendAssemblyId>false</appendAssemblyId>
+              <tarLongFileMode>posix</tarLongFileMode>
+              <descriptors>
+                <descriptor>src/main/assembly/dist.xml</descriptor>
+              </descriptors>
+            </configuration>
           </execution>
         </executions>
       </plugin>

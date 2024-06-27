@@ -9,7 +9,7 @@ The implementation is currently still in progress.
 ## Build
 
 ```shell
-mvn package assembly:single
+mvn package
 ```
 
 ## Run
