@@ -39,6 +39,7 @@ import java.util.Map;
 /**
  * Prometheus Collector to store and export metrics retrieved by {@link YammerPrometheusMetricsReporter}.
  */
+@SuppressWarnings("ClassFanOutComplexity")
 public class YammerMetricsCollector implements MultiCollector {
 
     private static final Logger LOG = LoggerFactory.getLogger(YammerMetricsCollector.class.getName());
@@ -62,6 +63,7 @@ public class YammerMetricsCollector implements MultiCollector {
      * @return metrics that match the configured allowlist
      */
     @Override
+    @SuppressWarnings({"CyclomaticComplexity", "NPathComplexity", "JavaNCSS"})
     public MetricSnapshots collect() {
         Map<String, CounterSnapshot.Builder> counterBuilders = new HashMap<>();
         Map<String, GaugeSnapshot.Builder> gaugeBuilders = new HashMap<>();
