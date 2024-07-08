@@ -10,6 +10,7 @@ import io.prometheus.metrics.model.snapshots.InfoSnapshot;
 import io.prometheus.metrics.model.snapshots.Labels;
 import io.prometheus.metrics.model.snapshots.MetricSnapshot;
 import io.prometheus.metrics.model.snapshots.MetricSnapshots;
+import io.prometheus.metrics.model.snapshots.PrometheusNaming;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.KafkaMetric;
@@ -106,6 +107,19 @@ public class KafkaMetricsCollectorTest {
         assertEquals(1, snapshot.getDataPoints().size());
         Labels expectedLabels = labels.add("name", nonNumericValue);
         assertEquals(expectedLabels, snapshot.getDataPoints().get(0).getLabels());
+    }
+
+    @Test
+    public void testLabelNameSanitizing() {
+        String labelName = PrometheusNaming.sanitizeLabelName("k-1");
+        assertEquals("k_1", labelName);
+    }
+
+    @Test
+    public void testLabelDuplicateWarning() {
+        Labels labels = Labels.builder().label("k1", "v1").build();
+        InfoSnapshot.InfoDataPointSnapshot snapshot = DataPointSnapshotBuilder.infoDataPoint(labels, "v1", "k1");
+        assertEquals("v1", snapshot.getLabels().get("k1"));
     }
 
     private void assertGaugeSnapshot(MetricSnapshot snapshot, double expectedValue, Labels expectedLabels) {

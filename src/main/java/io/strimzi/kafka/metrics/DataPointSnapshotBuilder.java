@@ -12,10 +12,13 @@ import io.prometheus.metrics.model.snapshots.PrometheusNaming;
 import io.prometheus.metrics.model.snapshots.Quantiles;
 import io.prometheus.metrics.model.snapshots.SummarySnapshot;
 
+import java.util.logging.Logger;
 /**
  * Builder methods to convert Kafka metrics into Prometheus metrics
  */
 public class DataPointSnapshotBuilder {
+
+    private static final Logger LOG = Logger.getLogger(DataPointSnapshotBuilder.class.getName());
 
     /**
      * Create a datapoint for a {@link InfoSnapshot} metric
@@ -24,8 +27,15 @@ public class DataPointSnapshotBuilder {
      * @param metricName The name of the new label
      * @return The {@link InfoSnapshot.InfoDataPointSnapshot} datapoint
      */
+
     public static InfoSnapshot.InfoDataPointSnapshot infoDataPoint(Labels labels, Object value, String metricName) {
-        Labels newLabels = labels.add(PrometheusNaming.sanitizeLabelName(metricName), String.valueOf(value));
+        String sanitizedMetricName = PrometheusNaming.sanitizeLabelName(metricName);
+        Labels newLabels = labels;
+        if (labels.contains(sanitizedMetricName)) {
+            LOG.warning("Ignoring metric value duplicate key: " + sanitizedMetricName);
+        } else {
+            newLabels = labels.add(sanitizedMetricName, String.valueOf(value));
+        }
         return InfoSnapshot.InfoDataPointSnapshot.builder()
                 .labels(newLabels)
                 .build();
