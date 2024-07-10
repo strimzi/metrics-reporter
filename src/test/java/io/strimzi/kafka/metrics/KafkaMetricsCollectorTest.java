@@ -110,16 +110,15 @@ public class KafkaMetricsCollectorTest {
     }
 
     @Test
-    public void testLabelNameSanitizing() {
-        String labelName = PrometheusNaming.sanitizeLabelName("k-1");
-        assertEquals("k_1", labelName);
-    }
+    public void testLabelsFromTags() {
+        Map<String, String> tags = new LinkedHashMap<>();
+        tags.put("k-1", "v1");
+        tags.put("k_1", "v2");
 
-    @Test
-    public void testLabelDuplicateWarning() {
-        Labels labels = Labels.builder().label("k1", "v1").build();
-        InfoSnapshot.InfoDataPointSnapshot snapshot = DataPointSnapshotBuilder.infoDataPoint(labels, "v1", "k1");
-        assertEquals("v1", snapshot.getLabels().get("k1"));
+        Labels labels = KafkaMetricsCollector.labelsFromTags(tags);
+        assertEquals("k_1", PrometheusNaming.sanitizeLabelName("k-1"));
+        assertEquals("v1", labels.get("k_1"));
+        assertEquals(1, labels.size());
     }
 
     private void assertGaugeSnapshot(MetricSnapshot snapshot, double expectedValue, Labels expectedLabels) {

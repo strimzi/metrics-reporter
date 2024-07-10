@@ -13,6 +13,7 @@ import io.prometheus.metrics.model.snapshots.InfoSnapshot;
 import io.prometheus.metrics.model.snapshots.Labels;
 import io.prometheus.metrics.model.snapshots.MetricSnapshot;
 import io.prometheus.metrics.model.snapshots.MetricSnapshots;
+import io.prometheus.metrics.model.snapshots.PrometheusNaming;
 import org.apache.kafka.server.metrics.KafkaYammerMetrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -120,6 +121,11 @@ public class YammerMetricsCollectorTest {
         assertEquals(Labels.EMPTY, YammerMetricsCollector.labelsFromScope("k1"));
         assertEquals(Labels.EMPTY, YammerMetricsCollector.labelsFromScope("k1."));
         assertEquals(Labels.EMPTY, YammerMetricsCollector.labelsFromScope("k1.v1.k"));
+
+        Labels labels = YammerMetricsCollector.labelsFromScope("k-1.v1.k_1.v2");
+        assertEquals("k_1", PrometheusNaming.sanitizeLabelName("k-1"));
+        assertEquals("v1", labels.get("k_1"));
+        assertEquals(1, labels.size());
     }
 
     public Counter newCounter(String group, String type, String name) {

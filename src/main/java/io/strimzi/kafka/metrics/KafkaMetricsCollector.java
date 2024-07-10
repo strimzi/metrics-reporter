@@ -19,9 +19,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -122,10 +124,16 @@ public class KafkaMetricsCollector implements MultiCollector {
                 .toLowerCase(Locale.ROOT);
     }
 
-    private static Labels labelsFromTags(Map<String, String> tags) {
+    protected static Labels labelsFromTags(Map<String, String> tags) {
         Labels.Builder builder = Labels.builder();
+        Set<String> labelNames = new HashSet<>();
         for (Map.Entry<String, String> label : tags.entrySet()) {
-            builder.label(PrometheusNaming.sanitizeLabelName(label.getKey()), label.getValue());
+            String newLabelName = PrometheusNaming.sanitizeLabelName(label.getKey());
+            if (labelNames.add(newLabelName)) {
+                builder.label(newLabelName, label.getValue());
+            } else {
+                LOG.warn("Ignoring duplicate label key: {} with value: {}", newLabelName, label.getValue());
+            }
         }
         return builder.build();
     }
