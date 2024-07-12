@@ -32,8 +32,12 @@ public class DataPointSnapshotBuilder {
     public static InfoSnapshot.InfoDataPointSnapshot infoDataPoint(Labels labels, Object value, String metricName) {
         String newLabelName = PrometheusNaming.sanitizeLabelName(metricName);
         Labels newLabels = labels;
-        if (labels.contains(newLabelName)) {
-            LOG.warn("Ignoring metric value duplicate key: {} from metric: {}",  newLabelName, metricName);
+        String existingValue = labels.get(newLabelName);
+        if (existingValue != null) {
+            if (!String.valueOf(value).equals(existingValue)) {
+                LOG.warn("Unable to add new label because of duplicate key: {} with value: {} from metric: {}",
+                        newLabelName, value, metricName);
+            }
         } else {
             newLabels = labels.add(newLabelName, String.valueOf(value));
         }

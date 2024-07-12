@@ -6,6 +6,7 @@ package io.strimzi.kafka.metrics;
 
 import io.prometheus.metrics.model.snapshots.InfoSnapshot;
 import io.prometheus.metrics.model.snapshots.Labels;
+import io.prometheus.metrics.model.snapshots.PrometheusNaming;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -13,9 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class DataPointSnapshotBuilderTest {
 
     @Test
-    public void testNewLabelDuplicateWarning() {
+    public void testCollidingNewLabelIsIgnored() {
         Labels labels = Labels.builder().label("k1", "v1").label("k2", "v2").build();
         InfoSnapshot.InfoDataPointSnapshot snapshot = DataPointSnapshotBuilder.infoDataPoint(labels, "value", "k1");
+        assertEquals("k_1", PrometheusNaming.sanitizeLabelName("k-1"));
         assertEquals("v1", snapshot.getLabels().get("k1"));
     }
 

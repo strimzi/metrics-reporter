@@ -115,7 +115,8 @@ public class KafkaMetricsCollectorTest {
         tags.put("k-1", "v1");
         tags.put("k_1", "v2");
 
-        Labels labels = KafkaMetricsCollector.labelsFromTags(tags);
+        Labels labels = KafkaMetricsCollector.labelsFromTags(tags, "name");
+
         assertEquals("k_1", PrometheusNaming.sanitizeLabelName("k-1"));
         assertEquals("v1", labels.get("k_1"));
         assertEquals(1, labels.size());

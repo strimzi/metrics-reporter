@@ -85,7 +85,7 @@ public class YammerMetricsCollector implements MultiCollector {
                     continue;
                 }
                 LOG.info("Yammer metric {} is allowed", prometheusMetricName);
-                Labels labels = labelsFromScope(metricName.getScope());
+                Labels labels = labelsFromScope(metricName.getScope(), prometheusMetricName);
                 LOG.info("labels {}", labels);
 
                 if (metric instanceof Counter) {
@@ -145,7 +145,7 @@ public class YammerMetricsCollector implements MultiCollector {
         return metricNameStr;
     }
 
-    static Labels labelsFromScope(String scope) {
+    static Labels labelsFromScope(String scope, String metricName) {
         Labels.Builder builder = Labels.builder();
         Set<String> labelNames = new HashSet<>();
         if (scope != null) {
@@ -156,7 +156,8 @@ public class YammerMetricsCollector implements MultiCollector {
                     if (labelNames.add(newLabelName)) {
                         builder.label(newLabelName, parts[i + 1]);
                     } else {
-                        LOG.warn("Duplicate label name {} in scope {}", newLabelName, scope);
+                        String value = parts[i + 1];
+                        LOG.warn("Ignoring duplicate label key: {} with value: {} from metric: {} ", newLabelName, value, metricName);
                     }
                 }
             }

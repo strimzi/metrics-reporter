@@ -96,7 +96,7 @@ public class KafkaMetricsCollector implements MultiCollector {
                 continue;
             }
             LOG.info("Kafka metric {} is allowed", prometheusMetricName);
-            Labels labels = labelsFromTags(metricName.tags());
+            Labels labels = labelsFromTags(metricName.tags(), metricName.name());
 
             Object valueObj = kafkaMetric.metricValue();
             if (valueObj instanceof Number) {
@@ -124,7 +124,7 @@ public class KafkaMetricsCollector implements MultiCollector {
                 .toLowerCase(Locale.ROOT);
     }
 
-    protected static Labels labelsFromTags(Map<String, String> tags) {
+    static Labels labelsFromTags(Map<String, String> tags, String metricName) {
         Labels.Builder builder = Labels.builder();
         Set<String> labelNames = new HashSet<>();
         for (Map.Entry<String, String> label : tags.entrySet()) {
@@ -132,7 +132,7 @@ public class KafkaMetricsCollector implements MultiCollector {
             if (labelNames.add(newLabelName)) {
                 builder.label(newLabelName, label.getValue());
             } else {
-                LOG.warn("Ignoring duplicate label key: {} with value: {}", newLabelName, label.getValue());
+                LOG.warn("Ignoring duplicate label key: {} with value: {} from metric: {} ", newLabelName, label.getValue(), metricName);
             }
         }
         return builder.build();
