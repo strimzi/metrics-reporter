@@ -15,10 +15,9 @@ public class DataPointSnapshotBuilderTest {
 
     @Test
     public void testCollidingNewLabelIsIgnored() {
-        Labels labels = Labels.builder().label("k1", "v1").label("k2", "v2").build();
-        InfoSnapshot.InfoDataPointSnapshot snapshot = DataPointSnapshotBuilder.infoDataPoint(labels, "value", "k1");
-        assertEquals("k_1", PrometheusNaming.sanitizeLabelName("k-1"));
-        assertEquals("v1", snapshot.getLabels().get("k1"));
+        Labels labels = Labels.builder().label("k_1", "v1").label("k2", "v2").build();
+        InfoSnapshot.InfoDataPointSnapshot snapshot = DataPointSnapshotBuilder.infoDataPoint(labels, "value", "k-1");
+        assertEquals("v1", snapshot.getLabels().get("k_1"));
     }
 
 }
