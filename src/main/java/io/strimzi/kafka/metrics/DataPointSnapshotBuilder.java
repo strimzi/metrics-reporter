@@ -28,7 +28,6 @@ public class DataPointSnapshotBuilder {
      * @param metricName The name of the new label
      * @return The {@link InfoSnapshot.InfoDataPointSnapshot} datapoint
      */
-
     public static InfoSnapshot.InfoDataPointSnapshot infoDataPoint(Labels labels, Object value, String metricName) {
         String newLabelName = PrometheusNaming.sanitizeLabelName(metricName);
         Labels newLabels = labels;
