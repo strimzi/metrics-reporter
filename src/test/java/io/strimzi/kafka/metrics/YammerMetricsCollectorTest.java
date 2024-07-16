@@ -13,6 +13,7 @@ import io.prometheus.metrics.model.snapshots.InfoSnapshot;
 import io.prometheus.metrics.model.snapshots.Labels;
 import io.prometheus.metrics.model.snapshots.MetricSnapshot;
 import io.prometheus.metrics.model.snapshots.MetricSnapshots;
+import io.prometheus.metrics.model.snapshots.PrometheusNaming;
 import org.apache.kafka.server.metrics.KafkaYammerMetrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -115,11 +116,16 @@ public class YammerMetricsCollectorTest {
 
     @Test
     public void testLabelsFromScope() {
-        assertEquals(Labels.of("k1", "v1", "k2", "v2"), YammerMetricsCollector.labelsFromScope("k1.v1.k2.v2"));
-        assertEquals(Labels.EMPTY, YammerMetricsCollector.labelsFromScope(null));
-        assertEquals(Labels.EMPTY, YammerMetricsCollector.labelsFromScope("k1"));
-        assertEquals(Labels.EMPTY, YammerMetricsCollector.labelsFromScope("k1."));
-        assertEquals(Labels.EMPTY, YammerMetricsCollector.labelsFromScope("k1.v1.k"));
+        assertEquals(Labels.of("k1", "v1", "k2", "v2"), YammerMetricsCollector.labelsFromScope("k1.v1.k2.v2", "name"));
+        assertEquals(Labels.EMPTY, YammerMetricsCollector.labelsFromScope(null, "name"));
+        assertEquals(Labels.EMPTY, YammerMetricsCollector.labelsFromScope("k1", "name"));
+        assertEquals(Labels.EMPTY, YammerMetricsCollector.labelsFromScope("k1.", "name"));
+        assertEquals(Labels.EMPTY, YammerMetricsCollector.labelsFromScope("k1.v1.k", "name"));
+
+        Labels labels = YammerMetricsCollector.labelsFromScope("k-1.v1.k_1.v2", "name");
+        assertEquals("k_1", PrometheusNaming.sanitizeLabelName("k-1"));
+        assertEquals("v1", labels.get("k_1"));
+        assertEquals(1, labels.size());
     }
 
     public Counter newCounter(String group, String type, String name) {

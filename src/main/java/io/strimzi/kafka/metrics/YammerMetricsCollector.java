@@ -32,9 +32,11 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Prometheus Collector to store and export metrics retrieved by {@link YammerPrometheusMetricsReporter}.
@@ -83,7 +85,7 @@ public class YammerMetricsCollector implements MultiCollector {
                     continue;
                 }
                 LOG.info("Yammer metric {} is allowed", prometheusMetricName);
-                Labels labels = labelsFromScope(metricName.getScope());
+                Labels labels = labelsFromScope(metricName.getScope(), prometheusMetricName);
                 LOG.info("labels {}", labels);
 
                 if (metric instanceof Counter) {
@@ -143,13 +145,20 @@ public class YammerMetricsCollector implements MultiCollector {
         return metricNameStr;
     }
 
-    static Labels labelsFromScope(String scope) {
+    static Labels labelsFromScope(String scope, String metricName) {
         Labels.Builder builder = Labels.builder();
+        Set<String> labelNames = new HashSet<>();
         if (scope != null) {
             String[] parts = scope.split("\\.");
             if (parts.length % 2 == 0) {
                 for (int i = 0; i < parts.length; i += 2) {
-                    builder.label(PrometheusNaming.sanitizeLabelName(parts[i]), parts[i + 1]);
+                    String newLabelName = PrometheusNaming.sanitizeLabelName(parts[i]);
+                    if (labelNames.add(newLabelName)) {
+                        builder.label(newLabelName, parts[i + 1]);
+                    } else {
+                        String value = parts[i + 1];
+                        LOG.warn("Ignoring duplicate label key: {} with value: {} from metric: {} ", newLabelName, value, metricName);
+                    }
                 }
             }
         }

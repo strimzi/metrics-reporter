@@ -11,11 +11,15 @@ import io.prometheus.metrics.model.snapshots.Labels;
 import io.prometheus.metrics.model.snapshots.PrometheusNaming;
 import io.prometheus.metrics.model.snapshots.Quantiles;
 import io.prometheus.metrics.model.snapshots.SummarySnapshot;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Builder methods to convert Kafka metrics into Prometheus metrics
  */
 public class DataPointSnapshotBuilder {
+
+    private static final Logger LOG = LoggerFactory.getLogger(DataPointSnapshotBuilder.class.getName());
 
     /**
      * Create a datapoint for a {@link InfoSnapshot} metric
@@ -25,7 +29,17 @@ public class DataPointSnapshotBuilder {
      * @return The {@link InfoSnapshot.InfoDataPointSnapshot} datapoint
      */
     public static InfoSnapshot.InfoDataPointSnapshot infoDataPoint(Labels labels, Object value, String metricName) {
-        Labels newLabels = labels.add(PrometheusNaming.sanitizeLabelName(metricName), String.valueOf(value));
+        String newLabelName = PrometheusNaming.sanitizeLabelName(metricName);
+        Labels newLabels = labels;
+        String existingValue = labels.get(newLabelName);
+        if (existingValue != null) {
+            if (!String.valueOf(value).equals(existingValue)) {
+                LOG.warn("Unable to add new label because of duplicate key: {} with value: {} from metric: {}",
+                        newLabelName, value, metricName);
+            }
+        } else {
+            newLabels = labels.add(newLabelName, String.valueOf(value));
+        }
         return InfoSnapshot.InfoDataPointSnapshot.builder()
                 .labels(newLabels)
                 .build();
