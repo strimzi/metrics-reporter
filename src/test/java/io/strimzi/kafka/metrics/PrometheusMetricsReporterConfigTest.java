@@ -9,11 +9,15 @@ import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import static io.strimzi.kafka.metrics.PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG;
+import static io.strimzi.kafka.metrics.PrometheusMetricsReporterConfig.LISTENER_CONFIG;
+import static io.strimzi.kafka.metrics.PrometheusMetricsReporterConfig.LISTENER_ENABLE_CONFIG;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -23,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class PrometheusMetricsReporterConfigTest {
     @Test
     public void testDefaults() {
-        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(Collections.emptyMap(), new PrometheusRegistry());
+        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(emptyMap(), new PrometheusRegistry());
         assertEquals(PrometheusMetricsReporterConfig.LISTENER_CONFIG_DEFAULT, config.listener());
         assertTrue(config.isAllowed("random_name"));
     }
@@ -31,8 +35,8 @@ public class PrometheusMetricsReporterConfigTest {
     @Test
     public void testOverrides() {
         Map<String, String> props = new HashMap<>();
-        props.put(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");
-        props.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server.*");
+        props.put(LISTENER_CONFIG, "http://:0");
+        props.put(ALLOWLIST_CONFIG, "kafka_server.*");
         PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props, new PrometheusRegistry());
 
         assertEquals("http://:0", config.listener());
@@ -42,13 +46,17 @@ public class PrometheusMetricsReporterConfigTest {
 
     @Test
     public void testAllowList() {
-        Map<String, String> props = new HashMap<>();
-        props.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server.*,kafka_network.*");
+        Map<String, String> props = singletonMap(ALLOWLIST_CONFIG, "kafka_server.*,kafka_network.*");
         PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props, new PrometheusRegistry());
 
         assertFalse(config.isAllowed("random_name"));
         assertTrue(config.isAllowed("kafka_server_metric"));
         assertTrue(config.isAllowed("kafka_network_metric"));
+
+        assertThrows(ConfigException.class,
+                () -> new PrometheusMetricsReporterConfig(singletonMap(ALLOWLIST_CONFIG, "hell[o,s]world"), null));
+        assertThrows(ConfigException.class,
+                () -> new PrometheusMetricsReporterConfig(singletonMap(ALLOWLIST_CONFIG, "hello\\,world"), null));
     }
 
     @Test
@@ -73,28 +81,28 @@ public class PrometheusMetricsReporterConfigTest {
     @Test
     public void testValidator() {
         PrometheusMetricsReporterConfig.ListenerValidator validator = new PrometheusMetricsReporterConfig.ListenerValidator();
-        validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");
-        validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://123:8080");
-        validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://::1:8080");
-        validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://[::1]:8080");
-        validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://random:8080");
+        validator.ensureValid(LISTENER_CONFIG, "http://:0");
+        validator.ensureValid(LISTENER_CONFIG, "http://123:8080");
+        validator.ensureValid(LISTENER_CONFIG, "http://::1:8080");
+        validator.ensureValid(LISTENER_CONFIG, "http://[::1]:8080");
+        validator.ensureValid(LISTENER_CONFIG, "http://random:8080");
 
-        assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http"));
-        assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://"));
-        assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://random"));
-        assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://random:"));
-        assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:-8080"));
-        assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://random:-8080"));
-        assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:8080random"));
-        assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "randomhttp://:8080random"));
-        assertThrows(ConfigException.class, () -> validator.ensureValid(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "randomhttp://:8080"));
+        assertThrows(ConfigException.class, () -> validator.ensureValid(LISTENER_CONFIG, "http"));
+        assertThrows(ConfigException.class, () -> validator.ensureValid(LISTENER_CONFIG, "http://"));
+        assertThrows(ConfigException.class, () -> validator.ensureValid(LISTENER_CONFIG, "http://random"));
+        assertThrows(ConfigException.class, () -> validator.ensureValid(LISTENER_CONFIG, "http://random:"));
+        assertThrows(ConfigException.class, () -> validator.ensureValid(LISTENER_CONFIG, "http://:-8080"));
+        assertThrows(ConfigException.class, () -> validator.ensureValid(LISTENER_CONFIG, "http://random:-8080"));
+        assertThrows(ConfigException.class, () -> validator.ensureValid(LISTENER_CONFIG, "http://:8080random"));
+        assertThrows(ConfigException.class, () -> validator.ensureValid(LISTENER_CONFIG, "randomhttp://:8080random"));
+        assertThrows(ConfigException.class, () -> validator.ensureValid(LISTENER_CONFIG, "randomhttp://:8080"));
     }
 
     @Test
     public void testIsListenerEnabled() {
         Map<String, String> props = new HashMap<>();
-        props.put(PrometheusMetricsReporterConfig.LISTENER_ENABLE_CONFIG, "true");
-        props.put(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");
+        props.put(LISTENER_ENABLE_CONFIG, "true");
+        props.put(LISTENER_CONFIG, "http://:0");
         PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props, new PrometheusRegistry());
         Optional<HTTPServer> httpServerOptional = config.startHttpServer();
 
@@ -105,8 +113,7 @@ public class PrometheusMetricsReporterConfigTest {
 
     @Test
     public void testIsListenerDisabled() {
-        Map<String, Boolean> props = new HashMap<>();
-        props.put(PrometheusMetricsReporterConfig.LISTENER_ENABLE_CONFIG, false);
+        Map<String, Boolean> props = singletonMap(LISTENER_ENABLE_CONFIG, false);
         PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props, new PrometheusRegistry());
         Optional<HTTPServer> httpServerOptional = config.startHttpServer();
 
