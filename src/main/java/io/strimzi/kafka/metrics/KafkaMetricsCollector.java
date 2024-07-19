@@ -4,7 +4,6 @@
  */
 package io.strimzi.kafka.metrics;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.prometheus.metrics.model.registry.MultiCollector;
 import io.prometheus.metrics.model.snapshots.GaugeSnapshot;
 import io.prometheus.metrics.model.snapshots.InfoSnapshot;
@@ -35,8 +34,7 @@ public class KafkaMetricsCollector implements MultiCollector {
 
     private final Map<MetricName, KafkaMetric> metrics;
     private final PrometheusMetricsReporterConfig config;
-    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // Should be investigated as part of https://github.com/strimzi/metrics-reporter/issues/12
-    private String prefix;
+    private String prefix = "";
 
     /**
      * Constructs a new KafkaMetricsCollector with provided configuration.
