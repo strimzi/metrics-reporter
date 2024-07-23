@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
  */
 public class YammerPrometheusMetricsReporter implements KafkaMetricsReporter {
 
-    private static final Logger LOG = LoggerFactory.getLogger(YammerPrometheusMetricsReporter.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(YammerPrometheusMetricsReporter.class);
 
     private final PrometheusRegistry registry;
 
@@ -33,9 +33,9 @@ public class YammerPrometheusMetricsReporter implements KafkaMetricsReporter {
 
     @Override
     public void init(VerifiableProperties props) {
-        LOG.info(">>> in init() yammer");
         PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props.props(), registry);
         registry.register(new YammerMetricsCollector(config));
+        LOG.debug("YammerPrometheusMetricsReporter configured with {}", config);
     }
 
 }

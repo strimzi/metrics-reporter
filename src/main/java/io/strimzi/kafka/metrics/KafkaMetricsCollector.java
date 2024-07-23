@@ -31,7 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class KafkaMetricsCollector implements MultiCollector {
 
-    private static final Logger LOG = LoggerFactory.getLogger(KafkaMetricsCollector.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(KafkaMetricsCollector.class);
 
     private final Map<MetricName, KafkaMetric> metrics;
     private final PrometheusMetricsReporterConfig config;
@@ -87,16 +87,14 @@ public class KafkaMetricsCollector implements MultiCollector {
         for (Map.Entry<MetricName, KafkaMetric> entry : metrics.entrySet()) {
             MetricName metricName = entry.getKey();
             KafkaMetric kafkaMetric = entry.getValue();
-            LOG.trace("Collecting Kafka metric {}", metricName);
 
             String prometheusMetricName = metricName(metricName);
-            // TODO Filtering should take labels into account
             if (!config.isAllowed(prometheusMetricName)) {
-                LOG.info("Kafka metric {} is not allowed", prometheusMetricName);
+                LOG.trace("Ignoring metric {} as it does not match the allowlist", prometheusMetricName);
                 continue;
             }
-            LOG.info("Kafka metric {} is allowed", prometheusMetricName);
             Labels labels = labelsFromTags(metricName.tags(), metricName.name());
+            LOG.debug("Collecting metric {} with the following labels: {}", prometheusMetricName, labels);
 
             Object valueObj = kafkaMetric.metricValue();
             if (valueObj instanceof Number) {

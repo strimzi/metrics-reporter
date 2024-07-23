@@ -44,7 +44,7 @@ import java.util.Set;
 @SuppressWarnings("ClassFanOutComplexity")
 public class YammerMetricsCollector implements MultiCollector {
 
-    private static final Logger LOG = LoggerFactory.getLogger(YammerMetricsCollector.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(YammerMetricsCollector.class);
     private static final List<Double> QUANTILES = Arrays.asList(0.50, 0.75, 0.95, 0.98, 0.99, 0.999);
 
     private final List<MetricsRegistry> registries;
@@ -76,17 +76,14 @@ public class YammerMetricsCollector implements MultiCollector {
             for (Map.Entry<MetricName, Metric> entry : registry.allMetrics().entrySet()) {
                 MetricName metricName = entry.getKey();
                 Metric metric = entry.getValue();
-                LOG.trace("Collecting Yammer metric {}", metricName);
 
                 String prometheusMetricName = metricName(metricName);
-                // TODO Filtering should take labels into account
                 if (!config.isAllowed(prometheusMetricName)) {
-                    LOG.info("Yammer metric {} is not allowed", prometheusMetricName);
+                    LOG.trace("Ignoring metric {} as it does not match the allowlist", prometheusMetricName);
                     continue;
                 }
-                LOG.info("Yammer metric {} is allowed", prometheusMetricName);
                 Labels labels = labelsFromScope(metricName.getScope(), prometheusMetricName);
-                LOG.info("labels {}", labels);
+                LOG.debug("Collecting metric {} with the following labels: {}", prometheusMetricName, labels);
 
                 if (metric instanceof Counter) {
                     Counter counter = (Counter) metric;
@@ -115,7 +112,7 @@ public class YammerMetricsCollector implements MultiCollector {
                     CounterSnapshot.Builder builder = counterBuilders.computeIfAbsent(prometheusMetricName, k -> CounterSnapshot.builder().name(prometheusMetricName));
                     builder.dataPoint(DataPointSnapshotBuilder.counterDataPoint(labels, meter.count()));
                 } else {
-                    LOG.error("The metric {} has an unexpected type.", metric.getClass().getName());
+                    LOG.error("The metric {} has an unexpected type: {}", prometheusMetricName, metric.getClass().getName());
                 }
             }
         }
@@ -136,13 +133,11 @@ public class YammerMetricsCollector implements MultiCollector {
     }
 
     private static String metricName(MetricName metricName) {
-        String metricNameStr = PrometheusNaming.sanitizeMetricName(
+        return PrometheusNaming.sanitizeMetricName(
                 "kafka_server_" +
                 metricName.getGroup() + '_' +
                 metricName.getType() + '_' +
                 metricName.getName()).toLowerCase(Locale.ROOT);
-        LOG.info("metricName group {}, type {}, name {} converted into {}", metricName.getGroup(), metricName.getType(), metricName.getName(), metricNameStr);
-        return metricNameStr;
     }
 
     static Labels labelsFromScope(String scope, String metricName) {
@@ -156,8 +151,7 @@ public class YammerMetricsCollector implements MultiCollector {
                     if (labelNames.add(newLabelName)) {
                         builder.label(newLabelName, parts[i + 1]);
                     } else {
-                        String value = parts[i + 1];
-                        LOG.warn("Ignoring duplicate label key: {} with value: {} from metric: {} ", newLabelName, value, metricName);
+                        LOG.warn("Ignoring duplicate label key: {} with value: {} from metric: {} ", newLabelName, parts[i + 1], metricName);
                     }
                 }
             }
