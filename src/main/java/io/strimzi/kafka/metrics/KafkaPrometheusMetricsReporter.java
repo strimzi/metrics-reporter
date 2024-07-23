@@ -31,10 +31,9 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaPrometheusMetricsReporter.class.getName());
 
     private final PrometheusRegistry registry;
-
-    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // Should be investigated as part of https://github.com/strimzi/metrics-reporter/issues/12
+    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
     private KafkaMetricsCollector kafkaMetricsCollector;
-    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // Should be investigated as part of https://github.com/strimzi/metrics-reporter/issues/12
+    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
     private Optional<HTTPServer> httpServer;
 
     /**
@@ -104,7 +103,8 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
         kafkaMetricsCollector.setPrefix(prefix);
     }
 
-    int getPort() {
-        return httpServer.get().getPort();
+    // for testing
+    Optional<Integer> getPort() {
+        return Optional.ofNullable(httpServer.isPresent() ? httpServer.get().getPort() : null);
     }
 }
