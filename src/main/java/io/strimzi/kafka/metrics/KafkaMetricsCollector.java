@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.metrics;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.prometheus.metrics.model.registry.MultiCollector;
 import io.prometheus.metrics.model.snapshots.GaugeSnapshot;
 import io.prometheus.metrics.model.snapshots.InfoSnapshot;
@@ -34,7 +35,8 @@ public class KafkaMetricsCollector implements MultiCollector {
 
     private final Map<MetricName, KafkaMetric> metrics;
     private final PrometheusMetricsReporterConfig config;
-    private String prefix = "";
+    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the setPrefix method
+    private String prefix;
 
     /**
      * Constructs a new KafkaMetricsCollector with provided configuration.
@@ -47,7 +49,7 @@ public class KafkaMetricsCollector implements MultiCollector {
     }
 
     /**
-     * Sets the prefix to be used for metric names.
+     * Sets the prefix to be used for metric names. This is always called before addMetric/removeMetric
      *
      * @param prefix The prefix to set.
      */
