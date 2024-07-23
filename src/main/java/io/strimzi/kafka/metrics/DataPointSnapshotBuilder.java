@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
  */
 public class DataPointSnapshotBuilder {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DataPointSnapshotBuilder.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(DataPointSnapshotBuilder.class);
 
     /**
      * Create a datapoint for a {@link InfoSnapshot} metric

@@ -28,7 +28,7 @@ import java.util.Set;
  */
 public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
-    private static final Logger LOG = LoggerFactory.getLogger(KafkaPrometheusMetricsReporter.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(KafkaPrometheusMetricsReporter.class);
 
     private final PrometheusRegistry registry;
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
@@ -55,6 +55,7 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
         // Add JVM metrics
         JvmMetrics.builder().register(registry);
         httpServer = config.startHttpServer();
+        LOG.debug("KafkaPrometheusMetricsReporter configured with {}", config);
     }
 
     @Override
@@ -67,20 +68,17 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     @Override
     public void metricChange(KafkaMetric metric) {
-        LOG.info("Kafka metricChange {}", metric.metricName());
         kafkaMetricsCollector.addMetric(metric);
     }
 
     @Override
     public void metricRemoval(KafkaMetric metric) {
-        LOG.info("Kafka metricRemoval {}", metric.metricName());
         kafkaMetricsCollector.removeMetric(metric);
     }
 
     @Override
     public void close() {
         registry.unregister(kafkaMetricsCollector);
-        LOG.info("Closing the HTTP server");
     }
 
     @Override
@@ -98,7 +96,6 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     @Override
     public void contextChange(MetricsContext metricsContext) {
-        LOG.info("Kafka contextChange with {}", metricsContext.contextLabels());
         String prefix = metricsContext.contextLabels().get(MetricsContext.NAMESPACE);
         kafkaMetricsCollector.setPrefix(prefix);
     }
