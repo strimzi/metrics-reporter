@@ -20,6 +20,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
 
 /**
 * Configuration for the PrometheusMetricsReporter implementation.
@@ -97,7 +99,14 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
     }
 
     private Pattern compileAllowlist(List<String> allowlist) {
-        String joined = String.join("|", allowlist);
+        for (String entry : allowlist) {
+            try {
+                Pattern.compile(entry);
+            } catch (PatternSyntaxException pse) {
+                throw new ConfigException("Invalid regex pattern found in " + ALLOWLIST_CONFIG + ": " + entry);
+            }
+        }
+        String joined = allowlist.stream().map(v -> "(" + v + ")").collect(Collectors.joining("|"));
         return Pattern.compile(joined);
     }
 
