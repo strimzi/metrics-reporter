@@ -20,7 +20,6 @@ import org.apache.kafka.common.utils.Time;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -121,16 +120,6 @@ public class KafkaMetricsCollectorTest {
         assertEquals("k_1", PrometheusNaming.sanitizeLabelName("k-1"));
         assertEquals("v1", labels.get("k_1"));
         assertEquals(1, labels.size());
-    }
-
-    @Test
-    public void testMetricName() {
-        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(Collections.emptyMap(), new PrometheusRegistry());
-        KafkaMetricsCollector collector = new KafkaMetricsCollector(config);
-        collector.setPrefix("kafka.server");
-
-        String metricName = collector.metricName(new MetricName("NaMe", "KafKa.neTwork", "", Collections.emptyMap()));
-        assertEquals("kafka_server_kafka_network_name", metricName);
     }
 
     private void assertGaugeSnapshot(MetricSnapshot snapshot, double expectedValue, Labels expectedLabels) {

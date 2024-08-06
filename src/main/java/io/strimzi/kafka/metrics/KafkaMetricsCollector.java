@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -88,7 +87,7 @@ public class KafkaMetricsCollector implements MultiCollector {
             MetricName metricName = entry.getKey();
             KafkaMetric kafkaMetric = entry.getValue();
 
-            String prometheusMetricName = metricName(metricName);
+            String prometheusMetricName = MetricWrapper.prometheusName(prefix, metricName);
             if (!config.isAllowed(prometheusMetricName)) {
                 LOG.trace("Ignoring metric {} as it does not match the allowlist", prometheusMetricName);
                 continue;
@@ -114,12 +113,6 @@ public class KafkaMetricsCollector implements MultiCollector {
             snapshots.add(builder.build());
         }
         return new MetricSnapshots(snapshots);
-    }
-
-    String metricName(MetricName metricName) {
-        return PrometheusNaming.prometheusName(PrometheusNaming
-                .sanitizeMetricName(prefix + '_' + metricName.group() + '_' + metricName.name())
-                .toLowerCase(Locale.ROOT));
     }
 
     static Labels labelsFromTags(Map<String, String> tags, String metricName) {
