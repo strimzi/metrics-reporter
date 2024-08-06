@@ -116,10 +116,10 @@ public class KafkaMetricsCollector implements MultiCollector {
         return new MetricSnapshots(snapshots);
     }
 
-    private String metricName(MetricName metricName) {
-        return PrometheusNaming
+    String metricName(MetricName metricName) {
+        return PrometheusNaming.prometheusName(PrometheusNaming
                 .sanitizeMetricName(prefix + '_' + metricName.group() + '_' + metricName.name())
-                .toLowerCase(Locale.ROOT);
+                .toLowerCase(Locale.ROOT));
     }
 
     static Labels labelsFromTags(Map<String, String> tags, String metricName) {

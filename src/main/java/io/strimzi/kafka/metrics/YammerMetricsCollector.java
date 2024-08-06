@@ -132,12 +132,12 @@ public class YammerMetricsCollector implements MultiCollector {
         return new MetricSnapshots(snapshots);
     }
 
-    private static String metricName(MetricName metricName) {
-        return PrometheusNaming.sanitizeMetricName(
+    static String metricName(MetricName metricName) {
+        return PrometheusNaming.prometheusName(PrometheusNaming.sanitizeMetricName(
                 "kafka_server_" +
                 metricName.getGroup() + '_' +
                 metricName.getType() + '_' +
-                metricName.getName()).toLowerCase(Locale.ROOT);
+                metricName.getName()).toLowerCase(Locale.ROOT));
     }
 
     static Labels labelsFromScope(String scope, String metricName) {
