@@ -128,6 +128,12 @@ public class YammerMetricsCollectorTest {
         assertEquals(1, labels.size());
     }
 
+    @Test
+    public void testMetricName() {
+        String metricName = YammerMetricsCollector.metricName(new MetricName("Kafka.Server", "Log", "NumLogSegments"));
+        assertEquals("kafka_server_kafka_server_log_numlogsegments", metricName);
+    }
+
     public Counter newCounter(String group, String type, String name) {
         MetricName metricName = KafkaYammerMetrics.getMetricName(group, type, name, tagsMap);
         return KafkaYammerMetrics.defaultRegistry().newCounter(metricName);
