@@ -27,6 +27,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 public class KafkaMetricsCollectorTest {
 
@@ -131,6 +132,27 @@ public class KafkaMetricsCollectorTest {
 
         String metricName = collector.metricName(new MetricName("NaMe", "KafKa.neTwork", "", Collections.emptyMap()));
         assertEquals("kafka_server_kafka_network_name", metricName);
+    }
+
+    @Test
+    public void testAddMetricFiltersMetrics() {
+        Map<String, String> props = new HashMap<>();
+        props.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server_group_name");
+        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props, new PrometheusRegistry());
+        System.out.println(config);
+        KafkaMetricsCollector collector = new KafkaMetricsCollector(config);
+        collector.setPrefix("kafka.server");
+
+        // Create two metrics, one that matches the allowlist and one that does not
+        KafkaMetric allowedMetric = buildMetric("name", "group_name", 1.0);
+        KafkaMetric disallowedMetric = buildMetric("name", "other", 1.0);
+
+        // Add the metrics
+        collector.addMetric(allowedMetric);
+        collector.addMetric(disallowedMetric);
+
+        assertEquals("kafka_server_group_name_name", collector.metricName(allowedMetric.metricName()));
+        assertNotEquals("kafka_server_group_name_name", collector.metricName(disallowedMetric.metricName()));
     }
 
     private void assertGaugeSnapshot(MetricSnapshot snapshot, double expectedValue, Labels expectedLabels) {
