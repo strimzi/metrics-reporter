@@ -61,9 +61,15 @@ public class KafkaMetricsCollector implements MultiCollector {
      * Adds a Kafka metric to be collected.
      *
      * @param metric The Kafka metric to add.
+     * The metric name is sanitized and converted to lower case using the PrometheusNaming convention.
      */
     public void addMetric(KafkaMetric metric) {
-        metrics.put(metric.metricName(), metric);
+        String prometheusMetricName = PrometheusNaming
+                .sanitizeMetricName(prefix + '_' + metric.metricName().group() + '_' + metric.metricName().name())
+                .toLowerCase(Locale.ROOT);
+        if (config.isAllowed(prometheusMetricName)) {
+            metrics.put(metric.metricName(), metric);
+        }
     }
 
     /**
@@ -89,10 +95,6 @@ public class KafkaMetricsCollector implements MultiCollector {
             KafkaMetric kafkaMetric = entry.getValue();
 
             String prometheusMetricName = metricName(metricName);
-            if (!config.isAllowed(prometheusMetricName)) {
-                LOG.trace("Ignoring metric {} as it does not match the allowlist", prometheusMetricName);
-                continue;
-            }
             Labels labels = labelsFromTags(metricName.tags(), metricName.name());
             LOG.debug("Collecting metric {} with the following labels: {}", prometheusMetricName, labels);
 
