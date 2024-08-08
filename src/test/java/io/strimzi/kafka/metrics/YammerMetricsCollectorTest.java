@@ -4,22 +4,20 @@
  */
 package io.strimzi.kafka.metrics;
 
+import com.yammer.metrics.Metrics;
 import com.yammer.metrics.core.Counter;
 import com.yammer.metrics.core.Gauge;
+import com.yammer.metrics.core.Metric;
 import com.yammer.metrics.core.MetricName;
-import io.prometheus.metrics.model.registry.PrometheusRegistry;
+import com.yammer.metrics.core.MetricsRegistry;
 import io.prometheus.metrics.model.snapshots.CounterSnapshot;
 import io.prometheus.metrics.model.snapshots.InfoSnapshot;
 import io.prometheus.metrics.model.snapshots.Labels;
 import io.prometheus.metrics.model.snapshots.MetricSnapshot;
 import io.prometheus.metrics.model.snapshots.MetricSnapshots;
-import io.prometheus.metrics.model.snapshots.PrometheusNaming;
-import org.apache.kafka.server.metrics.KafkaYammerMetrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,44 +25,40 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 public class YammerMetricsCollectorTest {
 
-    private LinkedHashMap<String, String> tagsMap;
+    private final MetricsRegistry registry = Metrics.defaultRegistry();
+    private String scope;
     private Labels labels;
 
     @BeforeEach
     public void setup() {
-        tagsMap = new LinkedHashMap<>();
-        tagsMap.put("k1", "v1");
-        tagsMap.put("k2", "v2");
         Labels.Builder labelsBuilder = Labels.builder();
-        for (Map.Entry<String, String> tag : tagsMap.entrySet()) {
-            labelsBuilder.label(tag.getKey(), tag.getValue());
+        scope = "";
+        for (int i = 0; i < 2; i++) {
+            labelsBuilder.label("k" + i, "v" + i);
+            scope += "k" + i + ".v" + i + ".";
         }
         labels = labelsBuilder.build();
+        for (Map.Entry<MetricName, Metric> entry : registry.allMetrics().entrySet()) {
+            registry.removeMetric(entry.getKey());
+        }
     }
 
     @Test
-    public void testMetricLifeCycle() {
-        Map<String, String> props = new HashMap<>();
-        props.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server_group_type.*");
-        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props, new PrometheusRegistry());
-        YammerMetricsCollector collector = new YammerMetricsCollector(config);
+    public void testCollect() {
+        YammerMetricsCollector collector = new YammerMetricsCollector();
 
         MetricSnapshots metrics = collector.collect();
         assertEquals(0, metrics.size());
 
-        // Adding a metric not matching the allowlist does nothing
-        newCounter("other", "type", "name");
-        metrics = collector.collect();
-        assertEquals(0, metrics.size());
-
-        // Adding a metric that matches the allowlist
-        Counter counter = newCounter("group", "type", "name");
+        // Add a metric
+        MetricName metricName = new MetricName("group", "type", "name", scope);
+        MetricWrapper metricWrapper = newMetric(metricName);
+        collector.addMetric(metricName, metricWrapper);
         metrics = collector.collect();
         assertEquals(1, metrics.size());
 
         MetricSnapshot snapshot = metrics.get(0);
-
-        //assertEquals("kafka_server_group_name_type_count", snapshot.getMetadata().getName());
+        assertEquals(metricWrapper.prometheusName(), snapshot.getMetadata().getName());
         assertInstanceOf(CounterSnapshot.class, snapshot);
         CounterSnapshot counterSnapshot = (CounterSnapshot) snapshot;
 
@@ -73,85 +67,62 @@ public class YammerMetricsCollectorTest {
         assertEquals(0.0, datapoint.getValue(), 0.1);
         assertEquals(labels, datapoint.getLabels());
 
-        // Updating the value of the metric
-        counter.inc(10);
+        // Update the value of the metric
+        ((Counter) metricWrapper.value()).inc(10);
         metrics = collector.collect();
 
         assertEquals(1, metrics.size());
         snapshot = metrics.get(0);
-        //assertEquals("kafka_server_group_name_type_count", snapshot.getMetadata().getName());
+        assertEquals(metricWrapper.prometheusName(), snapshot.getMetadata().getName());
         assertInstanceOf(CounterSnapshot.class, snapshot);
         counterSnapshot = (CounterSnapshot) snapshot;
         assertEquals(1, counterSnapshot.getDataPoints().size());
         datapoint = counterSnapshot.getDataPoints().get(0);
         assertEquals(10.0, datapoint.getValue(), 0.1);
 
-        // Removing the metric
-        removeMetric("group", "type", "name");
+        // Remove the metric
+        collector.removeMetric(metricName);
         metrics = collector.collect();
         assertEquals(0, metrics.size());
     }
 
     @Test
     public void testCollectNonNumericMetric() {
-        Map<String, String> props = new HashMap<>();
-        props.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server_group_type.*");
-        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props, new PrometheusRegistry());
-        YammerMetricsCollector collector = new YammerMetricsCollector(config);
+        YammerMetricsCollector collector = new YammerMetricsCollector();
 
         MetricSnapshots metrics = collector.collect();
         assertEquals(0, metrics.size());
 
         String nonNumericValue = "value";
-        newNonNumericGauge("group", "type", "name", nonNumericValue);
+        MetricName metricName = new MetricName("group", "type", "name", scope);
+        MetricWrapper metricWrapper = newNonNumericMetric(metricName, nonNumericValue);
+        collector.addMetric(metricName, metricWrapper);
         metrics = collector.collect();
 
         assertEquals(1, metrics.size());
         MetricSnapshot snapshot = metrics.get(0);
+        assertEquals(metricWrapper.prometheusName(), snapshot.getMetadata().getName());
         assertInstanceOf(InfoSnapshot.class, snapshot);
         Labels expectedLabels = labels.add("name", nonNumericValue);
         assertEquals(1, snapshot.getDataPoints().size());
         assertEquals(expectedLabels, snapshot.getDataPoints().get(0).getLabels());
     }
 
-    @Test
-    public void testLabelsFromScope() {
-        assertEquals(Labels.of("k1", "v1", "k2", "v2"), YammerMetricsCollector.labelsFromScope("k1.v1.k2.v2", "name"));
-        assertEquals(Labels.EMPTY, YammerMetricsCollector.labelsFromScope(null, "name"));
-        assertEquals(Labels.EMPTY, YammerMetricsCollector.labelsFromScope("k1", "name"));
-        assertEquals(Labels.EMPTY, YammerMetricsCollector.labelsFromScope("k1.", "name"));
-        assertEquals(Labels.EMPTY, YammerMetricsCollector.labelsFromScope("k1.v1.k", "name"));
-
-        Labels labels = YammerMetricsCollector.labelsFromScope("k-1.v1.k_1.v2", "name");
-        assertEquals("k_1", PrometheusNaming.sanitizeLabelName("k-1"));
-        assertEquals("v1", labels.get("k_1"));
-        assertEquals(1, labels.size());
+    private MetricWrapper newMetric(MetricName metricName) {
+        Counter counter = registry.newCounter(metricName);
+        String prometheusName = MetricWrapper.prometheusName(metricName);
+        return new MetricWrapper(prometheusName, metricName.getScope(), counter, metricName.getName());
     }
 
-    @Test
-    public void testMetricName() {
-        String metricName = YammerMetricsCollector.metricName(new MetricName("Kafka.Server", "Log", "NumLogSegments"));
-        assertEquals("kafka_server_kafka_server_log_numlogsegments", metricName);
-    }
-
-    public Counter newCounter(String group, String type, String name) {
-        MetricName metricName = KafkaYammerMetrics.getMetricName(group, type, name, tagsMap);
-        return KafkaYammerMetrics.defaultRegistry().newCounter(metricName);
-    }
-
-    public void newNonNumericGauge(String group, String type, String name, String value) {
-        MetricName metricName = KafkaYammerMetrics.getMetricName(group, type, name, tagsMap);
-        KafkaYammerMetrics.defaultRegistry().newGauge(metricName, new Gauge<String>() {
+    private MetricWrapper newNonNumericMetric(MetricName metricName, String value) {
+        Gauge<String> gauge = registry.newGauge(metricName, new Gauge<>() {
             @Override
             public String value() {
                 return value;
             }
         });
-    }
-
-    public void removeMetric(String group, String type, String name) {
-        MetricName metricName = KafkaYammerMetrics.getMetricName(group, type, name, tagsMap);
-        KafkaYammerMetrics.defaultRegistry().removeMetric(metricName);
+        String prometheusName = MetricWrapper.prometheusName(metricName);
+        return new MetricWrapper(prometheusName, metricName.getScope(), gauge, metricName.getName());
     }
 
 }
