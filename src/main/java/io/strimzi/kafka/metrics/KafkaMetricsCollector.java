@@ -19,10 +19,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -31,19 +29,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public class KafkaMetricsCollector implements MultiCollector {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaMetricsCollector.class);
-
-    private final Map<MetricName, KafkaMetric> metrics;
-    private final PrometheusMetricsReporterConfig config;
+    private final Map<MetricName, MetricWrapper> metrics;
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the setPrefix method
     private String prefix;
 
     /**
      * Constructs a new KafkaMetricsCollector with provided configuration.
-     *
-     * @param config The configuration for the PrometheusMetricsReporter.
      */
-    public KafkaMetricsCollector(PrometheusMetricsReporterConfig config) {
-        this.config = config;
+    public KafkaMetricsCollector() {
         this.metrics = new ConcurrentHashMap<>();
     }
 
@@ -57,12 +50,24 @@ public class KafkaMetricsCollector implements MultiCollector {
     }
 
     /**
-     * Adds a Kafka metric to be collected.
+     * This method is used to get the prefix that is used for metric names.
      *
-     * @param metric The Kafka metric to add.
+     * @return The prefix used for metric names.
      */
-    public void addMetric(KafkaMetric metric) {
-        metrics.put(metric.metricName(), metric);
+    public String getPrefix() {
+        return prefix;
+    }
+
+    /**
+     * This method is used to add a Kafka metric to the collection for reporting.
+     * The metric is wrapped in a MetricWrapper object which contains additional information
+     * such as the prometheus name of the metric.
+     *
+     * @param name The name of the metric in the Kafka system. This is used as the key in the metrics map.
+     * @param metric The Kafka metric to add. This is wrapped in a MetricWrapper object.
+     */
+    public void addMetric(MetricName name, MetricWrapper metric) {
+        metrics.put(name, metric);
     }
 
     /**
@@ -83,26 +88,20 @@ public class KafkaMetricsCollector implements MultiCollector {
         Map<String, GaugeSnapshot.Builder> gaugeBuilders = new HashMap<>();
         Map<String, InfoSnapshot.Builder> infoBuilders = new HashMap<>();
 
-        for (Map.Entry<MetricName, KafkaMetric> entry : metrics.entrySet()) {
-            MetricName metricName = entry.getKey();
-            KafkaMetric kafkaMetric = entry.getValue();
-
-            String prometheusMetricName = MetricWrapper.prometheusName(prefix, metricName);
-            if (!config.isAllowed(prometheusMetricName)) {
-                LOG.trace("Ignoring metric {} as it does not match the allowlist", prometheusMetricName);
-                continue;
-            }
-            Labels labels = labelsFromTags(metricName.tags(), metricName.name());
+        for (Map.Entry<MetricName, MetricWrapper> entry : metrics.entrySet()) {
+            MetricWrapper metricWrapper = entry.getValue();
+            String prometheusMetricName = metricWrapper.prometheusName();
+            Object metric = metricWrapper.value();
+            Labels labels = metricWrapper.labels();
             LOG.debug("Collecting metric {} with the following labels: {}", prometheusMetricName, labels);
 
-            Object valueObj = kafkaMetric.metricValue();
-            if (valueObj instanceof Number) {
-                double value = ((Number) valueObj).doubleValue();
+            if (metric instanceof Number) {
+                double value = ((Number) metric).doubleValue();
                 GaugeSnapshot.Builder builder = gaugeBuilders.computeIfAbsent(prometheusMetricName, k -> GaugeSnapshot.builder().name(prometheusMetricName));
                 builder.dataPoint(DataPointSnapshotBuilder.gaugeDataPoint(labels, value));
             } else {
                 InfoSnapshot.Builder builder = infoBuilders.computeIfAbsent(prometheusMetricName, k -> InfoSnapshot.builder().name(prometheusMetricName));
-                builder.dataPoint(DataPointSnapshotBuilder.infoDataPoint(labels, valueObj, metricName.name()));
+                builder.dataPoint(DataPointSnapshotBuilder.infoDataPoint(labels, metric, metricWrapper.attribute()));
             }
         }
         List<MetricSnapshot> snapshots = new ArrayList<>();
@@ -113,19 +112,5 @@ public class KafkaMetricsCollector implements MultiCollector {
             snapshots.add(builder.build());
         }
         return new MetricSnapshots(snapshots);
-    }
-
-    static Labels labelsFromTags(Map<String, String> tags, String metricName) {
-        Labels.Builder builder = Labels.builder();
-        Set<String> labelNames = new HashSet<>();
-        for (Map.Entry<String, String> label : tags.entrySet()) {
-            String newLabelName = PrometheusNaming.sanitizeLabelName(label.getKey());
-            if (labelNames.add(newLabelName)) {
-                builder.label(newLabelName, label.getValue());
-            } else {
-                LOG.warn("Ignoring duplicate label key: {} with value: {} from metric: {} ", newLabelName, label.getValue(), metricName);
-            }
-        }
-        return builder.build();
     }
 }

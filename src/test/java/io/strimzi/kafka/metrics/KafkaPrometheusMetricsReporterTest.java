@@ -38,12 +38,14 @@ public class KafkaPrometheusMetricsReporterTest {
         KafkaPrometheusMetricsReporter reporter = new KafkaPrometheusMetricsReporter(new PrometheusRegistry());
         Map<String, String> configs = new HashMap<>();
         configs.put(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");
+        configs.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server_group_name.*");
         reporter.configure(configs);
         reporter.contextChange(new KafkaMetricsContext("kafka.server"));
+
         Optional<Integer> port = reporter.getPort();
         assertTrue(port.isPresent());
-        int initialMetrics = getMetrics(port.get()).size();
 
+        int initialMetrics = getMetrics(port.get()).size();
         KafkaMetric metric1 = buildMetric("name1", "group", 0);
         reporter.init(Collections.singletonList(metric1));
 
@@ -71,6 +73,7 @@ public class KafkaPrometheusMetricsReporterTest {
     public void testMultipleReporters() throws Exception {
         Map<String, String> configs = new HashMap<>();
         configs.put(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");
+        configs.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server_group_name.*");
 
         KafkaPrometheusMetricsReporter reporter1 = new KafkaPrometheusMetricsReporter(new PrometheusRegistry());
         reporter1.configure(configs);

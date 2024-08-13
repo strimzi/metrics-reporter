@@ -29,11 +29,14 @@ import java.util.Set;
 public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaPrometheusMetricsReporter.class);
-
     private final PrometheusRegistry registry;
-    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
-    private KafkaMetricsCollector kafkaMetricsCollector;
-    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
+    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"})
+    // This field is initialized in the configure method
+    private KafkaMetricsCollector collector;
+    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the init method
+    private PrometheusMetricsReporterConfig config;
+    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"})
+    // This field is initialized in the configure method
     private Optional<HTTPServer> httpServer;
 
     /**
@@ -50,35 +53,44 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     @Override
     public void configure(Map<String, ?> map) {
-        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(map, registry);
-        kafkaMetricsCollector = new KafkaMetricsCollector(config);
+        config = new PrometheusMetricsReporterConfig(map, registry);
+        collector = new KafkaMetricsCollector();
         // Add JVM metrics
         JvmMetrics.builder().register(registry);
         httpServer = config.startHttpServer();
         LOG.debug("KafkaPrometheusMetricsReporter configured with {}", config);
     }
 
+    // why does this take a list of metrics. Is this starting after metrics have been produced???
+    // Where is the listener happening on this side: in register(collector)??
+    // The tests are catching the filtering but should there be more robust testing??
     @Override
     public void init(List<KafkaMetric> metrics) {
-        registry.register(kafkaMetricsCollector);
+        registry.register(collector);
         for (KafkaMetric metric : metrics) {
             metricChange(metric);
         }
     }
 
-    @Override
     public void metricChange(KafkaMetric metric) {
-        kafkaMetricsCollector.addMetric(metric);
+        String prometheusName = MetricWrapper.prometheusName(collector.getPrefix(), metric.metricName());
+        if (!config.isAllowed(prometheusName)) {
+            System.out.println("Is allowed has failed for: " + prometheusName);
+            LOG.trace("Ignoring metric {} as it does not match the allowlist", prometheusName);
+        } else {
+            MetricWrapper metricWrapper = new MetricWrapper(prometheusName, metric, metric.metricName().name());
+            collector.addMetric(metric.metricName(), metricWrapper);
+        }
     }
 
     @Override
     public void metricRemoval(KafkaMetric metric) {
-        kafkaMetricsCollector.removeMetric(metric);
+        collector.removeMetric(metric);
     }
 
     @Override
     public void close() {
-        registry.unregister(kafkaMetricsCollector);
+        registry.unregister(collector);
     }
 
     @Override
@@ -97,7 +109,7 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
     @Override
     public void contextChange(MetricsContext metricsContext) {
         String prefix = metricsContext.contextLabels().get(MetricsContext.NAMESPACE);
-        kafkaMetricsCollector.setPrefix(prefix);
+        collector.setPrefix(prefix);
     }
 
     // for testing
