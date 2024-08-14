@@ -34,10 +34,15 @@ public class MetricWrapperTest {
     @Test
     public void testLabelsFromTags() {
         Map<String, String> tags = new LinkedHashMap<>();
+        tags.put("k1", "v1");
+        tags.put("k2", "v2");
+        Labels labels = MetricWrapper.labelsFromTags(tags, "");
+        assertEquals(Labels.of("k1", "v1", "k2", "v2"), labels);
+
+        tags = new LinkedHashMap<>();
         tags.put("k-1", "v1");
         tags.put("k_1", "v2");
-        Labels labels = MetricWrapper.labelsFromTags(tags, "");
-
+        labels = MetricWrapper.labelsFromTags(tags, "");
         assertEquals("k_1", PrometheusNaming.sanitizeLabelName("k-1"));
         assertEquals("v1", labels.get("k_1"));
         assertEquals(1, labels.size());

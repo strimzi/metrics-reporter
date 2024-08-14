@@ -25,12 +25,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 public class KafkaMetricsCollectorTest {
+
+    private static final String METRIC_PREFIX = "kafka.server";
     private final MetricConfig metricConfig = new MetricConfig();
     private final Time time = Time.SYSTEM;
     private Map<String, String> tagsMap;
     private Labels labels;
-    private static final String METRIC_PREFIX = "kafka.server";
-
 
     @BeforeEach
     public void setup() {
@@ -53,7 +53,7 @@ public class KafkaMetricsCollectorTest {
 
         // Add a metric
         MetricName metricName = new MetricName("name", "group", "description", tagsMap);
-        MetricWrapper metricWrapper = buildMetric(metricName, 1.0);
+        MetricWrapper metricWrapper = newMetric(metricName, 1.0);
 
         collector.addMetric(metricName, metricWrapper);
         metrics = collector.collect();
@@ -63,7 +63,7 @@ public class KafkaMetricsCollectorTest {
         assertGaugeSnapshot(snapshot, 1.0, labels);
 
         // Update the value of the metric
-        collector.addMetric(metricName, buildMetric(metricName, 3.0));
+        collector.addMetric(metricName, newMetric(metricName, 3.0));
         metrics = collector.collect();
         assertEquals(1, metrics.size());
 
@@ -107,7 +107,7 @@ public class KafkaMetricsCollectorTest {
         assertEquals(expectedLabels, datapoint.getLabels());
     }
 
-    private MetricWrapper buildMetric(MetricName metricName, double value) {
+    private MetricWrapper newMetric(MetricName metricName, double value) {
         Measurable measurable = (config, now) -> value;
         KafkaMetric metric = new KafkaMetric(
                 new Object(),

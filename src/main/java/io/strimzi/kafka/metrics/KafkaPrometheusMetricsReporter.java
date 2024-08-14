@@ -52,24 +52,6 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
         this.registry = registry;
     }
 
-    /**
-     * Sets the prefix to be used for metric names. This is always called before addMetric/removeMetric
-     *
-     * @param prefix The prefix to set.
-     */
-    public void setPrefix(String prefix) {
-        this.prefix = PrometheusNaming.prometheusName(prefix);
-    }
-
-    /**
-     * This method is used to get the prefix that is used for metric names.
-     *
-     * @return The prefix used for metric names.
-     */
-    public String getPrefix() {
-        return prefix;
-    }
-
     @Override
     public void configure(Map<String, ?> map) {
         config = new PrometheusMetricsReporterConfig(map, registry);
@@ -89,7 +71,7 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
     }
 
     public void metricChange(KafkaMetric metric) {
-        String prometheusName = MetricWrapper.prometheusName(getPrefix(), metric.metricName());
+        String prometheusName = MetricWrapper.prometheusName(this.prefix, metric.metricName());
         if (!config.isAllowed(prometheusName)) {
             LOG.trace("Ignoring metric {} as it does not match the allowlist", prometheusName);
         } else {
@@ -124,7 +106,7 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
     @Override
     public void contextChange(MetricsContext metricsContext) {
         String prefix = metricsContext.contextLabels().get(MetricsContext.NAMESPACE);
-        setPrefix(prefix);
+        this.prefix = PrometheusNaming.prometheusName(prefix);
     }
 
     // for testing
