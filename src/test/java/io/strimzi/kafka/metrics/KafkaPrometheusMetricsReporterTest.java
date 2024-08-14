@@ -44,27 +44,30 @@ public class KafkaPrometheusMetricsReporterTest {
 
         Optional<Integer> port = reporter.getPort();
         assertTrue(port.isPresent());
-
         int initialMetrics = getMetrics(port.get()).size();
-        KafkaMetric metric1 = buildMetric("name1", "group", 0);
+
+        // Adding a metric not matching the allowlist does nothing
+        KafkaMetric metric1 = buildMetric("other", "group", 0);
         reporter.init(Collections.singletonList(metric1));
-
         List<String> metrics = getMetrics(port.get());
-        assertEquals(initialMetrics + 1, metrics.size());
+        assertEquals(initialMetrics, metrics.size());
 
-        KafkaMetric metric2 = buildMetric("name2", "group", 0);
+        // Adding a metric not matching the allowlist does nothing
+        KafkaMetric metric2 = buildMetric("name", "group", 0);
         reporter.metricChange(metric2);
         metrics = getMetrics(port.get());
-        assertEquals(initialMetrics + 2, metrics.size());
+        assertEquals(initialMetrics + 1, metrics.size());
 
-        KafkaMetric metric3 = buildNonNumericMetric("name3", "group");
+        // Adding a non-numeric metric
+        KafkaMetric metric3 = buildNonNumericMetric("name1", "group");
         reporter.metricChange(metric3);
         metrics = getMetrics(port.get());
-        assertEquals(initialMetrics + 3, metrics.size());
-
-        reporter.metricRemoval(metric1);
-        metrics = getMetrics(port.get());
         assertEquals(initialMetrics + 2, metrics.size());
+
+        // Removing a metric
+        reporter.metricRemoval(metric3);
+        metrics = getMetrics(port.get());
+        assertEquals(initialMetrics + 1, metrics.size());
 
         reporter.close();
     }

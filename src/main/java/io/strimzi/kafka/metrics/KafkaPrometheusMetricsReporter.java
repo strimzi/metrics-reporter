@@ -8,6 +8,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.prometheus.metrics.exporter.httpserver.HTTPServer;
 import io.prometheus.metrics.instrumentation.jvm.JvmMetrics;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
+import io.prometheus.metrics.model.snapshots.PrometheusNaming;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.MetricsContext;
@@ -30,14 +31,14 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaPrometheusMetricsReporter.class);
     private final PrometheusRegistry registry;
-    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"})
-    // This field is initialized in the configure method
+    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
     private KafkaMetricsCollector collector;
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the init method
     private PrometheusMetricsReporterConfig config;
-    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"})
-    // This field is initialized in the configure method
+    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
     private Optional<HTTPServer> httpServer;
+    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the setPrefix method
+    private String prefix;
 
     /**
      * Constructor
@@ -51,6 +52,24 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
         this.registry = registry;
     }
 
+    /**
+     * Sets the prefix to be used for metric names. This is always called before addMetric/removeMetric
+     *
+     * @param prefix The prefix to set.
+     */
+    public void setPrefix(String prefix) {
+        this.prefix = PrometheusNaming.prometheusName(prefix);
+    }
+
+    /**
+     * This method is used to get the prefix that is used for metric names.
+     *
+     * @return The prefix used for metric names.
+     */
+    public String getPrefix() {
+        return prefix;
+    }
+
     @Override
     public void configure(Map<String, ?> map) {
         config = new PrometheusMetricsReporterConfig(map, registry);
@@ -61,9 +80,6 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
         LOG.debug("KafkaPrometheusMetricsReporter configured with {}", config);
     }
 
-    // why does this take a list of metrics. Is this starting after metrics have been produced???
-    // Where is the listener happening on this side: in register(collector)??
-    // The tests are catching the filtering but should there be more robust testing??
     @Override
     public void init(List<KafkaMetric> metrics) {
         registry.register(collector);
@@ -73,9 +89,8 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
     }
 
     public void metricChange(KafkaMetric metric) {
-        String prometheusName = MetricWrapper.prometheusName(collector.getPrefix(), metric.metricName());
+        String prometheusName = MetricWrapper.prometheusName(getPrefix(), metric.metricName());
         if (!config.isAllowed(prometheusName)) {
-            System.out.println("Is allowed has failed for: " + prometheusName);
             LOG.trace("Ignoring metric {} as it does not match the allowlist", prometheusName);
         } else {
             MetricWrapper metricWrapper = new MetricWrapper(prometheusName, metric, metric.metricName().name());
@@ -85,7 +100,7 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     @Override
     public void metricRemoval(KafkaMetric metric) {
-        collector.removeMetric(metric);
+        collector.removeMetric(metric.metricName());
     }
 
     @Override
@@ -109,7 +124,7 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
     @Override
     public void contextChange(MetricsContext metricsContext) {
         String prefix = metricsContext.contextLabels().get(MetricsContext.NAMESPACE);
-        collector.setPrefix(prefix);
+        setPrefix(prefix);
     }
 
     // for testing

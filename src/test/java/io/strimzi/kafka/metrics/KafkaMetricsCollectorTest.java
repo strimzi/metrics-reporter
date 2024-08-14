@@ -29,6 +29,8 @@ public class KafkaMetricsCollectorTest {
     private final Time time = Time.SYSTEM;
     private Map<String, String> tagsMap;
     private Labels labels;
+    private static final String METRIC_PREFIX = "kafka.server";
+
 
     @BeforeEach
     public void setup() {
@@ -51,7 +53,7 @@ public class KafkaMetricsCollectorTest {
 
         // Add a metric
         MetricName metricName = new MetricName("name", "group", "description", tagsMap);
-        MetricWrapper metricWrapper = newMetric(metricName, 1.0);
+        MetricWrapper metricWrapper = buildMetric(metricName, 1.0);
 
         collector.addMetric(metricName, metricWrapper);
         metrics = collector.collect();
@@ -61,7 +63,7 @@ public class KafkaMetricsCollectorTest {
         assertGaugeSnapshot(snapshot, 1.0, labels);
 
         // Update the value of the metric
-        collector.addMetric(metricName, newMetric(metricName, 3.0));
+        collector.addMetric(metricName, buildMetric(metricName, 3.0));
         metrics = collector.collect();
         assertEquals(1, metrics.size());
 
@@ -69,7 +71,7 @@ public class KafkaMetricsCollectorTest {
         assertGaugeSnapshot(updatedSnapshot, 3.0, labels);
 
         // Removing the metric
-        collector.removeMetric(buildMetric("name", "group", 1.0));
+        collector.removeMetric(metricName);
         metrics = collector.collect();
         assertEquals(0, metrics.size());
     }
@@ -77,7 +79,6 @@ public class KafkaMetricsCollectorTest {
     @Test
     public void testCollectNonNumericMetric() {
         KafkaMetricsCollector collector = new KafkaMetricsCollector();
-        collector.setPrefix("kafka.server");
 
         MetricSnapshots metrics = collector.collect();
         assertEquals(0, metrics.size());
@@ -106,20 +107,16 @@ public class KafkaMetricsCollectorTest {
         assertEquals(expectedLabels, datapoint.getLabels());
     }
 
-    private MetricWrapper newMetric(MetricName metricName, double value) {
-        KafkaMetric metric = buildMetric(metricName.name(), metricName.group(), value);
-        String prometheusName = MetricWrapper.prometheusName("kafka.server", metricName);
-        return new MetricWrapper(prometheusName, metric, metricName.name());
-    }
-
-    private KafkaMetric buildMetric(String name, String group, double value) {
+    private MetricWrapper buildMetric(MetricName metricName, double value) {
         Measurable measurable = (config, now) -> value;
-        return new KafkaMetric(
+        KafkaMetric metric = new KafkaMetric(
                 new Object(),
-                new MetricName(name, group, "", tagsMap),
+                new MetricName(metricName.name(), metricName.group(), "", tagsMap),
                 measurable,
                 metricConfig,
                 time);
+        String prometheusName = MetricWrapper.prometheusName(METRIC_PREFIX, metricName);
+        return new MetricWrapper(prometheusName, metric, metricName.name());
     }
 
     private MetricWrapper newNonNumericMetric(MetricName metricName, String value) {
@@ -129,9 +126,8 @@ public class KafkaMetricsCollectorTest {
                 metricName,
                 gauge,
                 metricConfig,
-                time
-        );
-        String prometheusName = MetricWrapper.prometheusName("kafka.server", metricName);
+                time);
+        String prometheusName = MetricWrapper.prometheusName(METRIC_PREFIX, metricName);
         return new MetricWrapper(prometheusName, kafkaMetric, metricName.name());
     }
 

@@ -10,6 +10,8 @@ import io.prometheus.metrics.model.snapshots.PrometheusNaming;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -17,21 +19,25 @@ public class MetricWrapperTest {
 
     @Test
     public void testLabelsFromScope() {
-        MetricWrapper mw = new MetricWrapper("", "k1.v1.k2.v2", null, "");
-        assertEquals(Labels.of("k1", "v1", "k2", "v2"), mw.labels());
-        mw = new MetricWrapper("", "k1.v1.k2.v2.", null, "");
-        assertEquals(Labels.of("k1", "v1", "k2", "v2"), mw.labels());
-        mw = new MetricWrapper("", null, null, "");
-        assertEquals(Labels.EMPTY, mw.labels());
-        mw = new MetricWrapper("", "k1", null, "");
-        assertEquals(Labels.EMPTY, mw.labels());
-        mw = new MetricWrapper("", "k1.", null, "");
-        assertEquals(Labels.EMPTY, mw.labels());
-        mw = new MetricWrapper("", "k1.v1.k", null, "");
-        assertEquals(Labels.EMPTY, mw.labels());
+        assertEquals(Labels.of("k1", "v1", "k2", "v2"), MetricWrapper.labelsFromScope("k1.v1.k2.v2", "name"));
+        assertEquals(Labels.EMPTY, MetricWrapper.labelsFromScope(null, "name"));
+        assertEquals(Labels.EMPTY, MetricWrapper.labelsFromScope("k1", "name"));
+        assertEquals(Labels.EMPTY, MetricWrapper.labelsFromScope("k1.", "name"));
+        assertEquals(Labels.EMPTY, MetricWrapper.labelsFromScope("k1.v1.k", "name"));
 
-        mw = new MetricWrapper("", "k-1.v1.k_1.v2", null, "");
-        Labels labels = mw.labels();
+        Labels labels = MetricWrapper.labelsFromScope("k-1.v1.k_1.v2", "name");
+        assertEquals("k_1", PrometheusNaming.sanitizeLabelName("k-1"));
+        assertEquals("v1", labels.get("k_1"));
+        assertEquals(1, labels.size());
+    }
+
+    @Test
+    public void testLabelsFromTags() {
+        Map<String, String> tags = new LinkedHashMap<>();
+        tags.put("k-1", "v1");
+        tags.put("k_1", "v2");
+        Labels labels = MetricWrapper.labelsFromTags(tags, "");
+
         assertEquals("k_1", PrometheusNaming.sanitizeLabelName("k-1"));
         assertEquals("v1", labels.get("k_1"));
         assertEquals(1, labels.size());

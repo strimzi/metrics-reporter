@@ -4,16 +4,13 @@
  */
 package io.strimzi.kafka.metrics;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.prometheus.metrics.model.registry.MultiCollector;
 import io.prometheus.metrics.model.snapshots.GaugeSnapshot;
 import io.prometheus.metrics.model.snapshots.InfoSnapshot;
 import io.prometheus.metrics.model.snapshots.Labels;
 import io.prometheus.metrics.model.snapshots.MetricSnapshot;
 import io.prometheus.metrics.model.snapshots.MetricSnapshots;
-import io.prometheus.metrics.model.snapshots.PrometheusNaming;
 import org.apache.kafka.common.MetricName;
-import org.apache.kafka.common.metrics.KafkaMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,32 +27,12 @@ public class KafkaMetricsCollector implements MultiCollector {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaMetricsCollector.class);
     private final Map<MetricName, MetricWrapper> metrics;
-    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the setPrefix method
-    private String prefix;
 
     /**
      * Constructs a new KafkaMetricsCollector with provided configuration.
      */
     public KafkaMetricsCollector() {
         this.metrics = new ConcurrentHashMap<>();
-    }
-
-    /**
-     * Sets the prefix to be used for metric names. This is always called before addMetric/removeMetric
-     *
-     * @param prefix The prefix to set.
-     */
-    public void setPrefix(String prefix) {
-        this.prefix = PrometheusNaming.prometheusName(prefix);
-    }
-
-    /**
-     * This method is used to get the prefix that is used for metric names.
-     *
-     * @return The prefix used for metric names.
-     */
-    public String getPrefix() {
-        return prefix;
     }
 
     /**
@@ -73,15 +50,15 @@ public class KafkaMetricsCollector implements MultiCollector {
     /**
      * Removes a Kafka metric from collection.
      *
-     * @param metric The Kafka metric to remove.
+     * @param name The Kafka metric to remove.
      */
-    public void removeMetric(KafkaMetric metric) {
-        metrics.remove(metric.metricName());
+    public void removeMetric(MetricName name) {
+        metrics.remove(name);
     }
 
     /**
      * Called when the Prometheus server scrapes metrics.
-     * @return metrics that match the configured allowlist
+     * @return MetricSnapshots object that contains snapshots of metrics
      */
     @Override
     public MetricSnapshots collect() {
