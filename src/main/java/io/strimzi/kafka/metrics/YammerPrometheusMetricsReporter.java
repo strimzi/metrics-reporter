@@ -10,7 +10,6 @@ import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.core.MetricsRegistryListener;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.prometheus.metrics.exporter.httpserver.HTTPServer;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import kafka.metrics.KafkaMetricsReporter;
 import kafka.utils.VerifiableProperties;
@@ -19,7 +18,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
-import java.util.Optional;
 
 /**
  * KafkaMetricsReporter to export Kafka broker metrics in the Prometheus format.
@@ -32,9 +30,7 @@ public class YammerPrometheusMetricsReporter implements KafkaMetricsReporter, Me
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the init method
     private YammerMetricsCollector collector;
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the init method
-    private PrometheusMetricsReporterConfig config;
-    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
-    private Optional<HTTPServer> httpServer;
+    /* test */ PrometheusMetricsReporterConfig config;
 
     /**
      * Constructor
@@ -56,7 +52,6 @@ public class YammerPrometheusMetricsReporter implements KafkaMetricsReporter, Me
         for (MetricsRegistry yammerRegistry : Arrays.asList(KafkaYammerMetrics.defaultRegistry(), Metrics.defaultRegistry())) {
             yammerRegistry.addListener(this);
         }
-        httpServer = config.startHttpServer();
         LOG.debug("YammerPrometheusMetricsReporter configured with {}", config);
     }
 
@@ -74,10 +69,5 @@ public class YammerPrometheusMetricsReporter implements KafkaMetricsReporter, Me
     @Override
     public void onMetricRemoved(MetricName name) {
         collector.removeMetric(name);
-    }
-
-    // for testing
-    Optional<Integer> getPort() {
-        return Optional.ofNullable(httpServer.isPresent() ? httpServer.get().getPort() : null);
     }
 }

@@ -9,6 +9,7 @@ import com.yammer.metrics.core.Counter;
 import com.yammer.metrics.core.Metric;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.MetricsRegistry;
+import io.prometheus.metrics.exporter.httpserver.HTTPServer;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import kafka.utils.VerifiableProperties;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,11 +22,9 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class YammerPrometheusMetricsReporterTest {
 
@@ -46,25 +45,26 @@ public class YammerPrometheusMetricsReporterTest {
         configs.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server_group_type.*");
         reporter.init(new VerifiableProperties(configs));
 
-        Optional<Integer> port = reporter.getPort();
-        assertTrue(port.isPresent());
-        assertEquals(0, getMetrics(port.get()).size());
+        try (HTTPServer httpServer = reporter.config.startHttpServer().orElseThrow()) {
+            int port = httpServer.getPort();
+            assertEquals(0, getMetrics(port).size());
 
-        // Adding a metric not matching the allowlist does nothing
-        newCounter("other", "type", "name");
-        List<String> metrics = getMetrics(port.get());
-        assertEquals(0, metrics.size());
+            // Adding a metric not matching the allowlist does nothing
+            newCounter("other", "type", "name");
+            List<String> metrics = getMetrics(port);
+            assertEquals(0, metrics.size());
 
-        // Adding a metric that matches the allowlist
-        newCounter("group", "type", "name");
-        metrics = getMetrics(port.get());
-        assertEquals(1, metrics.size());
-        assertEquals("kafka_server_group_type_name_total 0.0", metrics.get(0));
+            // Adding a metric that matches the allowlist
+            newCounter("group", "type", "name");
+            metrics = getMetrics(port);
+            assertEquals(1, metrics.size());
+            assertEquals("kafka_server_group_type_name_total 0.0", metrics.get(0));
 
-        // Removing the metric
-        removeMetric("group", "type", "name");
-        metrics = getMetrics(port.get());
-        assertEquals(0, metrics.size());
+            // Removing the metric
+            removeMetric("group", "type", "name");
+            metrics = getMetrics(port);
+            assertEquals(0, metrics.size());
+        }
     }
 
     private List<String> getMetrics(int port) throws Exception {
