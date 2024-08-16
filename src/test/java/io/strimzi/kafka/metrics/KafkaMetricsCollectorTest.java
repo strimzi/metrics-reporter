@@ -51,7 +51,7 @@ public class KafkaMetricsCollectorTest {
         MetricSnapshots metrics = collector.collect();
         assertEquals(0, metrics.size());
 
-        // Add a metric
+        // Adding a metric
         MetricName metricName = new MetricName("name", "group", "description", tagsMap);
         MetricWrapper metricWrapper = newMetric(metricName, 1.0);
 
@@ -62,7 +62,7 @@ public class KafkaMetricsCollectorTest {
         MetricSnapshot snapshot = metrics.get(0);
         assertGaugeSnapshot(snapshot, 1.0, labels);
 
-        // Update the value of the metric
+        // Updating the value of the metric
         collector.addMetric(metricName, newMetric(metricName, 3.0));
         metrics = collector.collect();
         assertEquals(1, metrics.size());
@@ -70,7 +70,7 @@ public class KafkaMetricsCollectorTest {
         MetricSnapshot updatedSnapshot = metrics.get(0);
         assertGaugeSnapshot(updatedSnapshot, 3.0, labels);
 
-        // Removing the metric
+        // Removing a metric
         collector.removeMetric(metricName);
         metrics = collector.collect();
         assertEquals(0, metrics.size());
@@ -109,14 +109,14 @@ public class KafkaMetricsCollectorTest {
 
     private MetricWrapper newMetric(MetricName metricName, double value) {
         Measurable measurable = (config, now) -> value;
-        KafkaMetric metric = new KafkaMetric(
+        KafkaMetric kafkaMetric = new KafkaMetric(
                 new Object(),
-                new MetricName(metricName.name(), metricName.group(), "", tagsMap),
+                metricName,
                 measurable,
                 metricConfig,
                 time);
         String prometheusName = MetricWrapper.prometheusName(METRIC_PREFIX, metricName);
-        return new MetricWrapper(prometheusName, metric, metricName.name());
+        return new MetricWrapper(prometheusName, kafkaMetric, metricName.name());
     }
 
     private MetricWrapper newNonNumericMetric(MetricName metricName, String value) {

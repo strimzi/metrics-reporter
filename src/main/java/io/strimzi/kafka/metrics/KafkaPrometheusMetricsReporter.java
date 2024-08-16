@@ -71,7 +71,7 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
     }
 
     public void metricChange(KafkaMetric metric) {
-        String prometheusName = MetricWrapper.prometheusName(this.prefix, metric.metricName());
+        String prometheusName = MetricWrapper.prometheusName(prefix, metric.metricName());
         if (!config.isAllowed(prometheusName)) {
             LOG.trace("Ignoring metric {} as it does not match the allowlist", prometheusName);
         } else {

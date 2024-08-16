@@ -76,7 +76,6 @@ public class KafkaPrometheusMetricsReporterTest {
     public void testMultipleReporters() throws Exception {
         Map<String, String> configs = new HashMap<>();
         configs.put(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");
-        configs.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server_group_name.*");
 
         KafkaPrometheusMetricsReporter reporter1 = new KafkaPrometheusMetricsReporter(new PrometheusRegistry());
         reporter1.configure(configs);
