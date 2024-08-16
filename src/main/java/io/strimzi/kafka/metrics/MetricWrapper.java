@@ -29,7 +29,6 @@ public class MetricWrapper {
     private final Object value;
     private final String attribute;
 
-    // Will be used when implementing https://github.com/strimzi/metrics-reporter/issues/9
     /**
      * Constructor from Kafka Metrics
      * @param prometheusName The name of the metric in the prometheus format
@@ -89,7 +88,7 @@ public class MetricWrapper {
         return attribute;
     }
 
-    private static Labels labelsFromScope(String scope, String metricName) {
+    static Labels labelsFromScope(String scope, String metricName) {
         Labels.Builder builder = Labels.builder();
         Set<String> labelNames = new HashSet<>();
         if (scope != null) {
@@ -108,8 +107,7 @@ public class MetricWrapper {
         return builder.build();
     }
 
-    // Will be used when implementing https://github.com/strimzi/metrics-reporter/issues/9
-    private static Labels labelsFromTags(Map<String, String> tags, String metricName) {
+    static Labels labelsFromTags(Map<String, String> tags, String metricName) {
         Labels.Builder builder = Labels.builder();
         Set<String> labelNames = new HashSet<>();
         for (Map.Entry<String, String> label : tags.entrySet()) {
@@ -137,7 +135,6 @@ public class MetricWrapper {
                         metricName.getName()).toLowerCase(Locale.ROOT));
     }
 
-    // Will be used when implementing https://github.com/strimzi/metrics-reporter/issues/9
     /**
      * Compute the Prometheus name from a Kafka MetricName
      * @param prefix The prefix to add to the metric name

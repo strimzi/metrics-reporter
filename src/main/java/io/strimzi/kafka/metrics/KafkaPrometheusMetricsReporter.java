@@ -8,6 +8,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.prometheus.metrics.exporter.httpserver.HTTPServer;
 import io.prometheus.metrics.instrumentation.jvm.JvmMetrics;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
+import io.prometheus.metrics.model.snapshots.PrometheusNaming;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.MetricsContext;
@@ -29,12 +30,15 @@ import java.util.Set;
 public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaPrometheusMetricsReporter.class);
-
     private final PrometheusRegistry registry;
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
-    private KafkaMetricsCollector kafkaMetricsCollector;
+    private KafkaMetricsCollector collector;
+    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
+    private PrometheusMetricsReporterConfig config;
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
     private Optional<HTTPServer> httpServer;
+    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the contextChange method
+    private String prefix;
 
     /**
      * Constructor
@@ -50,8 +54,8 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     @Override
     public void configure(Map<String, ?> map) {
-        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(map, registry);
-        kafkaMetricsCollector = new KafkaMetricsCollector(config);
+        config = new PrometheusMetricsReporterConfig(map, registry);
+        collector = new KafkaMetricsCollector();
         // Add JVM metrics
         JvmMetrics.builder().register(registry);
         httpServer = config.startHttpServer();
@@ -60,25 +64,30 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     @Override
     public void init(List<KafkaMetric> metrics) {
-        registry.register(kafkaMetricsCollector);
+        registry.register(collector);
         for (KafkaMetric metric : metrics) {
             metricChange(metric);
         }
     }
 
-    @Override
     public void metricChange(KafkaMetric metric) {
-        kafkaMetricsCollector.addMetric(metric);
+        String prometheusName = MetricWrapper.prometheusName(prefix, metric.metricName());
+        if (!config.isAllowed(prometheusName)) {
+            LOG.trace("Ignoring metric {} as it does not match the allowlist", prometheusName);
+        } else {
+            MetricWrapper metricWrapper = new MetricWrapper(prometheusName, metric, metric.metricName().name());
+            collector.addMetric(metric.metricName(), metricWrapper);
+        }
     }
 
     @Override
     public void metricRemoval(KafkaMetric metric) {
-        kafkaMetricsCollector.removeMetric(metric);
+        collector.removeMetric(metric.metricName());
     }
 
     @Override
     public void close() {
-        registry.unregister(kafkaMetricsCollector);
+        registry.unregister(collector);
     }
 
     @Override
@@ -97,7 +106,7 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
     @Override
     public void contextChange(MetricsContext metricsContext) {
         String prefix = metricsContext.contextLabels().get(MetricsContext.NAMESPACE);
-        kafkaMetricsCollector.setPrefix(prefix);
+        this.prefix = PrometheusNaming.prometheusName(prefix);
     }
 
     // for testing

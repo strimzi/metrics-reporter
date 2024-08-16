@@ -4,25 +4,20 @@
  */
 package io.strimzi.kafka.metrics;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.prometheus.metrics.model.registry.MultiCollector;
 import io.prometheus.metrics.model.snapshots.GaugeSnapshot;
 import io.prometheus.metrics.model.snapshots.InfoSnapshot;
 import io.prometheus.metrics.model.snapshots.Labels;
 import io.prometheus.metrics.model.snapshots.MetricSnapshot;
 import io.prometheus.metrics.model.snapshots.MetricSnapshots;
-import io.prometheus.metrics.model.snapshots.PrometheusNaming;
 import org.apache.kafka.common.MetricName;
-import org.apache.kafka.common.metrics.KafkaMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -31,78 +26,59 @@ import java.util.concurrent.ConcurrentHashMap;
 public class KafkaMetricsCollector implements MultiCollector {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaMetricsCollector.class);
-
-    private final Map<MetricName, KafkaMetric> metrics;
-    private final PrometheusMetricsReporterConfig config;
-    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the setPrefix method
-    private String prefix;
+    private final Map<MetricName, MetricWrapper> metrics;
 
     /**
      * Constructs a new KafkaMetricsCollector with provided configuration.
-     *
-     * @param config The configuration for the PrometheusMetricsReporter.
      */
-    public KafkaMetricsCollector(PrometheusMetricsReporterConfig config) {
-        this.config = config;
+    public KafkaMetricsCollector() {
         this.metrics = new ConcurrentHashMap<>();
     }
 
     /**
-     * Sets the prefix to be used for metric names. This is always called before addMetric/removeMetric
+     * This method is used to add a Kafka metric to the collection for reporting.
+     * The metric is wrapped in a MetricWrapper object which contains additional information
+     * such as the prometheus name of the metric.
      *
-     * @param prefix The prefix to set.
+     * @param name The name of the metric in the Kafka system. This is used as the key in the metrics map.
+     * @param metric The Kafka metric to add. This is wrapped in a MetricWrapper object.
      */
-    public void setPrefix(String prefix) {
-        this.prefix = PrometheusNaming.prometheusName(prefix);
-    }
-
-    /**
-     * Adds a Kafka metric to be collected.
-     *
-     * @param metric The Kafka metric to add.
-     */
-    public void addMetric(KafkaMetric metric) {
-        metrics.put(metric.metricName(), metric);
+    public void addMetric(MetricName name, MetricWrapper metric) {
+        metrics.put(name, metric);
     }
 
     /**
      * Removes a Kafka metric from collection.
      *
-     * @param metric The Kafka metric to remove.
+     * @param name The Kafka metric to remove.
      */
-    public void removeMetric(KafkaMetric metric) {
-        metrics.remove(metric.metricName());
+    public void removeMetric(MetricName name) {
+        metrics.remove(name);
     }
 
     /**
      * Called when the Prometheus server scrapes metrics.
-     * @return metrics that match the configured allowlist
+     * @return MetricSnapshots object that contains snapshots of metrics
      */
     @Override
     public MetricSnapshots collect() {
         Map<String, GaugeSnapshot.Builder> gaugeBuilders = new HashMap<>();
         Map<String, InfoSnapshot.Builder> infoBuilders = new HashMap<>();
 
-        for (Map.Entry<MetricName, KafkaMetric> entry : metrics.entrySet()) {
-            MetricName metricName = entry.getKey();
-            KafkaMetric kafkaMetric = entry.getValue();
-
-            String prometheusMetricName = MetricWrapper.prometheusName(prefix, metricName);
-            if (!config.isAllowed(prometheusMetricName)) {
-                LOG.trace("Ignoring metric {} as it does not match the allowlist", prometheusMetricName);
-                continue;
-            }
-            Labels labels = labelsFromTags(metricName.tags(), metricName.name());
+        for (Map.Entry<MetricName, MetricWrapper> entry : metrics.entrySet()) {
+            MetricWrapper metricWrapper = entry.getValue();
+            String prometheusMetricName = metricWrapper.prometheusName();
+            Object metric = metricWrapper.value();
+            Labels labels = metricWrapper.labels();
             LOG.debug("Collecting metric {} with the following labels: {}", prometheusMetricName, labels);
 
-            Object valueObj = kafkaMetric.metricValue();
-            if (valueObj instanceof Number) {
-                double value = ((Number) valueObj).doubleValue();
+            if (metric instanceof Number) {
+                double value = ((Number) metric).doubleValue();
                 GaugeSnapshot.Builder builder = gaugeBuilders.computeIfAbsent(prometheusMetricName, k -> GaugeSnapshot.builder().name(prometheusMetricName));
                 builder.dataPoint(DataPointSnapshotBuilder.gaugeDataPoint(labels, value));
             } else {
                 InfoSnapshot.Builder builder = infoBuilders.computeIfAbsent(prometheusMetricName, k -> InfoSnapshot.builder().name(prometheusMetricName));
-                builder.dataPoint(DataPointSnapshotBuilder.infoDataPoint(labels, valueObj, metricName.name()));
+                builder.dataPoint(DataPointSnapshotBuilder.infoDataPoint(labels, metric, metricWrapper.attribute()));
             }
         }
         List<MetricSnapshot> snapshots = new ArrayList<>();
@@ -113,19 +89,5 @@ public class KafkaMetricsCollector implements MultiCollector {
             snapshots.add(builder.build());
         }
         return new MetricSnapshots(snapshots);
-    }
-
-    static Labels labelsFromTags(Map<String, String> tags, String metricName) {
-        Labels.Builder builder = Labels.builder();
-        Set<String> labelNames = new HashSet<>();
-        for (Map.Entry<String, String> label : tags.entrySet()) {
-            String newLabelName = PrometheusNaming.sanitizeLabelName(label.getKey());
-            if (labelNames.add(newLabelName)) {
-                builder.label(newLabelName, label.getValue());
-            } else {
-                LOG.warn("Ignoring duplicate label key: {} with value: {} from metric: {} ", newLabelName, label.getValue(), metricName);
-            }
-        }
-        return builder.build();
     }
 }
