@@ -9,7 +9,6 @@ import com.yammer.metrics.core.Counter;
 import com.yammer.metrics.core.Metric;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.MetricsRegistry;
-import io.prometheus.metrics.exporter.httpserver.HTTPServer;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import kafka.utils.VerifiableProperties;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,8 +44,10 @@ public class YammerPrometheusMetricsReporterTest {
         configs.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server_group_type.*");
         reporter.init(new VerifiableProperties(configs));
 
-        try (HTTPServer httpServer = reporter.config.startHttpServer().orElseThrow()) {
-            int port = httpServer.getPort();
+        HttpServers.ServerCounter httpServer = null;
+        try {
+            httpServer = reporter.config.startHttpServer().orElseThrow();
+            int port = httpServer.port();
             assertEquals(0, getMetrics(port).size());
 
             // Adding a metric not matching the allowlist does nothing
@@ -64,6 +65,8 @@ public class YammerPrometheusMetricsReporterTest {
             removeMetric("group", "type", "name");
             metrics = getMetrics(port);
             assertEquals(0, metrics.size());
+        } finally {
+            if (httpServer != null) HttpServers.release(httpServer);
         }
     }
 
