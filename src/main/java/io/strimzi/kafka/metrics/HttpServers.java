@@ -6,6 +6,8 @@ package io.strimzi.kafka.metrics;
 
 import io.prometheus.metrics.exporter.httpserver.HTTPServer;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -17,6 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class HttpServers {
 
+    private final static Logger LOG = LoggerFactory.getLogger(HttpServers.class);
     private static final Map<Listener, ServerCounter> SERVERS = new HashMap<>();
 
     /**
@@ -62,6 +65,7 @@ public class HttpServers {
                     .port(listener.port)
                     .registry(registry)
                     .buildAndStart();
+            LOG.debug("Started HTTP server on http://{}:{}", listener.host, server.getPort());
             this.listener = listener;
         }
 
@@ -78,6 +82,7 @@ public class HttpServers {
             int remaining = count.decrementAndGet();
             if (remaining == 0) {
                 server.close();
+                LOG.debug("Stopped HTTP server on http://{}:{}", listener.host, server.getPort());
                 return true;
             }
             return false;
