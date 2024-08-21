@@ -13,20 +13,20 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Static class to keep track of all the HTTP servers started by all the Kafka components in a JVM.
+ * Class to keep track of all the HTTP servers started by all the Kafka components in a JVM.
  */
 public class HttpServers {
 
     private static final Map<Listener, ServerCounter> SERVERS = new HashMap<>();
 
     /**
-     * Get or start a new HTTP server.
+     * Get or create a new HTTP server if there isn't an existing instance for the specified listener.
      * @param listener The host and port
      * @param registry The Prometheus registry to expose
      * @return A ServerCounter instance
      * @throws IOException if the HTTP server does not exist and cannot be started
      */
-    public synchronized static ServerCounter get(Listener listener, PrometheusRegistry registry) throws IOException {
+    public synchronized static ServerCounter getOrCreate(Listener listener, PrometheusRegistry registry) throws IOException {
         ServerCounter serverCounter = SERVERS.get(listener);
         if (serverCounter == null) {
             serverCounter = new ServerCounter(listener, registry);

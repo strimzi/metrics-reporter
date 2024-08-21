@@ -144,7 +144,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
             return Optional.empty();
         }
         try {
-            HttpServers.ServerCounter server = HttpServers.get(listener, registry);
+            HttpServers.ServerCounter server = HttpServers.getOrCreate(listener, registry);
             LOG.info("HTTP server started on listener http://{}:{}", listener.host, server.port());
             return Optional.of(server);
         } catch (IOException ioe) {
