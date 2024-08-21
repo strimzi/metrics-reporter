@@ -4,7 +4,6 @@
  */
 package io.strimzi.kafka.metrics;
 
-import io.prometheus.metrics.exporter.httpserver.HTTPServer;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
@@ -13,12 +12,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.BindException;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
@@ -65,7 +61,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
     private static final String ALLOWLIST_CONFIG_DOC = "A comma separated list of regex patterns to specify the metrics to collect.";
 
     private static final ConfigDef CONFIG_DEF = new ConfigDef()
-            .define(LISTENER_CONFIG, ConfigDef.Type.STRING, LISTENER_CONFIG_DEFAULT, new ListenerValidator(), ConfigDef.Importance.HIGH, LISTENER_CONFIG_DOC)
+            .define(LISTENER_CONFIG, ConfigDef.Type.STRING, LISTENER_CONFIG_DEFAULT, new Listener.ListenerValidator(), ConfigDef.Importance.HIGH, LISTENER_CONFIG_DOC)
             .define(ALLOWLIST_CONFIG, ConfigDef.Type.LIST, ALLOWLIST_CONFIG_DEFAULT, ConfigDef.Importance.HIGH, ALLOWLIST_CONFIG_DOC)
             .define(LISTENER_ENABLE_CONFIG, ConfigDef.Type.BOOLEAN, LISTENER_ENABLE_CONFIG_DEFAULT, ConfigDef.Importance.HIGH, LISTENER_ENABLE_CONFIG_DOC);
 
@@ -140,80 +136,20 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
     /**
      * Start the HTTP server for exposing metrics.
      *
-     * @return An optional HTTPServer instance if started successfully, otherwise empty.
+     * @return An optional ServerCounter instance if {@link #LISTENER_ENABLE_CONFIG} is enabled, otherwise empty.
      */
-    public synchronized Optional<HTTPServer> startHttpServer() {
+    public synchronized Optional<HttpServers.ServerCounter> startHttpServer() {
         if (!listenerEnabled) {
             LOG.info("HTTP server listener not enabled");
             return Optional.empty();
         }
         try {
-            HTTPServer httpServer = HTTPServer.builder()
-                    .hostname(listener.host)
-                    .port(listener.port)
-                    .registry(registry)
-                    .buildAndStart();
-            LOG.info("HTTP server started on listener http://{}:{}", listener.host, httpServer.getPort());
-            return Optional.of(httpServer);
-        } catch (BindException be) {
-            LOG.info("HTTP server already started");
-            return Optional.empty();
+            HttpServers.ServerCounter server = HttpServers.getOrCreate(listener, registry);
+            LOG.info("HTTP server listening on http://{}:{}", listener.host, server.port());
+            return Optional.of(server);
         } catch (IOException ioe) {
             LOG.error("Failed starting HTTP server", ioe);
             throw new RuntimeException(ioe);
-        }
-    }
-
-    static class Listener {
-
-        private static final Pattern PATTERN = Pattern.compile("http://\\[?([0-9a-zA-Z\\-%._:]*)]?:([0-9]+)");
-
-        final String host;
-        final int port;
-
-        Listener(String host, int port) {
-            this.host = host;
-            this.port = port;
-        }
-
-        static Listener parseListener(String listener) {
-            Matcher matcher = PATTERN.matcher(listener);
-            if (matcher.matches()) {
-                String host = matcher.group(1);
-                int port = Integer.parseInt(matcher.group(2));
-                return new Listener(host, port);
-            } else {
-                throw new ConfigException(LISTENER_CONFIG, listener, "Listener must be of format http://[host]:[port]");
-            }
-        }
-
-        @Override
-         public String toString() {
-            return "http://" + host + ":" + port;
-        }
-
-        @Override
-         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Listener listener = (Listener) o;
-            return port == listener.port && Objects.equals(host, listener.host);
-        }
-
-        @Override
-         public int hashCode() {
-            return Objects.hash(host, port);
-        }
-    }
-
-    static class ListenerValidator implements ConfigDef.Validator {
-
-        @Override
-        public void ensureValid(String name, Object value) {
-            Matcher matcher = Listener.PATTERN.matcher(String.valueOf(value));
-            if (!matcher.matches()) {
-                throw new ConfigException(name, value, "Listener must be of format http://[host]:[port]");
-            }
         }
     }
 }

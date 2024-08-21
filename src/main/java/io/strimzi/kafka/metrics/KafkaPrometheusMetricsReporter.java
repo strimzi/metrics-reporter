@@ -5,7 +5,6 @@
 package io.strimzi.kafka.metrics;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.prometheus.metrics.exporter.httpserver.HTTPServer;
 import io.prometheus.metrics.instrumentation.jvm.JvmMetrics;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import io.prometheus.metrics.model.snapshots.PrometheusNaming;
@@ -36,7 +35,7 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
     private PrometheusMetricsReporterConfig config;
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
-    private Optional<HTTPServer> httpServer;
+    private Optional<HttpServers.ServerCounter> httpServer;
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the contextChange method
     private String prefix;
 
@@ -57,7 +56,7 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
         config = new PrometheusMetricsReporterConfig(map, registry);
         collector = new KafkaMetricsCollector();
         // Add JVM metrics
-        JvmMetrics.builder().register(registry);
+        JvmMetrics.builder().register();
         httpServer = config.startHttpServer();
         LOG.debug("KafkaPrometheusMetricsReporter configured with {}", config);
     }
@@ -88,6 +87,7 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
     @Override
     public void close() {
         registry.unregister(collector);
+        httpServer.ifPresent(HttpServers::release);
     }
 
     @Override
@@ -111,6 +111,6 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     // for testing
     Optional<Integer> getPort() {
-        return Optional.ofNullable(httpServer.isPresent() ? httpServer.get().getPort() : null);
+        return Optional.ofNullable(httpServer.isPresent() ? httpServer.get().port() : null);
     }
 }
