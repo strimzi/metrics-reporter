@@ -3,7 +3,7 @@
 
 # Strimzi Prometheus Metrics Reporter
 
-Apache Kafka® brokers and clients expose metrics to monitor them. There is a pluggable reporter interface that allows exporting these metrics to monitoring systems. Apache Kafka has a built-in reporter for JMX.
+Apache Kafka® brokers and clients expose metrics to monitor them. A pluggable reporter interface allows exporting these metrics to monitoring systems. Apache Kafka has a built-in reporter for JMX.
 
 This repository contains a reporter implementation for Prometheus as proposed in [Strimzi Proposal #64](https://github.com/strimzi/proposals/blob/main/064-prometheus-metrics-reporter.md).
 
