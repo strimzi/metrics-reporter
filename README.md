@@ -62,7 +62,7 @@ consumer.auto.include.jmx.reporter=false
 
 ## Accessing Metrics
 
-Metrics are exposed on the configured listener on the `GET /metrics` endpoint. For example by default this is `http://localhost:8080/metrics`.
+Metrics are exposed on the configured listener on the `GET /metrics` endpoint. For example, by default this is `http://localhost:8080/metrics`.
 
 ## Getting help
 
