@@ -17,7 +17,7 @@ Since there isn't a release available yet, you'll need to build the reporter fir
 mvn package
 ```
 
-Then ensure the metrics reporter JARs located under `target/metrics-reporter-*/metrics-reporter-*/libs/` are in the classpath.
+After building, make sure the metrics reporter JARs located under `target/metrics-reporter-*/metrics-reporter-*/libs/` are in the classpath.
 
 ## Configuring
 
