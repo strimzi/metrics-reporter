@@ -12,7 +12,7 @@ This repository contains a reporter implementation for Prometheus as proposed in
 
 ## Installing
 
-There is not a release yet, so you need to first build the reporter:
+Since there isn't a release available yet, you'll need to build the reporter first:
 ```sh
 mvn package
 ```
