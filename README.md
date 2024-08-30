@@ -3,35 +3,66 @@
 
 # Strimzi Prometheus Metrics Reporter
 
-This repository contains the _Prometheus Metrics Reporter for Apache Kafka server and client components_ as proposed in [Strimzi Proposal #64](https://github.com/strimzi/proposals/blob/main/064-prometheus-metrics-reporter.md).
-The implementation is currently still in progress.
+Apache Kafka® brokers and clients expose metrics to monitor them. A pluggable reporter interface allows exporting these metrics to monitoring systems. Apache Kafka has a built-in reporter for JMX.
 
-## Build
+This repository contains a reporter implementation for Prometheus as proposed in [Strimzi Proposal #64](https://github.com/strimzi/proposals/blob/main/064-prometheus-metrics-reporter.md).
 
-```shell
+> [!WARNING]  
+> The project is currently in early access.
+
+## Installing
+
+Since there isn't a release available yet, you'll need to build the reporter first:
+```sh
 mvn package
 ```
 
-## Run
+After building, make sure the metrics reporter JARs located under `target/metrics-reporter-*/metrics-reporter-*/libs/` are in the classpath.
+
+## Configuring
+
+The metrics reporter has the following configurations:
+
+- `prometheus.metrics.reporter.listener`: The HTTP listener to expose the metrics. It must be in the `http://[host]:[port]` format. This defaults to `http://:8080`.
+- `prometheus.metrics.reporter.listener.enabled`: Enable the listener to expose the metrics. This defaults to `true`.
+- `prometheus.metrics.reporter.allowlist`: A comma separated list of regex patterns to specify the metrics to collect. This defaults to `.*`.
+
+## Running
 
 ### Kafka Brokers
 
-Add the following to your broker configuration:
+To use the reporter with Kafka brokers, add the following to your broker configuration:
 ```properties
 metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
 kafka.metrics.reporters=io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter
+auto.include.jmx.reporter=false
 ```
 
 ### Kafka Clients
 
-Add the following to your client configuration:
+To use the reporter with Kafka producers, consumers or admin clients, add the following to your client configuration:
 ```properties
 metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
+auto.include.jmx.reporter=false
 ```
 
-## Access Metrics
+### Kafka Connect and Kafka Streams
 
-Metrics are exposed on `http://localhost:8080/metrics`.
+To use the reporter with Kafka Connect and Kafka Streams, add the following to your Connect runtime or Streams application configuration:
+```properties
+metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
+auto.include.jmx.reporter=false
+admin.metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
+admin.auto.include.jmx.reporter=false
+producer.metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
+producer.auto.include.jmx.reporter=false
+consumer.metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
+consumer.auto.include.jmx.reporter=false
+```
+
+## Accessing Metrics
+
+Metrics are exposed on the configured listener on the `GET /metrics` endpoint. For example, by default this is `http://localhost:8080/metrics`.
 
 ## Getting help
 
