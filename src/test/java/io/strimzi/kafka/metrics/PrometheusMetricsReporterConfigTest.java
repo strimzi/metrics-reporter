@@ -100,6 +100,9 @@ public class PrometheusMetricsReporterConfigTest {
         PrometheusMetricsReporterConfig config3 = new PrometheusMetricsReporterConfig(props, new PrometheusRegistry());
         Exception exc = assertThrows(RuntimeException.class, config3::startHttpServer);
         assertInstanceOf(BindException.class, exc.getCause());
+
+        HttpServers.release(httpServerOptional.get());
+        HttpServers.release(httpServerOptional2.get());
     }
 }
 

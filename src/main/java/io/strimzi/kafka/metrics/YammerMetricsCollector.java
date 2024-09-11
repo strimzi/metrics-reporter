@@ -64,7 +64,7 @@ public class YammerMetricsCollector implements MultiCollector {
         for (Map.Entry<MetricName, MetricWrapper> entry : metrics.entrySet()) {
             MetricWrapper metricWrapper = entry.getValue();
             String prometheusMetricName = metricWrapper.prometheusName();
-            Object metric = metricWrapper.value();
+            Object metric = metricWrapper.metric();
             Labels labels = metricWrapper.labels();
             LOG.debug("Collecting metric {} with the following labels: {}", prometheusMetricName, labels);
 
