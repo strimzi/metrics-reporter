@@ -8,39 +8,39 @@ import com.yammer.metrics.Metrics;
 import com.yammer.metrics.core.Counter;
 import com.yammer.metrics.core.Metric;
 import com.yammer.metrics.core.MetricName;
-import com.yammer.metrics.core.MetricsRegistry;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import kafka.utils.VerifiableProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import static io.strimzi.kafka.metrics.MetricsUtils.getMetrics;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class YammerPrometheusMetricsReporterTest {
 
-    private final MetricsRegistry registry = Metrics.defaultRegistry();
+    private Properties configs;
+    private PrometheusRegistry registry;
+    private PrometheusCollector collector;
 
     @BeforeEach
     public void setup() {
-        for (Map.Entry<MetricName, Metric> entry : registry.allMetrics().entrySet()) {
-            registry.removeMetric(entry.getKey());
+        registry = new PrometheusRegistry();
+        collector = new PrometheusCollector();
+        registry.register(collector);
+        configs = new Properties();
+        configs.put(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");
+        for (Map.Entry<MetricName, Metric> entry : Metrics.defaultRegistry().allMetrics().entrySet()) {
+            Metrics.defaultRegistry().removeMetric(entry.getKey());
         }
     }
 
     @Test
     public void testLifeCycle() throws Exception {
-        YammerPrometheusMetricsReporter reporter = new YammerPrometheusMetricsReporter(new PrometheusRegistry());
-        Properties configs = new Properties();
-        configs.put(PrometheusMetricsReporterConfig.LISTENER_CONFIG, "http://:0");
+        YammerPrometheusMetricsReporter reporter = new YammerPrometheusMetricsReporter(registry, collector);
         configs.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server_group_type.*");
         reporter.init(new VerifiableProperties(configs));
 
@@ -70,30 +70,13 @@ public class YammerPrometheusMetricsReporterTest {
         }
     }
 
-    private List<String> getMetrics(int port) throws Exception {
-        List<String> metrics = new ArrayList<>();
-        URL url = new URL("http://localhost:" + port + "/metrics");
-        HttpURLConnection con = (HttpURLConnection) url.openConnection();
-        con.setRequestMethod("GET");
-
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()))) {
-            String inputLine;
-            while ((inputLine = in.readLine()) != null) {
-                if (!inputLine.startsWith("#")) {
-                    metrics.add(inputLine);
-                }
-            }
-        }
-        return metrics;
-    }
-
     private Counter newCounter(String group, String type, String name) {
         MetricName metricName = new MetricName(group, type, name, "");
-        return registry.newCounter(metricName);
+        return Metrics.defaultRegistry().newCounter(metricName);
     }
 
     private void removeMetric(String group, String type, String name) {
         MetricName metricName = new MetricName(group, type, name, "");
-        registry.removeMetric(metricName);
+        Metrics.defaultRegistry().removeMetric(metricName);
     }
 }
