@@ -68,7 +68,7 @@ public class YammerMetricsCollectorTest {
         assertEquals(labels, datapoint.getLabels());
 
         // Update the value of the metric
-        ((Counter) metricWrapper.value()).inc(10);
+        ((Counter) metricWrapper.metric()).inc(10);
         metrics = collector.collect();
 
         assertEquals(1, metrics.size());

@@ -11,6 +11,7 @@ import io.prometheus.metrics.model.snapshots.Labels;
 import io.prometheus.metrics.model.snapshots.MetricSnapshot;
 import io.prometheus.metrics.model.snapshots.MetricSnapshots;
 import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.metrics.KafkaMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,17 +69,17 @@ public class KafkaMetricsCollector implements MultiCollector {
         for (Map.Entry<MetricName, MetricWrapper> entry : metrics.entrySet()) {
             MetricWrapper metricWrapper = entry.getValue();
             String prometheusMetricName = metricWrapper.prometheusName();
-            Object metric = metricWrapper.value();
+            Object metricValue = ((KafkaMetric) metricWrapper.metric()).metricValue();
             Labels labels = metricWrapper.labels();
             LOG.debug("Collecting metric {} with the following labels: {}", prometheusMetricName, labels);
 
-            if (metric instanceof Number) {
-                double value = ((Number) metric).doubleValue();
+            if (metricValue instanceof Number) {
+                double value = ((Number) metricValue).doubleValue();
                 GaugeSnapshot.Builder builder = gaugeBuilders.computeIfAbsent(prometheusMetricName, k -> GaugeSnapshot.builder().name(prometheusMetricName));
                 builder.dataPoint(DataPointSnapshotBuilder.gaugeDataPoint(labels, value));
             } else {
                 InfoSnapshot.Builder builder = infoBuilders.computeIfAbsent(prometheusMetricName, k -> InfoSnapshot.builder().name(prometheusMetricName));
-                builder.dataPoint(DataPointSnapshotBuilder.infoDataPoint(labels, metric, metricWrapper.attribute()));
+                builder.dataPoint(DataPointSnapshotBuilder.infoDataPoint(labels, metricValue, metricWrapper.attribute()));
             }
         }
         List<MetricSnapshot> snapshots = new ArrayList<>();

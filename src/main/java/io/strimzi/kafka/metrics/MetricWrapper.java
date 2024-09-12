@@ -26,7 +26,7 @@ public class MetricWrapper {
 
     private final String prometheusName;
     private final Labels labels;
-    private final Object value;
+    private final Object metric;
     private final String attribute;
 
     /**
@@ -38,7 +38,7 @@ public class MetricWrapper {
     public MetricWrapper(String prometheusName, KafkaMetric metric, String attribute) {
         this.prometheusName = prometheusName;
         this.labels = labelsFromTags(metric.metricName().tags(), prometheusName);
-        this.value = metric.metricValue();
+        this.metric = metric;
         this.attribute = attribute;
     }
 
@@ -52,7 +52,7 @@ public class MetricWrapper {
     public MetricWrapper(String prometheusName, String scope, Metric metric, String attribute) {
         this.prometheusName = prometheusName;
         this.labels = labelsFromScope(scope, prometheusName);
-        this.value = metric;
+        this.metric = metric;
         this.attribute = attribute;
     }
 
@@ -73,11 +73,11 @@ public class MetricWrapper {
     }
 
     /**
-     * The metric value
-     * @return The value
+     * The underlying metric
+     * @return The metric
      */
-    public Object value() {
-        return value;
+    public Object metric() {
+        return metric;
     }
 
     /**
