@@ -4,14 +4,22 @@
  */
 package io.strimzi.kafka.metrics;
 
+import com.yammer.metrics.Metrics;
+import com.yammer.metrics.core.Counter;
 import com.yammer.metrics.core.MetricName;
+import com.yammer.metrics.core.MetricsRegistry;
 import io.prometheus.metrics.model.snapshots.Labels;
 import io.prometheus.metrics.model.snapshots.PrometheusNaming;
+import org.apache.kafka.common.metrics.Gauge;
+import org.apache.kafka.common.metrics.KafkaMetric;
+import org.apache.kafka.common.metrics.MetricConfig;
+import org.apache.kafka.common.utils.Time;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -58,5 +66,29 @@ public class MetricWrapperTest {
     public void testKafkaMetricName() {
         String metricName = MetricWrapper.prometheusName("kafka_server", new org.apache.kafka.common.MetricName("NaMe", "KafKa.neTwork", "", Collections.emptyMap()));
         assertEquals("kafka_server_kafka_network_name", metricName);
+    }
+
+    @Test
+    public void testKafkaMetric() {
+        AtomicInteger value = new AtomicInteger(0);
+        org.apache.kafka.common.MetricName name = new org.apache.kafka.common.MetricName("name", "kafka.server", "", Collections.emptyMap());
+        KafkaMetric metric = new KafkaMetric(new Object(), name, (Gauge<Integer>) (metricConfig, l) -> value.get(), new MetricConfig(), Time.SYSTEM);
+        String prometheusName = MetricWrapper.prometheusName("kafka_server", name);
+        MetricWrapper wrapper = new MetricWrapper(prometheusName, metric, "name");
+        assertEquals(value.get(), ((KafkaMetric) wrapper.metric()).metricValue());
+        value.incrementAndGet();
+        assertEquals(value.get(), ((KafkaMetric) wrapper.metric()).metricValue());
+    }
+
+    @Test
+    public void testYammerMetric() {
+        MetricName name = new MetricName("group", "type", "name");
+        MetricsRegistry registry = Metrics.defaultRegistry();
+        Counter counter = registry.newCounter(name);
+        String prometheusName = MetricWrapper.prometheusName(name);
+        MetricWrapper wrapper = new MetricWrapper(prometheusName, "", counter, "name");
+        assertEquals(counter.count(), ((Counter) wrapper.metric()).count());
+        counter.inc();
+        assertEquals(counter.count(), ((Counter) wrapper.metric()).count());
     }
 }
