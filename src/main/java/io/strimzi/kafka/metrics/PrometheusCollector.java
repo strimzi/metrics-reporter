@@ -50,6 +50,8 @@ public class PrometheusCollector implements MultiCollector {
     private final Map<MetricName, MetricWrapper> kafkaMetrics = new ConcurrentHashMap<>();
     private final Map<com.yammer.metrics.core.MetricName, MetricWrapper> yammerMetrics = new ConcurrentHashMap<>();
 
+    /* test */ PrometheusCollector() { }
+
     /**
      * Add a Kafka metric to be collected.
      *
