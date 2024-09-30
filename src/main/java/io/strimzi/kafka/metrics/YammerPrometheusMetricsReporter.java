@@ -27,8 +27,7 @@ public class YammerPrometheusMetricsReporter implements KafkaMetricsReporter, Me
     private static final Logger LOG = LoggerFactory.getLogger(YammerPrometheusMetricsReporter.class);
 
     private final PrometheusRegistry registry;
-    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the init method
-    private YammerMetricsCollector collector;
+    private final PrometheusCollector collector;
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the init method
     /* test */ PrometheusMetricsReporterConfig config;
 
@@ -36,19 +35,19 @@ public class YammerPrometheusMetricsReporter implements KafkaMetricsReporter, Me
      * Constructor
      */
     public YammerPrometheusMetricsReporter() {
-        this(PrometheusRegistry.defaultRegistry);
+        this.registry = PrometheusRegistry.defaultRegistry;
+        this.collector = PrometheusCollector.register(registry);
     }
 
     // for testing
-    YammerPrometheusMetricsReporter(PrometheusRegistry registry) {
+    YammerPrometheusMetricsReporter(PrometheusRegistry registry, PrometheusCollector collector) {
         this.registry = registry;
+        this.collector = collector;
     }
 
     @Override
     public void init(VerifiableProperties props) {
         config = new PrometheusMetricsReporterConfig(props.props(), registry);
-        collector = new YammerMetricsCollector();
-        registry.register(collector);
         for (MetricsRegistry yammerRegistry : Arrays.asList(KafkaYammerMetrics.defaultRegistry(), Metrics.defaultRegistry())) {
             yammerRegistry.addListener(this);
         }
@@ -62,12 +61,12 @@ public class YammerPrometheusMetricsReporter implements KafkaMetricsReporter, Me
             LOG.trace("Ignoring metric {} as it does not match the allowlist", prometheusName);
         } else {
             MetricWrapper metricWrapper = new MetricWrapper(prometheusName, name.getScope(), metric, name.getName());
-            collector.addMetric(name, metricWrapper);
+            collector.addYammerMetric(name, metricWrapper);
         }
     }
 
     @Override
     public void onMetricRemoved(MetricName name) {
-        collector.removeMetric(name);
+        collector.removeYammerMetric(name);
     }
 }

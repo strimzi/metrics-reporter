@@ -5,7 +5,6 @@
 package io.strimzi.kafka.metrics;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.prometheus.metrics.instrumentation.jvm.JvmMetrics;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import io.prometheus.metrics.model.snapshots.PrometheusNaming;
 import org.apache.kafka.common.config.ConfigException;
@@ -23,15 +22,14 @@ import java.util.Set;
 
 /**
  * MetricsReporter implementation that expose Kafka metrics in the Prometheus format.
- *
  * This can be used by Kafka brokers and clients.
  */
 public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaPrometheusMetricsReporter.class);
+
     private final PrometheusRegistry registry;
-    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
-    private KafkaMetricsCollector collector;
+    private final PrometheusCollector collector;
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
     private PrometheusMetricsReporterConfig config;
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
@@ -44,26 +42,24 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
      */
     public KafkaPrometheusMetricsReporter() {
         registry = PrometheusRegistry.defaultRegistry;
+        collector = PrometheusCollector.register(registry);
     }
 
     // for testing
-    KafkaPrometheusMetricsReporter(PrometheusRegistry registry) {
+    KafkaPrometheusMetricsReporter(PrometheusRegistry registry, PrometheusCollector collector) {
         this.registry = registry;
+        this.collector = collector;
     }
 
     @Override
     public void configure(Map<String, ?> map) {
         config = new PrometheusMetricsReporterConfig(map, registry);
-        collector = new KafkaMetricsCollector();
-        // Add JVM metrics
-        JvmMetrics.builder().register();
         httpServer = config.startHttpServer();
         LOG.debug("KafkaPrometheusMetricsReporter configured with {}", config);
     }
 
     @Override
     public void init(List<KafkaMetric> metrics) {
-        registry.register(collector);
         for (KafkaMetric metric : metrics) {
             metricChange(metric);
         }
@@ -75,18 +71,17 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
             LOG.trace("Ignoring metric {} as it does not match the allowlist", prometheusName);
         } else {
             MetricWrapper metricWrapper = new MetricWrapper(prometheusName, metric, metric.metricName().name());
-            collector.addMetric(metric.metricName(), metricWrapper);
+            collector.addKafkaMetric(metric.metricName(), metricWrapper);
         }
     }
 
     @Override
     public void metricRemoval(KafkaMetric metric) {
-        collector.removeMetric(metric.metricName());
+        collector.removeKafkaMetric(metric.metricName());
     }
 
     @Override
     public void close() {
-        registry.unregister(collector);
         httpServer.ifPresent(HttpServers::release);
     }
 

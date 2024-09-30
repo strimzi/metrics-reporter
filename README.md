@@ -60,6 +60,23 @@ consumer.metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporte
 consumer.auto.include.jmx.reporter=false
 ```
 
+When setting configurations for the Prometheus metrics reporter, they also need to be set with the `admin.`, `producer.` and `consumer.`.
+For example, to set the `listener` to `http://:8081`:
+```properties
+metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
+prometheus.metrics.reporter.listener=http://:8081
+auto.include.jmx.reporter=false
+admin.metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
+admin.prometheus.metrics.reporter.listener=http://:8081
+admin.auto.include.jmx.reporter=false
+producer.metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
+producer.prometheus.metrics.reporter.listener=http://:8081
+producer.auto.include.jmx.reporter=false
+consumer.metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
+consumer.prometheus.metrics.reporter.listener=http://:8081
+consumer.auto.include.jmx.reporter=false
+```
+
 ## Accessing Metrics
 
 Metrics are exposed on the configured listener on the `GET /metrics` endpoint. For example, by default this is `http://localhost:8080/metrics`.

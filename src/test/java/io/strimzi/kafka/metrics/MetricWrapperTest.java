@@ -4,16 +4,11 @@
  */
 package io.strimzi.kafka.metrics;
 
-import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.Counter;
+import com.yammer.metrics.core.Gauge;
 import com.yammer.metrics.core.MetricName;
-import com.yammer.metrics.core.MetricsRegistry;
 import io.prometheus.metrics.model.snapshots.Labels;
 import io.prometheus.metrics.model.snapshots.PrometheusNaming;
-import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.KafkaMetric;
-import org.apache.kafka.common.metrics.MetricConfig;
-import org.apache.kafka.common.utils.Time;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -21,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static io.strimzi.kafka.metrics.MetricsUtils.newKafkaMetric;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class MetricWrapperTest {
@@ -71,10 +67,8 @@ public class MetricWrapperTest {
     @Test
     public void testKafkaMetric() {
         AtomicInteger value = new AtomicInteger(0);
-        org.apache.kafka.common.MetricName name = new org.apache.kafka.common.MetricName("name", "kafka.server", "", Collections.emptyMap());
-        KafkaMetric metric = new KafkaMetric(new Object(), name, (Gauge<Integer>) (metricConfig, l) -> value.get(), new MetricConfig(), Time.SYSTEM);
-        String prometheusName = MetricWrapper.prometheusName("kafka_server", name);
-        MetricWrapper wrapper = new MetricWrapper(prometheusName, metric, "name");
+        KafkaMetric metric = newKafkaMetric("name", "group", (config, now) -> value.get(), Collections.emptyMap());
+        MetricWrapper wrapper = new MetricWrapper(MetricWrapper.prometheusName("kafka_server", metric.metricName()), metric, "name");
         assertEquals(value.get(), ((KafkaMetric) wrapper.metric()).metricValue());
         value.incrementAndGet();
         assertEquals(value.get(), ((KafkaMetric) wrapper.metric()).metricValue());
@@ -82,13 +76,12 @@ public class MetricWrapperTest {
 
     @Test
     public void testYammerMetric() {
+        AtomicInteger value = new AtomicInteger(0);
         MetricName name = new MetricName("group", "type", "name");
-        MetricsRegistry registry = Metrics.defaultRegistry();
-        Counter counter = registry.newCounter(name);
-        String prometheusName = MetricWrapper.prometheusName(name);
-        MetricWrapper wrapper = new MetricWrapper(prometheusName, "", counter, "name");
-        assertEquals(counter.count(), ((Counter) wrapper.metric()).count());
-        counter.inc();
-        assertEquals(counter.count(), ((Counter) wrapper.metric()).count());
+        Gauge<Integer> metric = MetricsUtils.newYammerMetric(value::get);
+        MetricWrapper wrapper = new MetricWrapper(MetricWrapper.prometheusName(name), "", metric, "name");
+        assertEquals(value.get(), ((Gauge<Integer>) wrapper.metric()).value());
+        value.incrementAndGet();
+        assertEquals(value.get(), ((Gauge<Integer>) wrapper.metric()).value());
     }
 }
