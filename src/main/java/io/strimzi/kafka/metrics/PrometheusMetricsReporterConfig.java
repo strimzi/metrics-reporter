@@ -5,6 +5,8 @@
 package io.strimzi.kafka.metrics;
 
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
+import io.strimzi.kafka.metrics.http.HttpServers;
+import io.strimzi.kafka.metrics.http.Listener;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;

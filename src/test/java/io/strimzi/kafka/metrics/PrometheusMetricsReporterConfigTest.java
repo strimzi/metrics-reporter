@@ -5,6 +5,7 @@
 package io.strimzi.kafka.metrics;
 
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
+import io.strimzi.kafka.metrics.http.HttpServers;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
 

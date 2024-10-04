@@ -5,49 +5,29 @@
 package io.strimzi.kafka.metrics;
 
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
+import io.prometheus.metrics.model.snapshots.CounterSnapshot;
 import io.prometheus.metrics.model.snapshots.GaugeSnapshot;
 import io.prometheus.metrics.model.snapshots.InfoSnapshot;
 import io.prometheus.metrics.model.snapshots.Labels;
 import io.prometheus.metrics.model.snapshots.MetricSnapshot;
 import io.prometheus.metrics.model.snapshots.MetricSnapshots;
-import org.apache.kafka.common.MetricName;
-import org.apache.kafka.common.metrics.Gauge;
-import org.apache.kafka.common.metrics.KafkaMetric;
-import org.junit.jupiter.api.BeforeEach;
+import io.prometheus.metrics.model.snapshots.Quantile;
+import io.prometheus.metrics.model.snapshots.Quantiles;
+import io.prometheus.metrics.model.snapshots.SummarySnapshot;
 import org.junit.jupiter.api.Test;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
+import java.util.ArrayList;
+import java.util.List;
 
-import static io.strimzi.kafka.metrics.MetricsUtils.newKafkaMetric;
-import static io.strimzi.kafka.metrics.MetricsUtils.newYammerMetric;
+import static io.strimzi.kafka.metrics.MetricsUtils.assertCounterSnapshot;
+import static io.strimzi.kafka.metrics.MetricsUtils.assertGaugeSnapshot;
+import static io.strimzi.kafka.metrics.MetricsUtils.assertInfoSnapshot;
+import static io.strimzi.kafka.metrics.MetricsUtils.assertSummarySnapshot;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SuppressWarnings("ClassFanOutComplexity")
 public class PrometheusCollectorTest {
-
-    private static final String METRIC_PREFIX = "kafka.server";
-    private Map<String, String> tagsMap;
-    private Labels labels;
-    private String scope;
-
-    @BeforeEach
-    public void setup() {
-        tagsMap = new LinkedHashMap<>();
-        Labels.Builder labelsBuilder = Labels.builder();
-        scope = "";
-        for (int i = 0; i < 2; i++) {
-            labelsBuilder.label("k" + i, "v" + i);
-            tagsMap.put("k" + i, "v" + i);
-            scope += "k" + i + ".v" + i + ".";
-        }
-        labels = labelsBuilder.build();
-    }
 
     @Test
     public void testRegister() {
@@ -59,132 +39,53 @@ public class PrometheusCollectorTest {
     }
 
     @Test
-    public void testCollectKafkaMetrics() {
-        PrometheusCollector collector = new PrometheusCollector();
-
-        MetricSnapshots metrics = collector.collect();
-        assertEquals(0, metrics.size());
-
-        // Adding a metric
-        AtomicInteger value = new AtomicInteger(1);
-        MetricName metricName = new MetricName("name", "group", "description", tagsMap);
-        MetricWrapper metricWrapper = newKafkaMetricWrapper(metricName, (config, now) -> value.get());
-        collector.addKafkaMetric(metricName, metricWrapper);
-
-        metrics = collector.collect();
-        assertEquals(1, metrics.size());
-        MetricSnapshot snapshot = metrics.get(0);
-        assertGaugeSnapshot(snapshot, value.get(), labels);
-
-        // Updating the value of the metric
-        value.set(3);
-        metrics = collector.collect();
-        assertEquals(1, metrics.size());
-        MetricSnapshot updatedSnapshot = metrics.get(0);
-        assertGaugeSnapshot(updatedSnapshot, 3, labels);
-
-        // Removing a metric
-        collector.removeKafkaMetric(metricName);
-        metrics = collector.collect();
-        assertEquals(0, metrics.size());
+    public void testCollect() {
+        PrometheusRegistry registry = new PrometheusRegistry();
+        PrometheusCollector prometheusCollector = PrometheusCollector.register(registry);
+        Labels labels = Labels.of("l1", "v1", "l2", "v2");
+        double value = 2.0;
+        prometheusCollector.addCollector(() -> {
+            List<MetricSnapshot> snapshots = new ArrayList<>();
+            snapshots.add(GaugeSnapshot.builder()
+                    .name("gauge")
+                    .dataPoint(DataPointSnapshotBuilder.gaugeDataPoint(labels, value))
+                    .build());
+            snapshots.add(CounterSnapshot.builder()
+                    .name("counter")
+                    .dataPoint(DataPointSnapshotBuilder.counterDataPoint(labels, value))
+                    .build());
+            return snapshots;
+        });
+        int count = 1;
+        Quantiles quantiles = Quantiles.of(new Quantile(0.9, value));
+        String metricName = "name";
+        prometheusCollector.addCollector(() -> {
+            List<MetricSnapshot> snapshots = new ArrayList<>();
+            snapshots.add(InfoSnapshot.builder()
+                    .name("info")
+                    .dataPoint(DataPointSnapshotBuilder.infoDataPoint(labels, value, metricName))
+                    .build());
+            snapshots.add(SummarySnapshot.builder()
+                    .name("summary")
+                    .dataPoint(DataPointSnapshotBuilder.summaryDataPoint(labels, count, value, quantiles))
+                    .build());
+            return snapshots;
+        });
+        MetricSnapshots snapshots = prometheusCollector.collect();
+        assertEquals(4, snapshots.size());
+        assertGaugeSnapshot(findSnapshot(snapshots, GaugeSnapshot.class), value, labels);
+        assertCounterSnapshot(findSnapshot(snapshots, CounterSnapshot.class), value, labels);
+        assertInfoSnapshot(findSnapshot(snapshots, InfoSnapshot.class), labels, metricName, String.valueOf(value));
+        assertSummarySnapshot(findSnapshot(snapshots, SummarySnapshot.class), count, value, labels, quantiles);
     }
 
-    @Test
-    public void testCollectNonNumericKafkaMetric() {
-        PrometheusCollector collector = new PrometheusCollector();
-
-        MetricSnapshots metrics = collector.collect();
-        assertEquals(0, metrics.size());
-
-        // Adding a non-numeric metric converted
-        String nonNumericValue = "myValue";
-        MetricName metricName = new MetricName("name", "group", "description", tagsMap);
-        MetricWrapper metricWrapper = newKafkaMetricWrapper(metricName, (config, now) -> nonNumericValue);
-        collector.addKafkaMetric(metricName, metricWrapper);
-        metrics = collector.collect();
-
-        assertEquals(1, metrics.size());
-        MetricSnapshot snapshot = metrics.get(0);
-        assertEquals(metricWrapper.prometheusName(), snapshot.getMetadata().getName());
-        assertInfoSnapshot(snapshot, "name", nonNumericValue);
-    }
-
-    @Test
-    public void testCollectYammerMetrics() {
-        PrometheusCollector collector = new PrometheusCollector();
-
-        MetricSnapshots metrics = collector.collect();
-        assertEquals(0, metrics.size());
-
-        // Adding a metric
-        AtomicInteger value = new AtomicInteger(1);
-        com.yammer.metrics.core.MetricName metricName = new com.yammer.metrics.core.MetricName("group", "type", "name", scope);
-        MetricWrapper metricWrapper = newYammerMetricWrapper(metricName, value::get);
-        collector.addYammerMetric(metricName, metricWrapper);
-
-        metrics = collector.collect();
-        assertEquals(1, metrics.size());
-        MetricSnapshot snapshot = metrics.get(0);
-        assertGaugeSnapshot(snapshot, value.get(), labels);
-
-        // Updating the value of the metric
-        value.set(3);
-        metrics = collector.collect();
-        assertEquals(1, metrics.size());
-        MetricSnapshot updatedSnapshot = metrics.get(0);
-        assertGaugeSnapshot(updatedSnapshot, 3, labels);
-
-        // Removing the metric
-        collector.removeYammerMetric(metricName);
-        metrics = collector.collect();
-        assertEquals(0, metrics.size());
-    }
-
-    @Test
-    public void testCollectNonNumericYammerMetrics() {
-        PrometheusCollector collector = new PrometheusCollector();
-
-        MetricSnapshots metrics = collector.collect();
-        assertEquals(0, metrics.size());
-
-        String nonNumericValue = "value";
-        com.yammer.metrics.core.MetricName metricName = new com.yammer.metrics.core.MetricName("group", "type", "name", scope);
-        MetricWrapper metricWrapper = newYammerMetricWrapper(metricName, () -> nonNumericValue);
-        collector.addYammerMetric(metricName, metricWrapper);
-        metrics = collector.collect();
-
-        assertEquals(1, metrics.size());
-        MetricSnapshot snapshot = metrics.get(0);
-        assertEquals(metricWrapper.prometheusName(), snapshot.getMetadata().getName());
-        assertInfoSnapshot(snapshot, "name", nonNumericValue);
-    }
-
-    private <T> MetricWrapper newYammerMetricWrapper(com.yammer.metrics.core.MetricName metricName, Supplier<T> valueSupplier) {
-        com.yammer.metrics.core.Gauge<T> gauge = newYammerMetric(valueSupplier);
-        String prometheusName = MetricWrapper.prometheusName(metricName);
-        return new MetricWrapper(prometheusName, metricName.getScope(), gauge, metricName.getName());
-    }
-
-    private MetricWrapper newKafkaMetricWrapper(MetricName metricName, Gauge<?> gauge) {
-        KafkaMetric kafkaMetric = newKafkaMetric(metricName.name(), metricName.group(), gauge, metricName.tags());
-        String prometheusName = MetricWrapper.prometheusName(METRIC_PREFIX, metricName);
-        return new MetricWrapper(prometheusName, kafkaMetric, metricName.name());
-    }
-
-    private void assertGaugeSnapshot(MetricSnapshot snapshot, double expectedValue, Labels expectedLabels) {
-        assertInstanceOf(GaugeSnapshot.class, snapshot);
-        GaugeSnapshot gaugeSnapshot = (GaugeSnapshot) snapshot;
-        assertEquals(1, gaugeSnapshot.getDataPoints().size());
-        GaugeSnapshot.GaugeDataPointSnapshot datapoint = gaugeSnapshot.getDataPoints().get(0);
-        assertEquals(expectedValue, datapoint.getValue());
-        assertEquals(expectedLabels, datapoint.getLabels());
-    }
-
-    private void assertInfoSnapshot(MetricSnapshot snapshot, String newLabelName, String newLabelValue) {
-        assertInstanceOf(InfoSnapshot.class, snapshot);
-        assertEquals(1, snapshot.getDataPoints().size());
-        Labels expectedLabels = labels.add(newLabelName, newLabelValue);
-        assertEquals(expectedLabels, snapshot.getDataPoints().get(0).getLabels());
+    private MetricSnapshot findSnapshot(MetricSnapshots snapshots, Class<?> clazz) {
+        for (MetricSnapshot snapshot : snapshots) {
+            if (clazz.isInstance(snapshot)) {
+                return snapshot;
+            }
+        }
+        throw new IllegalStateException("unable to find snapshot of type " + clazz.getName());
     }
 
 }

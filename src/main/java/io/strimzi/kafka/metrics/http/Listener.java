@@ -2,8 +2,9 @@
  * Copyright Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.kafka.metrics;
+package io.strimzi.kafka.metrics.http;
 
+import io.strimzi.kafka.metrics.PrometheusMetricsReporterConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 
@@ -21,15 +22,26 @@ public class Listener {
 
     private static final Pattern PATTERN = Pattern.compile("http://\\[?([0-9a-zA-Z\\-%._:]*)]?:([0-9]+)");
 
-    final String host;
-    final int port;
+    /**
+     * The host of the listener
+     */
+    public final String host;
+    /**
+     * The port of the listener
+     */
+    public final int port;
 
     /* test */ Listener(String host, int port) {
         this.host = host;
         this.port = port;
     }
 
-    static Listener parseListener(String listener) {
+    /**
+     * Build a Listener instance from a "http://[host]:[port]" string
+     * @param listener the input string
+     * @return the listener
+     */
+    public static Listener parseListener(String listener) {
         Matcher matcher = PATTERN.matcher(listener);
         if (matcher.matches()) {
             String host = matcher.group(1);
@@ -61,7 +73,7 @@ public class Listener {
     /**
      * Validator to check the user provided listener configuration
      */
-    static class ListenerValidator implements ConfigDef.Validator {
+    public static class ListenerValidator implements ConfigDef.Validator {
 
         @Override
         public void ensureValid(String name, Object value) {
