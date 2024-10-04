@@ -24,7 +24,7 @@ After building, make sure the metrics reporter JARs located under `target/metric
 The metrics reporter has the following configurations:
 
 - `prometheus.metrics.reporter.listener`: The HTTP listener to expose the metrics. It must be in the `http://[host]:[port]` format. This defaults to `http://:8080`.
-- `prometheus.metrics.reporter.listener.enabled`: Enable the listener to expose the metrics. This defaults to `true`.
+- `prometheus.metrics.reporter.listener.enable`: Enable the listener to expose the metrics. This defaults to `true`.
 - `prometheus.metrics.reporter.allowlist`: A comma separated list of regex patterns to specify the metrics to collect. This defaults to `.*`.
 
 ## Running
