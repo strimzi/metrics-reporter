@@ -4,6 +4,13 @@
  */
 package io.strimzi.kafka.metrics;
 
+import io.prometheus.metrics.model.snapshots.CounterSnapshot;
+import io.prometheus.metrics.model.snapshots.GaugeSnapshot;
+import io.prometheus.metrics.model.snapshots.InfoSnapshot;
+import io.prometheus.metrics.model.snapshots.Labels;
+import io.prometheus.metrics.model.snapshots.MetricSnapshot;
+import io.prometheus.metrics.model.snapshots.Quantiles;
+import io.prometheus.metrics.model.snapshots.SummarySnapshot;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.KafkaMetric;
@@ -18,6 +25,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 /**
  * Utility class to create and retrieve metrics
@@ -76,6 +86,69 @@ public class MetricsUtils {
                 return valueSupplier.get();
             }
         };
+    }
+
+    /**
+     * Check a Gauge snapshot
+     * @param snapshot the gauge snapshot
+     * @param expectedValue the expected value
+     * @param expectedLabels the expected labels
+     */
+    public static void assertGaugeSnapshot(MetricSnapshot snapshot, double expectedValue, Labels expectedLabels) {
+        assertInstanceOf(GaugeSnapshot.class, snapshot);
+        GaugeSnapshot gaugeSnapshot = (GaugeSnapshot) snapshot;
+        assertEquals(1, gaugeSnapshot.getDataPoints().size());
+        GaugeSnapshot.GaugeDataPointSnapshot datapoint = gaugeSnapshot.getDataPoints().get(0);
+        assertEquals(expectedValue, datapoint.getValue());
+        assertEquals(expectedLabels, datapoint.getLabels());
+    }
+
+    /**
+     * Check a Counter snapshot
+     * @param snapshot the counter snapshot
+     * @param expectedValue the expected value
+     * @param expectedLabels the expected labels
+     */
+    public static void assertCounterSnapshot(MetricSnapshot snapshot, double expectedValue, Labels expectedLabels) {
+        assertInstanceOf(CounterSnapshot.class, snapshot);
+        CounterSnapshot counterSnapshot = (CounterSnapshot) snapshot;
+        assertEquals(1, counterSnapshot.getDataPoints().size());
+        CounterSnapshot.CounterDataPointSnapshot datapoint = counterSnapshot.getDataPoints().get(0);
+        assertEquals(expectedValue, datapoint.getValue());
+        assertEquals(expectedLabels, datapoint.getLabels());
+    }
+
+    /**
+     * Check an Info snapshot
+     * @param snapshot the info snapshot
+     * @param labels the existing labels
+     * @param newLabelName the expected new label name
+     * @param newLabelValue the expected new label value
+     */
+    public static void assertInfoSnapshot(MetricSnapshot snapshot, Labels labels, String newLabelName, String newLabelValue) {
+        assertInstanceOf(InfoSnapshot.class, snapshot);
+        assertEquals(1, snapshot.getDataPoints().size());
+        Labels expectedLabels = labels.add(newLabelName, newLabelValue);
+        assertEquals(expectedLabels, snapshot.getDataPoints().get(0).getLabels());
+    }
+
+    /**
+     * Check a Summary snapshot
+     * @param snapshot the summary snapshot
+     * @param expectedCount the expected count
+     * @param expectedSum the expected sum
+     * @param expectedLabels the expected labels
+     * @param expectedQuantiles the expected quantiles
+     */
+    public static void assertSummarySnapshot(MetricSnapshot snapshot, int expectedCount, double expectedSum, Labels expectedLabels, Quantiles expectedQuantiles) {
+        assertInstanceOf(SummarySnapshot.class, snapshot);
+        SummarySnapshot summarySnapshot = (SummarySnapshot) snapshot;
+        assertEquals(1, summarySnapshot.getDataPoints().size());
+        SummarySnapshot.SummaryDataPointSnapshot datapoint = summarySnapshot.getDataPoints().get(0);
+        assertEquals(expectedCount, datapoint.getCount());
+        assertEquals(expectedSum, datapoint.getSum());
+        assertEquals(expectedQuantiles, datapoint.getQuantiles());
+        assertEquals(expectedLabels, datapoint.getLabels());
     }
 
 }

@@ -11,6 +11,8 @@ import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.core.MetricsRegistryListener;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
+import io.strimzi.kafka.metrics.yammer.YammerCollector;
+import io.strimzi.kafka.metrics.yammer.YammerMetricWrapper;
 import kafka.metrics.KafkaMetricsReporter;
 import kafka.utils.VerifiableProperties;
 import org.apache.kafka.server.metrics.KafkaYammerMetrics;
@@ -27,7 +29,7 @@ public class YammerPrometheusMetricsReporter implements KafkaMetricsReporter, Me
     private static final Logger LOG = LoggerFactory.getLogger(YammerPrometheusMetricsReporter.class);
 
     private final PrometheusRegistry registry;
-    private final PrometheusCollector collector;
+    private final YammerCollector yammerCollector;
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the init method
     /* test */ PrometheusMetricsReporterConfig config;
 
@@ -35,14 +37,14 @@ public class YammerPrometheusMetricsReporter implements KafkaMetricsReporter, Me
      * Constructor
      */
     public YammerPrometheusMetricsReporter() {
-        this.registry = PrometheusRegistry.defaultRegistry;
-        this.collector = PrometheusCollector.register(registry);
+        registry = PrometheusRegistry.defaultRegistry;
+        yammerCollector = YammerCollector.getCollector(PrometheusCollector.register(registry));
     }
 
     // for testing
-    YammerPrometheusMetricsReporter(PrometheusRegistry registry, PrometheusCollector collector) {
+    YammerPrometheusMetricsReporter(PrometheusRegistry registry, PrometheusCollector prometheusCollector) {
         this.registry = registry;
-        this.collector = collector;
+        yammerCollector = YammerCollector.getCollector(prometheusCollector);
     }
 
     @Override
@@ -56,17 +58,17 @@ public class YammerPrometheusMetricsReporter implements KafkaMetricsReporter, Me
 
     @Override
     public void onMetricAdded(MetricName name, Metric metric) {
-        String prometheusName = MetricWrapper.prometheusName(name);
+        String prometheusName = YammerMetricWrapper.prometheusName(name);
         if (!config.isAllowed(prometheusName)) {
             LOG.trace("Ignoring metric {} as it does not match the allowlist", prometheusName);
         } else {
-            MetricWrapper metricWrapper = new MetricWrapper(prometheusName, name.getScope(), metric, name.getName());
-            collector.addYammerMetric(name, metricWrapper);
+            MetricWrapper metricWrapper = new YammerMetricWrapper(prometheusName, name.getScope(), metric, name.getName());
+            yammerCollector.addMetric(name, metricWrapper);
         }
     }
 
     @Override
     public void onMetricRemoved(MetricName name) {
-        collector.removeYammerMetric(name);
+        yammerCollector.removeMetric(name);
     }
 }

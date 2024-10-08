@@ -9,6 +9,7 @@ import com.yammer.metrics.core.Counter;
 import com.yammer.metrics.core.Metric;
 import com.yammer.metrics.core.MetricName;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
+import io.strimzi.kafka.metrics.http.HttpServers;
 import kafka.utils.VerifiableProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

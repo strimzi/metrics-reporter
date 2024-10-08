@@ -7,6 +7,9 @@ package io.strimzi.kafka.metrics;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import io.prometheus.metrics.model.snapshots.PrometheusNaming;
+import io.strimzi.kafka.metrics.http.HttpServers;
+import io.strimzi.kafka.metrics.kafka.KafkaCollector;
+import io.strimzi.kafka.metrics.kafka.KafkaMetricWrapper;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.MetricsContext;
@@ -29,7 +32,7 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaPrometheusMetricsReporter.class);
 
     private final PrometheusRegistry registry;
-    private final PrometheusCollector collector;
+    private final KafkaCollector kafkaCollector;
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
     private PrometheusMetricsReporterConfig config;
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
@@ -42,13 +45,13 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
      */
     public KafkaPrometheusMetricsReporter() {
         registry = PrometheusRegistry.defaultRegistry;
-        collector = PrometheusCollector.register(registry);
+        kafkaCollector = KafkaCollector.getCollector(PrometheusCollector.register(registry));
     }
 
     // for testing
-    KafkaPrometheusMetricsReporter(PrometheusRegistry registry, PrometheusCollector collector) {
+    KafkaPrometheusMetricsReporter(PrometheusRegistry registry, KafkaCollector kafkaCollector) {
         this.registry = registry;
-        this.collector = collector;
+        this.kafkaCollector = kafkaCollector;
     }
 
     @Override
@@ -66,18 +69,18 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
     }
 
     public void metricChange(KafkaMetric metric) {
-        String prometheusName = MetricWrapper.prometheusName(prefix, metric.metricName());
+        String prometheusName = KafkaMetricWrapper.prometheusName(prefix, metric.metricName());
         if (!config.isAllowed(prometheusName)) {
             LOG.trace("Ignoring metric {} as it does not match the allowlist", prometheusName);
         } else {
-            MetricWrapper metricWrapper = new MetricWrapper(prometheusName, metric, metric.metricName().name());
-            collector.addKafkaMetric(metric.metricName(), metricWrapper);
+            MetricWrapper metricWrapper = new KafkaMetricWrapper(prometheusName, metric, metric.metricName().name());
+            kafkaCollector.addMetric(metric.metricName(), metricWrapper);
         }
     }
 
     @Override
     public void metricRemoval(KafkaMetric metric) {
-        collector.removeKafkaMetric(metric.metricName());
+        kafkaCollector.removeMetric(metric.metricName());
     }
 
     @Override
