@@ -34,7 +34,7 @@ public class YammerMetricWrapperTest {
     @Test
     public void testYammerMetricName() {
         String metricName = YammerMetricWrapper.prometheusName(new MetricName("Kafka.Server", "Log", "NumLogSegments"));
-        assertEquals("kafka_server_kafka_server_log_numlogsegments", metricName);
+        assertEquals("kafka_server_log_numlogsegments", metricName);
     }
 
     @Test

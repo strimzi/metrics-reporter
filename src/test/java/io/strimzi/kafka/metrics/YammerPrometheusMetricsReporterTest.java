@@ -42,7 +42,7 @@ public class YammerPrometheusMetricsReporterTest {
     @Test
     public void testLifeCycle() throws Exception {
         YammerPrometheusMetricsReporter reporter = new YammerPrometheusMetricsReporter(registry, collector);
-        configs.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server_group_type.*");
+        configs.put(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG, "group_type.*");
         reporter.init(new VerifiableProperties(configs));
 
         HttpServers.ServerCounter httpServer = null;
@@ -60,7 +60,7 @@ public class YammerPrometheusMetricsReporterTest {
             newCounter("group", "type", "name");
             metrics = getMetrics(port);
             assertEquals(1, metrics.size());
-            assertEquals("kafka_server_group_type_name_total 0.0", metrics.get(0));
+            assertEquals("group_type_name_total 0.0", metrics.get(0));
 
             // Removing the metric
             removeMetric("group", "type", "name");

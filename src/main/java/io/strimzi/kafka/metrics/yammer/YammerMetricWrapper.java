@@ -41,11 +41,10 @@ public class YammerMetricWrapper extends MetricWrapper {
      */
     public static String prometheusName(MetricName metricName) {
         return PrometheusNaming.prometheusName(
-                    "kafka_server_" +
-                    PrometheusNaming.sanitizeMetricName(
-                            metricName.getGroup() + '_' +
-                            metricName.getType() + '_' +
-                            metricName.getName()).toLowerCase(Locale.ROOT));
+                PrometheusNaming.sanitizeMetricName(
+                        metricName.getGroup() + '_' +
+                        metricName.getType() + '_' +
+                        metricName.getName()).toLowerCase(Locale.ROOT));
     }
 
     static Labels labelsFromScope(String scope, String metricName) {
