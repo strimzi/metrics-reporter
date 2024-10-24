@@ -56,7 +56,7 @@ public class PrometheusCollector implements MultiCollector {
      */
     @Override
     public MetricSnapshots collect() {
-        List<MetricSnapshot> snapshots = new ArrayList<>();
+        List<MetricSnapshot<?>> snapshots = new ArrayList<>();
         for (MetricsCollector collector : collectors) {
             snapshots.addAll(collector.collect());
         }

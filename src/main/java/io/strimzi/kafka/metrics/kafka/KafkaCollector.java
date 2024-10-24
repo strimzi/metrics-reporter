@@ -79,12 +79,12 @@ public class KafkaCollector implements MetricsCollector {
 
     /**
      * Collect all the metrics added to this Collector
+     *
      * @return the list of metrics of this collector
      */
     @Override
-    public List<MetricSnapshot> collect() {
-        Map<String, GaugeSnapshot.Builder> gaugeBuilders = new HashMap<>();
-        Map<String, InfoSnapshot.Builder> infoBuilders = new HashMap<>();
+    public List<MetricSnapshot<?>> collect() {
+        Map<String, MetricSnapshot.Builder<?>> builders = new HashMap<>();
         for (MetricWrapper metricWrapper : kafkaMetrics.values()) {
             String prometheusMetricName = metricWrapper.prometheusName();
             Object metricValue = ((KafkaMetric) metricWrapper.metric()).metricValue();
@@ -93,18 +93,15 @@ public class KafkaCollector implements MetricsCollector {
 
             if (metricValue instanceof Number) {
                 double value = ((Number) metricValue).doubleValue();
-                GaugeSnapshot.Builder builder = gaugeBuilders.computeIfAbsent(prometheusMetricName, k -> GaugeSnapshot.builder().name(prometheusMetricName));
+                GaugeSnapshot.Builder builder = (GaugeSnapshot.Builder) builders.computeIfAbsent(prometheusMetricName, k -> GaugeSnapshot.builder().name(prometheusMetricName));
                 builder.dataPoint(DataPointSnapshotBuilder.gaugeDataPoint(labels, value));
             } else {
-                InfoSnapshot.Builder builder = infoBuilders.computeIfAbsent(prometheusMetricName, k -> InfoSnapshot.builder().name(prometheusMetricName));
+                InfoSnapshot.Builder builder = (InfoSnapshot.Builder) builders.computeIfAbsent(prometheusMetricName, k -> InfoSnapshot.builder().name(prometheusMetricName));
                 builder.dataPoint(DataPointSnapshotBuilder.infoDataPoint(labels, metricValue, metricWrapper.attribute()));
             }
         }
-        List<MetricSnapshot> snapshots = new ArrayList<>();
-        for (GaugeSnapshot.Builder builder : gaugeBuilders.values()) {
-            snapshots.add(builder.build());
-        }
-        for (InfoSnapshot.Builder builder : infoBuilders.values()) {
+        List<MetricSnapshot<?>> snapshots = new ArrayList<>();
+        for (MetricSnapshot.Builder<?> builder : builders.values()) {
             snapshots.add(builder.build());
         }
         return snapshots;

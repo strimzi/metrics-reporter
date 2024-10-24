@@ -41,7 +41,7 @@ public class YammerCollectorTest {
     public void testCollectYammerMetrics() {
         YammerCollector collector = new YammerCollector();
 
-        List<MetricSnapshot> metrics = collector.collect();
+        List<? extends MetricSnapshot<?>> metrics = collector.collect();
         assertEquals(0, metrics.size());
 
         // Adding a metric
@@ -52,15 +52,13 @@ public class YammerCollectorTest {
 
         metrics = collector.collect();
         assertEquals(1, metrics.size());
-        MetricSnapshot snapshot = metrics.get(0);
-        assertGaugeSnapshot(snapshot, value.get(), labels);
+        assertGaugeSnapshot(metrics.get(0), value.get(), labels);
 
         // Updating the value of the metric
         value.set(3);
         metrics = collector.collect();
         assertEquals(1, metrics.size());
-        MetricSnapshot updatedSnapshot = metrics.get(0);
-        assertGaugeSnapshot(updatedSnapshot, 3, labels);
+        assertGaugeSnapshot(metrics.get(0), 3, labels);
 
         // Removing the metric
         collector.removeMetric(metricName);
@@ -72,7 +70,7 @@ public class YammerCollectorTest {
     public void testCollectNonNumericYammerMetrics() {
         YammerCollector collector = new YammerCollector();
 
-        List<MetricSnapshot> metrics = collector.collect();
+        List<? extends MetricSnapshot<?>> metrics = collector.collect();
         assertEquals(0, metrics.size());
 
         String nonNumericValue = "value";
@@ -82,7 +80,7 @@ public class YammerCollectorTest {
         metrics = collector.collect();
 
         assertEquals(1, metrics.size());
-        MetricSnapshot snapshot = metrics.get(0);
+        MetricSnapshot<?> snapshot = metrics.get(0);
         assertEquals(metricWrapper.prometheusName(), snapshot.getMetadata().getName());
         assertInfoSnapshot(snapshot, labels, "name", nonNumericValue);
     }

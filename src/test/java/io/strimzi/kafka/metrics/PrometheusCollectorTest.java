@@ -45,7 +45,7 @@ public class PrometheusCollectorTest {
         Labels labels = Labels.of("l1", "v1", "l2", "v2");
         double value = 2.0;
         prometheusCollector.addCollector(() -> {
-            List<MetricSnapshot> snapshots = new ArrayList<>();
+            List<MetricSnapshot<?>> snapshots = new ArrayList<>();
             snapshots.add(GaugeSnapshot.builder()
                     .name("gauge")
                     .dataPoint(DataPointSnapshotBuilder.gaugeDataPoint(labels, value))
@@ -60,7 +60,7 @@ public class PrometheusCollectorTest {
         Quantiles quantiles = Quantiles.of(new Quantile(0.9, value));
         String metricName = "name";
         prometheusCollector.addCollector(() -> {
-            List<MetricSnapshot> snapshots = new ArrayList<>();
+            List<MetricSnapshot<?>> snapshots = new ArrayList<>();
             snapshots.add(InfoSnapshot.builder()
                     .name("info")
                     .dataPoint(DataPointSnapshotBuilder.infoDataPoint(labels, value, metricName))
@@ -79,8 +79,8 @@ public class PrometheusCollectorTest {
         assertSummarySnapshot(findSnapshot(snapshots, SummarySnapshot.class), count, value, labels, quantiles);
     }
 
-    private MetricSnapshot findSnapshot(MetricSnapshots snapshots, Class<?> clazz) {
-        for (MetricSnapshot snapshot : snapshots) {
+    private MetricSnapshot<?> findSnapshot(MetricSnapshots snapshots, Class<?> clazz) {
+        for (MetricSnapshot<?> snapshot : snapshots) {
             if (clazz.isInstance(snapshot)) {
                 return snapshot;
             }

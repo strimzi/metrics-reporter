@@ -83,15 +83,13 @@ public class YammerCollector implements MetricsCollector {
 
     /**
      * Collect all the metrics added to this Collector
+     *
      * @return the list of metrics of this collector
      */
     @SuppressWarnings({"CyclomaticComplexity", "JavaNCSS"})
     @Override
-    public List<MetricSnapshot> collect() {
-        Map<String, CounterSnapshot.Builder> counterBuilders = new HashMap<>();
-        Map<String, GaugeSnapshot.Builder> gaugeBuilders = new HashMap<>();
-        Map<String, InfoSnapshot.Builder> infoBuilders = new HashMap<>();
-        Map<String, SummarySnapshot.Builder> summaryBuilders = new HashMap<>();
+    public List<MetricSnapshot<?>> collect() {
+        Map<String, MetricSnapshot.Builder<?>> builders = new HashMap<>();
         for (MetricWrapper metricWrapper : yammerMetrics.values()) {
             String prometheusMetricName = metricWrapper.prometheusName();
             Object metric = metricWrapper.metric();
@@ -100,45 +98,36 @@ public class YammerCollector implements MetricsCollector {
 
             if (metric instanceof Counter) {
                 Counter counter = (Counter) metric;
-                CounterSnapshot.Builder builder = counterBuilders.computeIfAbsent(prometheusMetricName, k -> CounterSnapshot.builder().name(prometheusMetricName));
+                CounterSnapshot.Builder builder = (CounterSnapshot.Builder) builders.computeIfAbsent(prometheusMetricName, k -> CounterSnapshot.builder().name(prometheusMetricName));
                 builder.dataPoint(DataPointSnapshotBuilder.counterDataPoint(labels, counter.count()));
             } else if (metric instanceof Gauge) {
                 Object valueObj = ((Gauge<?>) metric).value();
                 if (valueObj instanceof Number) {
                     double value = ((Number) valueObj).doubleValue();
-                    GaugeSnapshot.Builder builder = gaugeBuilders.computeIfAbsent(prometheusMetricName, k -> GaugeSnapshot.builder().name(prometheusMetricName));
+                    GaugeSnapshot.Builder builder = (GaugeSnapshot.Builder) builders.computeIfAbsent(prometheusMetricName, k -> GaugeSnapshot.builder().name(prometheusMetricName));
                     builder.dataPoint(DataPointSnapshotBuilder.gaugeDataPoint(labels, value));
                 } else {
-                    InfoSnapshot.Builder builder = infoBuilders.computeIfAbsent(prometheusMetricName, k -> InfoSnapshot.builder().name(prometheusMetricName));
+                    InfoSnapshot.Builder builder = (InfoSnapshot.Builder) builders.computeIfAbsent(prometheusMetricName, k -> InfoSnapshot.builder().name(prometheusMetricName));
                     builder.dataPoint(DataPointSnapshotBuilder.infoDataPoint(labels, valueObj, metricWrapper.attribute()));
                 }
             } else if (metric instanceof Timer) {
                 Timer timer = (Timer) metric;
-                SummarySnapshot.Builder builder = summaryBuilders.computeIfAbsent(prometheusMetricName, k -> SummarySnapshot.builder().name(prometheusMetricName));
+                SummarySnapshot.Builder builder = (SummarySnapshot.Builder) builders.computeIfAbsent(prometheusMetricName, k -> SummarySnapshot.builder().name(prometheusMetricName));
                 builder.dataPoint(DataPointSnapshotBuilder.summaryDataPoint(labels, timer.count(), timer.sum(), quantiles(timer)));
             } else if (metric instanceof Histogram) {
                 Histogram histogram = (Histogram) metric;
-                SummarySnapshot.Builder builder = summaryBuilders.computeIfAbsent(prometheusMetricName, k -> SummarySnapshot.builder().name(prometheusMetricName));
+                SummarySnapshot.Builder builder = (SummarySnapshot.Builder) builders.computeIfAbsent(prometheusMetricName, k -> SummarySnapshot.builder().name(prometheusMetricName));
                 builder.dataPoint(DataPointSnapshotBuilder.summaryDataPoint(labels, histogram.count(), histogram.sum(), quantiles(histogram)));
             } else if (metric instanceof Meter) {
                 Meter meter = (Meter) metric;
-                CounterSnapshot.Builder builder = counterBuilders.computeIfAbsent(prometheusMetricName, k -> CounterSnapshot.builder().name(prometheusMetricName));
+                CounterSnapshot.Builder builder = (CounterSnapshot.Builder) builders.computeIfAbsent(prometheusMetricName, k -> CounterSnapshot.builder().name(prometheusMetricName));
                 builder.dataPoint(DataPointSnapshotBuilder.counterDataPoint(labels, meter.count()));
             } else {
                 LOG.error("The metric {} has an unexpected type: {}", prometheusMetricName, metric.getClass().getName());
             }
         }
-        List<MetricSnapshot> snapshots = new ArrayList<>();
-        for (GaugeSnapshot.Builder builder : gaugeBuilders.values()) {
-            snapshots.add(builder.build());
-        }
-        for (CounterSnapshot.Builder builder : counterBuilders.values()) {
-            snapshots.add(builder.build());
-        }
-        for (InfoSnapshot.Builder builder : infoBuilders.values()) {
-            snapshots.add(builder.build());
-        }
-        for (SummarySnapshot.Builder builder : summaryBuilders.values()) {
+        List<MetricSnapshot<?>> snapshots = new ArrayList<>();
+        for (MetricSnapshot.Builder<?> builder : builders.values()) {
             snapshots.add(builder.build());
         }
         return snapshots;
