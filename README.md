@@ -12,7 +12,12 @@ This repository contains a reporter implementation for Prometheus as proposed in
 
 ## Installing
 
-Since there isn't a release available yet, you'll need to build the reporter first:
+Download and extract the .tar.gz or .zip archive from the [latest release](https://github.com/strimzi/metrics-reporter/releases/latest) and
+add all the JARs to the classpath.
+
+## Building from source
+
+Alternatively you can build the metrics reporter:
 ```sh
 mvn package
 ```
