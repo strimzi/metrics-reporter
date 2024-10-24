@@ -45,7 +45,7 @@ public class KafkaCollectorTest {
     public void testCollectKafkaMetrics() {
         KafkaCollector collector = new KafkaCollector();
 
-        List<MetricSnapshot> metrics = collector.collect();
+        List<? extends MetricSnapshot<?>> metrics = collector.collect();
         assertEquals(0, metrics.size());
 
         // Adding a metric
@@ -56,15 +56,13 @@ public class KafkaCollectorTest {
 
         metrics = collector.collect();
         assertEquals(1, metrics.size());
-        MetricSnapshot snapshot = metrics.get(0);
-        assertGaugeSnapshot(snapshot, value.get(), labels);
+        assertGaugeSnapshot(metrics.get(0), value.get(), labels);
 
         // Updating the value of the metric
         value.set(3);
         metrics = collector.collect();
         assertEquals(1, metrics.size());
-        MetricSnapshot updatedSnapshot = metrics.get(0);
-        assertGaugeSnapshot(updatedSnapshot, 3, labels);
+        assertGaugeSnapshot(metrics.get(0), 3, labels);
 
         // Removing a metric
         collector.removeMetric(metricName);
@@ -76,7 +74,7 @@ public class KafkaCollectorTest {
     public void testCollectNonNumericKafkaMetric() {
         KafkaCollector collector = new KafkaCollector();
 
-        List<MetricSnapshot> metrics = collector.collect();
+        List<? extends MetricSnapshot<?>> metrics = collector.collect();
         assertEquals(0, metrics.size());
 
         // Adding a non-numeric metric converted
@@ -87,7 +85,7 @@ public class KafkaCollectorTest {
         metrics = collector.collect();
 
         assertEquals(1, metrics.size());
-        MetricSnapshot snapshot = metrics.get(0);
+        MetricSnapshot<?> snapshot = metrics.get(0);
         assertEquals(metricWrapper.prometheusName(), snapshot.getMetadata().getName());
         assertInfoSnapshot(snapshot, labels, "name", nonNumericValue);
     }

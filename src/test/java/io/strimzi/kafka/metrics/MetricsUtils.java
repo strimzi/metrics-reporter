@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 /**
  * Utility class to create and retrieve metrics
  */
+@SuppressWarnings("ClassFanOutComplexity")
 public class MetricsUtils {
 
     /**
@@ -94,7 +95,7 @@ public class MetricsUtils {
      * @param expectedValue the expected value
      * @param expectedLabels the expected labels
      */
-    public static void assertGaugeSnapshot(MetricSnapshot snapshot, double expectedValue, Labels expectedLabels) {
+    public static void assertGaugeSnapshot(MetricSnapshot<?> snapshot, double expectedValue, Labels expectedLabels) {
         assertInstanceOf(GaugeSnapshot.class, snapshot);
         GaugeSnapshot gaugeSnapshot = (GaugeSnapshot) snapshot;
         assertEquals(1, gaugeSnapshot.getDataPoints().size());
@@ -109,7 +110,7 @@ public class MetricsUtils {
      * @param expectedValue the expected value
      * @param expectedLabels the expected labels
      */
-    public static void assertCounterSnapshot(MetricSnapshot snapshot, double expectedValue, Labels expectedLabels) {
+    public static void assertCounterSnapshot(MetricSnapshot<?> snapshot, double expectedValue, Labels expectedLabels) {
         assertInstanceOf(CounterSnapshot.class, snapshot);
         CounterSnapshot counterSnapshot = (CounterSnapshot) snapshot;
         assertEquals(1, counterSnapshot.getDataPoints().size());
@@ -125,11 +126,12 @@ public class MetricsUtils {
      * @param newLabelName the expected new label name
      * @param newLabelValue the expected new label value
      */
-    public static void assertInfoSnapshot(MetricSnapshot snapshot, Labels labels, String newLabelName, String newLabelValue) {
+    public static void assertInfoSnapshot(MetricSnapshot<?> snapshot, Labels labels, String newLabelName, String newLabelValue) {
         assertInstanceOf(InfoSnapshot.class, snapshot);
-        assertEquals(1, snapshot.getDataPoints().size());
+        InfoSnapshot infoSnapshot = (InfoSnapshot) snapshot;
+        assertEquals(1, infoSnapshot.getDataPoints().size());
         Labels expectedLabels = labels.add(newLabelName, newLabelValue);
-        assertEquals(expectedLabels, snapshot.getDataPoints().get(0).getLabels());
+        assertEquals(expectedLabels, infoSnapshot.getDataPoints().get(0).getLabels());
     }
 
     /**
@@ -140,7 +142,7 @@ public class MetricsUtils {
      * @param expectedLabels the expected labels
      * @param expectedQuantiles the expected quantiles
      */
-    public static void assertSummarySnapshot(MetricSnapshot snapshot, int expectedCount, double expectedSum, Labels expectedLabels, Quantiles expectedQuantiles) {
+    public static void assertSummarySnapshot(MetricSnapshot<?> snapshot, int expectedCount, double expectedSum, Labels expectedLabels, Quantiles expectedQuantiles) {
         assertInstanceOf(SummarySnapshot.class, snapshot);
         SummarySnapshot summarySnapshot = (SummarySnapshot) snapshot;
         assertEquals(1, summarySnapshot.getDataPoints().size());
