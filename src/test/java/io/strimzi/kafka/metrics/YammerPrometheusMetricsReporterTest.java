@@ -9,14 +9,17 @@ import com.yammer.metrics.core.Counter;
 import com.yammer.metrics.core.Metric;
 import com.yammer.metrics.core.MetricName;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
+import io.strimzi.kafka.metrics.collector.PrometheusCollector;
 import io.strimzi.kafka.metrics.http.HttpServers;
 import kafka.utils.VerifiableProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 import static io.strimzi.kafka.metrics.MetricsUtils.getMetrics;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -62,10 +65,16 @@ public class YammerPrometheusMetricsReporterTest {
             assertEquals(1, metrics.size());
             assertEquals("group_type_name_total 0.0", metrics.get(0));
 
-            // Removing the metric
+            // Update the allowlist to match the first metric
+            Pattern newAllowlist = PrometheusMetricsReporterConfig.compileAllowlist(Arrays.asList("group_type.*", "other_type.*"));
+            collector.updateAllowlist(newAllowlist);
+            metrics = getMetrics(port);
+            assertEquals(2, metrics.size());
+
+            // Removing one of the metrics
             removeMetric("group", "type", "name");
             metrics = getMetrics(port);
-            assertEquals(0, metrics.size());
+            assertEquals(1, metrics.size());
         } finally {
             if (httpServer != null) HttpServers.release(httpServer);
         }

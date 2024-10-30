@@ -2,17 +2,16 @@
  * Copyright Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.kafka.metrics.kafka;
+package io.strimzi.kafka.metrics.collector.kafka;
 
 import io.prometheus.metrics.model.snapshots.GaugeSnapshot;
 import io.prometheus.metrics.model.snapshots.InfoSnapshot;
 import io.prometheus.metrics.model.snapshots.Labels;
 import io.prometheus.metrics.model.snapshots.MetricSnapshot;
-import io.strimzi.kafka.metrics.DataPointSnapshotBuilder;
-import io.strimzi.kafka.metrics.MetricWrapper;
-import io.strimzi.kafka.metrics.MetricsCollector;
-import io.strimzi.kafka.metrics.PrometheusCollector;
-import org.apache.kafka.common.MetricName;
+import io.strimzi.kafka.metrics.collector.DataPointSnapshotBuilder;
+import io.strimzi.kafka.metrics.collector.MetricWrapper;
+import io.strimzi.kafka.metrics.collector.MetricsCollector;
+import io.strimzi.kafka.metrics.collector.PrometheusCollector;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,19 +20,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Collector for Kafka metrics
  */
-public class KafkaCollector implements MetricsCollector {
+public class KafkaCollector extends MetricsCollector {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaCollector.class);
     private static final KafkaCollector INSTANCE = new KafkaCollector();
     private static final AtomicBoolean REGISTERED = new AtomicBoolean(false);
-
-    private final Map<MetricName, MetricWrapper> kafkaMetrics = new ConcurrentHashMap<>();
 
     /* for testing */ KafkaCollector() { }
 
@@ -59,25 +55,6 @@ public class KafkaCollector implements MetricsCollector {
     }
 
     /**
-     * Add a Kafka metric to be collected.
-     *
-     * @param name The name of the Kafka metric to add.
-     * @param metric The Kafka metric to add.
-     */
-    public void addMetric(MetricName name, MetricWrapper metric) {
-        kafkaMetrics.put(name, metric);
-    }
-
-    /**
-     * Remove a Kafka metric from collection.
-     *
-     * @param name The name of Kafka metric to remove.
-     */
-    public void removeMetric(MetricName name) {
-        kafkaMetrics.remove(name);
-    }
-
-    /**
      * Collect all the metrics added to this Collector
      *
      * @return the list of metrics of this collector
@@ -85,7 +62,7 @@ public class KafkaCollector implements MetricsCollector {
     @Override
     public List<MetricSnapshot<?>> collect() {
         Map<String, MetricSnapshot.Builder<?>> builders = new HashMap<>();
-        for (MetricWrapper metricWrapper : kafkaMetrics.values()) {
+        for (MetricWrapper metricWrapper : allowedMetrics()) {
             String prometheusMetricName = metricWrapper.prometheusName();
             Object metricValue = ((KafkaMetric) metricWrapper.metric()).metricValue();
             Labels labels = metricWrapper.labels();

@@ -2,17 +2,20 @@
  * Copyright Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.kafka.metrics;
+package io.strimzi.kafka.metrics.collector;
 
 import io.prometheus.metrics.instrumentation.jvm.JvmMetrics;
 import io.prometheus.metrics.model.registry.MultiCollector;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import io.prometheus.metrics.model.snapshots.MetricSnapshot;
 import io.prometheus.metrics.model.snapshots.MetricSnapshots;
+import io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter;
+import io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 
 /**
  * Prometheus Collector to store and export metrics retrieved by {@link KafkaPrometheusMetricsReporter}
@@ -25,8 +28,6 @@ public class PrometheusCollector implements MultiCollector {
 
     // At runtime this should contain at most one instance of KafkaCollector and one instance of YammerCollector
     private final List<MetricsCollector> collectors = new ArrayList<>();
-
-    /* for testing */ PrometheusCollector() { }
 
     /**
      * Register this Collector with the provided Prometheus registry
@@ -61,5 +62,15 @@ public class PrometheusCollector implements MultiCollector {
             snapshots.addAll(collector.collect());
         }
         return new MetricSnapshots(snapshots);
+    }
+
+    /**
+     * Update the allowlist for all the registered collectors
+     * @param allowlist The new allowlist
+     */
+    public void updateAllowlist(Pattern allowlist) {
+        for (MetricsCollector collector : collectors) {
+            collector.updateAllowlist(allowlist);
+        }
     }
 }

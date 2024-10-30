@@ -13,6 +13,7 @@ import io.strimzi.test.container.StrimziKafkaContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.Container;
 import org.testcontainers.utility.MountableFile;
 
 import java.util.ArrayList;
@@ -22,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -88,6 +90,45 @@ public class TestBrokerMetricsIT {
                 "kafka_coordinator_",
                 "kafka_log_",
                 "kafka_network_");
+        for (String prefix : disallowPrefixes) {
+            assertTrue(filterMetrics(metrics, prefix).isEmpty());
+        }
+    }
+
+    @Test
+    public void testReconfigureAllowlist() throws Exception {
+        broker.withKafkaConfigurationMap(configs);
+        broker.start();
+        List<String> metrics = MetricsUtils.getMetrics(broker.getHost(), broker.getMappedPort(PORT));
+        List<String> allowedPrefixes = Arrays.asList(
+                "jvm_",
+                "kafka_controller_",
+                "kafka_coordinator_",
+                "kafka_log_",
+                "kafka_network_",
+                "kafka_server_");
+        for (String prefix : allowedPrefixes) {
+            assertFalse(filterMetrics(metrics, prefix).isEmpty());
+        }
+        final Container.ExecResult result = broker.execInContainer(
+                "sh", "-c",
+                "bin/kafka-configs.sh --bootstrap-server localhost:9093 " +
+                "--alter --entity-type brokers --entity-default " +
+                "--add-config \"prometheus.metrics.reporter.allowlist=[kafka_controller.*,kafka_log.*]\""
+        );
+        assertEquals(0, result.getExitCode());
+        metrics = MetricsUtils.getMetrics(broker.getHost(), broker.getMappedPort(PORT));
+        allowedPrefixes = Arrays.asList(
+                "jvm_",
+                "kafka_controller_",
+                "kafka_log_");
+        for (String prefix : allowedPrefixes) {
+            assertFalse(filterMetrics(metrics, prefix).isEmpty());
+        }
+        List<String> disallowPrefixes = Arrays.asList(
+                "kafka_coordinator_",
+                "kafka_network_",
+                "kafka_server_");
         for (String prefix : disallowPrefixes) {
             assertTrue(filterMetrics(metrics, prefix).isEmpty());
         }

@@ -2,13 +2,13 @@
  * Copyright Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.kafka.metrics.yammer;
+package io.strimzi.kafka.metrics.collector.yammer;
 
 import com.yammer.metrics.core.Metric;
 import com.yammer.metrics.core.MetricName;
 import io.prometheus.metrics.model.snapshots.Labels;
 import io.prometheus.metrics.model.snapshots.PrometheusNaming;
-import io.strimzi.kafka.metrics.MetricWrapper;
+import io.strimzi.kafka.metrics.collector.MetricWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

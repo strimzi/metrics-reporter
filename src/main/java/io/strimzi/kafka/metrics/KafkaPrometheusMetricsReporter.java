@@ -7,9 +7,11 @@ package io.strimzi.kafka.metrics;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import io.prometheus.metrics.model.snapshots.PrometheusNaming;
+import io.strimzi.kafka.metrics.collector.MetricWrapper;
+import io.strimzi.kafka.metrics.collector.PrometheusCollector;
+import io.strimzi.kafka.metrics.collector.kafka.KafkaCollector;
+import io.strimzi.kafka.metrics.collector.kafka.KafkaMetricWrapper;
 import io.strimzi.kafka.metrics.http.HttpServers;
-import io.strimzi.kafka.metrics.kafka.KafkaCollector;
-import io.strimzi.kafka.metrics.kafka.KafkaMetricWrapper;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.MetricsContext;
@@ -17,7 +19,6 @@ import org.apache.kafka.common.metrics.MetricsReporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -33,8 +34,7 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     private final PrometheusRegistry registry;
     private final KafkaCollector kafkaCollector;
-    @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
-    private PrometheusMetricsReporterConfig config;
+    private final PrometheusCollector prometheusCollector;
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the configure method
     private Optional<HttpServers.ServerCounter> httpServer;
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the contextChange method
@@ -45,18 +45,21 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
      */
     public KafkaPrometheusMetricsReporter() {
         registry = PrometheusRegistry.defaultRegistry;
-        kafkaCollector = KafkaCollector.getCollector(PrometheusCollector.register(registry));
+        prometheusCollector = PrometheusCollector.register(registry);
+        kafkaCollector = KafkaCollector.getCollector(prometheusCollector);
     }
 
     // for testing
-    KafkaPrometheusMetricsReporter(PrometheusRegistry registry, KafkaCollector kafkaCollector) {
+    KafkaPrometheusMetricsReporter(PrometheusRegistry registry, KafkaCollector kafkaCollector, PrometheusCollector prometheusCollector) {
         this.registry = registry;
         this.kafkaCollector = kafkaCollector;
+        this.prometheusCollector = prometheusCollector;
     }
 
     @Override
     public void configure(Map<String, ?> map) {
-        config = new PrometheusMetricsReporterConfig(map, registry);
+        PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(map, registry);
+        prometheusCollector.updateAllowlist(config.allowlist());
         httpServer = config.startHttpServer();
         LOG.debug("KafkaPrometheusMetricsReporter configured with {}", config);
     }
@@ -70,12 +73,8 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     public void metricChange(KafkaMetric metric) {
         String prometheusName = KafkaMetricWrapper.prometheusName(prefix, metric.metricName());
-        if (!config.isAllowed(prometheusName)) {
-            LOG.trace("Ignoring metric {} as it does not match the allowlist", prometheusName);
-        } else {
-            MetricWrapper metricWrapper = new KafkaMetricWrapper(prometheusName, metric, metric.metricName().name());
-            kafkaCollector.addMetric(metric.metricName(), metricWrapper);
-        }
+        MetricWrapper metricWrapper = new KafkaMetricWrapper(prometheusName, metric, metric.metricName().name());
+        kafkaCollector.addMetric(metric.metricName(), metricWrapper);
     }
 
     @Override
@@ -90,15 +89,19 @@ public class KafkaPrometheusMetricsReporter implements MetricsReporter {
 
     @Override
     public void reconfigure(Map<String, ?> configs) {
+        PrometheusMetricsReporterConfig newConfig = new PrometheusMetricsReporterConfig(configs, null);
+        prometheusCollector.updateAllowlist(newConfig.allowlist());
+        LOG.debug("KafkaPrometheusMetricsReporter reconfigured with {}", newConfig);
     }
 
     @Override
     public void validateReconfiguration(Map<String, ?> configs) throws ConfigException {
+        new PrometheusMetricsReporterConfig(configs, null);
     }
 
     @Override
     public Set<String> reconfigurableConfigs() {
-        return Collections.emptySet();
+        return PrometheusMetricsReporterConfig.RECONFIGURABLES;
     }
 
     @Override

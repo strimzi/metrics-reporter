@@ -2,13 +2,12 @@
  * Copyright Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.kafka.metrics.yammer;
+package io.strimzi.kafka.metrics.collector.yammer;
 
 import com.yammer.metrics.core.Counter;
 import com.yammer.metrics.core.Gauge;
 import com.yammer.metrics.core.Histogram;
 import com.yammer.metrics.core.Meter;
-import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Sampling;
 import com.yammer.metrics.core.Timer;
 import io.prometheus.metrics.model.snapshots.CounterSnapshot;
@@ -19,10 +18,10 @@ import io.prometheus.metrics.model.snapshots.MetricSnapshot;
 import io.prometheus.metrics.model.snapshots.Quantile;
 import io.prometheus.metrics.model.snapshots.Quantiles;
 import io.prometheus.metrics.model.snapshots.SummarySnapshot;
-import io.strimzi.kafka.metrics.DataPointSnapshotBuilder;
-import io.strimzi.kafka.metrics.MetricWrapper;
-import io.strimzi.kafka.metrics.MetricsCollector;
-import io.strimzi.kafka.metrics.PrometheusCollector;
+import io.strimzi.kafka.metrics.collector.DataPointSnapshotBuilder;
+import io.strimzi.kafka.metrics.collector.MetricWrapper;
+import io.strimzi.kafka.metrics.collector.MetricsCollector;
+import io.strimzi.kafka.metrics.collector.PrometheusCollector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,21 +30,18 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Collector for Yammer metrics
  */
 @SuppressWarnings("ClassFanOutComplexity")
-public class YammerCollector implements MetricsCollector {
+public class YammerCollector extends MetricsCollector {
 
     private static final Logger LOG = LoggerFactory.getLogger(YammerCollector.class);
     private static final YammerCollector INSTANCE = new YammerCollector();
     private static final AtomicBoolean REGISTERED = new AtomicBoolean(false);
     private static final List<Double> QUANTILES = Arrays.asList(0.50, 0.75, 0.95, 0.98, 0.99, 0.999);
-
-    private final Map<MetricName, MetricWrapper> yammerMetrics = new ConcurrentHashMap<>();
 
     /* for testing */ YammerCollector() {}
 
@@ -62,35 +58,10 @@ public class YammerCollector implements MetricsCollector {
         return INSTANCE;
     }
 
-    /**
-     * Add a Yammer metric to be collected.
-     *
-     * @param name The name of the Yammer metric to add.
-     * @param metric The Yammer metric to add.
-     */
-    public void addMetric(MetricName name, MetricWrapper metric) {
-        yammerMetrics.put(name, metric);
-    }
-
-    /**
-     * Remove a Yammer metric from collection.
-     *
-     * @param name The name of the Yammer metric to remove.
-     */
-    public void removeMetric(MetricName name) {
-        yammerMetrics.remove(name);
-    }
-
-    /**
-     * Collect all the metrics added to this Collector
-     *
-     * @return the list of metrics of this collector
-     */
-    @SuppressWarnings({"CyclomaticComplexity", "JavaNCSS"})
     @Override
     public List<MetricSnapshot<?>> collect() {
         Map<String, MetricSnapshot.Builder<?>> builders = new HashMap<>();
-        for (MetricWrapper metricWrapper : yammerMetrics.values()) {
+        for (MetricWrapper metricWrapper : allowedMetrics()) {
             String prometheusMetricName = metricWrapper.prometheusName();
             Object metric = metricWrapper.metric();
             Labels labels = metricWrapper.labels();

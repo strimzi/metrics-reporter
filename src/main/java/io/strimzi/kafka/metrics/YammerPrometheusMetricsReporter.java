@@ -11,8 +11,10 @@ import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.core.MetricsRegistryListener;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
-import io.strimzi.kafka.metrics.yammer.YammerCollector;
-import io.strimzi.kafka.metrics.yammer.YammerMetricWrapper;
+import io.strimzi.kafka.metrics.collector.MetricWrapper;
+import io.strimzi.kafka.metrics.collector.PrometheusCollector;
+import io.strimzi.kafka.metrics.collector.yammer.YammerCollector;
+import io.strimzi.kafka.metrics.collector.yammer.YammerMetricWrapper;
 import kafka.metrics.KafkaMetricsReporter;
 import kafka.utils.VerifiableProperties;
 import org.apache.kafka.server.metrics.KafkaYammerMetrics;
@@ -30,6 +32,7 @@ public class YammerPrometheusMetricsReporter implements KafkaMetricsReporter, Me
 
     private final PrometheusRegistry registry;
     private final YammerCollector yammerCollector;
+    private final PrometheusCollector prometheusCollector;
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the init method
     /* test */ PrometheusMetricsReporterConfig config;
 
@@ -38,13 +41,15 @@ public class YammerPrometheusMetricsReporter implements KafkaMetricsReporter, Me
      */
     public YammerPrometheusMetricsReporter() {
         registry = PrometheusRegistry.defaultRegistry;
-        yammerCollector = YammerCollector.getCollector(PrometheusCollector.register(registry));
+        prometheusCollector = PrometheusCollector.register(registry);
+        yammerCollector = YammerCollector.getCollector(prometheusCollector);
     }
 
     // for testing
     YammerPrometheusMetricsReporter(PrometheusRegistry registry, PrometheusCollector prometheusCollector) {
         this.registry = registry;
         yammerCollector = YammerCollector.getCollector(prometheusCollector);
+        this.prometheusCollector = prometheusCollector;
     }
 
     @Override
@@ -53,18 +58,15 @@ public class YammerPrometheusMetricsReporter implements KafkaMetricsReporter, Me
         for (MetricsRegistry yammerRegistry : Arrays.asList(KafkaYammerMetrics.defaultRegistry(), Metrics.defaultRegistry())) {
             yammerRegistry.addListener(this);
         }
+        yammerCollector.updateAllowlist(config.allowlist());
         LOG.debug("YammerPrometheusMetricsReporter configured with {}", config);
     }
 
     @Override
     public void onMetricAdded(MetricName name, Metric metric) {
         String prometheusName = YammerMetricWrapper.prometheusName(name);
-        if (!config.isAllowed(prometheusName)) {
-            LOG.trace("Ignoring metric {} as it does not match the allowlist", prometheusName);
-        } else {
-            MetricWrapper metricWrapper = new YammerMetricWrapper(prometheusName, name.getScope(), metric, name.getName());
-            yammerCollector.addMetric(name, metricWrapper);
-        }
+        MetricWrapper metricWrapper = new YammerMetricWrapper(prometheusName, name.getScope(), metric, name.getName());
+        yammerCollector.addMetric(name, metricWrapper);
     }
 
     @Override

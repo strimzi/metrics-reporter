@@ -14,9 +14,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
@@ -67,6 +69,11 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
             .define(ALLOWLIST_CONFIG, ConfigDef.Type.LIST, ALLOWLIST_CONFIG_DEFAULT, ConfigDef.Importance.HIGH, ALLOWLIST_CONFIG_DOC)
             .define(LISTENER_ENABLE_CONFIG, ConfigDef.Type.BOOLEAN, LISTENER_ENABLE_CONFIG_DEFAULT, ConfigDef.Importance.HIGH, LISTENER_ENABLE_CONFIG_DOC);
 
+    /**
+     * The list of configurations that are reconfigurable at runtime.
+     */
+    public static final Set<String> RECONFIGURABLES = Collections.singleton(ALLOWLIST_CONFIG);
+
     private final Listener listener;
     private final boolean listenerEnabled;
     private final Pattern allowlist;
@@ -87,16 +94,11 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
     }
 
     /**
-     * Check if a metric is allowed.
-     *
-     * @param name the name of the metric.
-     * @return true if the metric is allowed, false otherwise.
+     * Compile the allowlist into a {@link Pattern}.
+     * @param allowlist the list of regex patterns
+     * @return the Pattern for the allowlist.
      */
-    public boolean isAllowed(String name) {
-        return allowlist.matcher(name).matches();
-    }
-
-    private Pattern compileAllowlist(List<String> allowlist) {
+    public static Pattern compileAllowlist(List<String> allowlist) {
         for (String entry : allowlist) {
             try {
                 Pattern.compile(entry);
@@ -109,8 +111,15 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
     }
 
     /**
-     * Gets the listener.
-     *
+     * Get the allowlist.
+     * @return the allowlist.
+     */
+    public Pattern allowlist() {
+        return allowlist;
+    }
+
+    /**
+     * Get the listener.
      * @return the listener.
      */
     public String listener() {

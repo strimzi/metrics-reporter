@@ -2,11 +2,11 @@
  * Copyright Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.kafka.metrics.kafka;
+package io.strimzi.kafka.metrics.collector.kafka;
 
 import io.prometheus.metrics.model.snapshots.Labels;
 import io.prometheus.metrics.model.snapshots.PrometheusNaming;
-import io.strimzi.kafka.metrics.MetricWrapper;
+import io.strimzi.kafka.metrics.collector.MetricWrapper;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.slf4j.Logger;

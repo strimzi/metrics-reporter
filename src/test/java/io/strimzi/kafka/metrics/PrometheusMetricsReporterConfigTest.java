@@ -25,13 +25,14 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-
 public class PrometheusMetricsReporterConfigTest {
+
     @Test
     public void testDefaults() {
         PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(emptyMap(), new PrometheusRegistry());
         assertEquals(PrometheusMetricsReporterConfig.LISTENER_CONFIG_DEFAULT, config.listener());
-        assertTrue(config.isAllowed("random_name"));
+        assertEquals(PrometheusMetricsReporterConfig.LISTENER_ENABLE_CONFIG_DEFAULT, config.isListenerEnabled());
+        assertTrue(config.allowlist().toString().contains(PrometheusMetricsReporterConfig.ALLOWLIST_CONFIG_DEFAULT));
     }
 
     @Test
@@ -42,8 +43,8 @@ public class PrometheusMetricsReporterConfigTest {
         PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props, new PrometheusRegistry());
 
         assertEquals("http://:0", config.listener());
-        assertFalse(config.isAllowed("random_name"));
-        assertTrue(config.isAllowed("kafka_server_metric"));
+        assertFalse(config.allowlist().matcher("random_name").matches());
+        assertTrue(config.allowlist().matcher("kafka_server_metric").matches());
     }
 
     @Test
@@ -51,9 +52,9 @@ public class PrometheusMetricsReporterConfigTest {
         Map<String, String> props = singletonMap(ALLOWLIST_CONFIG, "kafka_server.*,kafka_network.*");
         PrometheusMetricsReporterConfig config = new PrometheusMetricsReporterConfig(props, new PrometheusRegistry());
 
-        assertFalse(config.isAllowed("random_name"));
-        assertTrue(config.isAllowed("kafka_server_metric"));
-        assertTrue(config.isAllowed("kafka_network_metric"));
+        assertFalse(config.allowlist().matcher("random_name").matches());
+        assertTrue(config.allowlist().matcher("kafka_server_metric").matches());
+        assertTrue(config.allowlist().matcher("kafka_network_metric").matches());
 
         assertThrows(ConfigException.class,
                 () -> new PrometheusMetricsReporterConfig(singletonMap(ALLOWLIST_CONFIG, "hell[o,s]world"), null));
