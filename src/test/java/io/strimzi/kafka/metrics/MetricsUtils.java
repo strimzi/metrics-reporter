@@ -42,8 +42,19 @@ public class MetricsUtils {
      * @throws Exception If any error occurs
      */
     public static List<String> getMetrics(int port) throws Exception {
+        return getMetrics("localhost", port);
+    }
+
+    /**
+     * Query the HTTP endpoint and returns the output
+     * @param host The host to query
+     * @param port The port to query
+     * @return The lines from the output
+     * @throws Exception If any error occurs
+     */
+    public static List<String> getMetrics(String host, int port) throws Exception {
         List<String> metrics = new ArrayList<>();
-        URL url = new URL("http://localhost:" + port + "/metrics");
+        URL url = new URL("http://" + host + ":" + port + "/metrics");
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
         con.setRequestMethod("GET");
 
