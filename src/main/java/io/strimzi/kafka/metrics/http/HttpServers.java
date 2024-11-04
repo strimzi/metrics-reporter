@@ -60,11 +60,13 @@ public class HttpServers {
 
         private ServerCounter(Listener listener, PrometheusRegistry registry) throws IOException {
             this.count = new AtomicInteger();
-            this.server = HTTPServer.builder()
-                    .hostname(listener.host)
+            HTTPServer.Builder builder = HTTPServer.builder()
                     .port(listener.port)
-                    .registry(registry)
-                    .buildAndStart();
+                    .registry(registry);
+            if (!listener.host.isEmpty()) {
+                builder.hostname(listener.host);
+            }
+            this.server = builder.buildAndStart();
             LOG.debug("Started HTTP server on http://{}:{}", listener.host, server.getPort());
             this.listener = listener;
         }
