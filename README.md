@@ -30,7 +30,8 @@ The metrics reporter has the following configurations:
 
 - `prometheus.metrics.reporter.listener`: The HTTP listener to expose the metrics. It must be in the `http://[host]:[port]` format. This defaults to `http://:8080`.
 - `prometheus.metrics.reporter.listener.enable`: Enable the listener to expose the metrics. This defaults to `true`.
-- `prometheus.metrics.reporter.allowlist`: A comma separated list of regex patterns to specify the metrics to collect. This defaults to `.*`.
+- `prometheus.metrics.reporter.allowlist`: A comma separated list of regex patterns to specify the metrics to collect.
+  This defaults to `.*`. The patterns are only applied to metric names and cannot be used to filter labels.
 
 ## Running
 
@@ -41,6 +42,14 @@ To use the reporter with Kafka brokers, add the following to your broker configu
 metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
 kafka.metrics.reporters=io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter
 auto.include.jmx.reporter=false
+```
+
+On brokers the allowlist is reconfigurable at runtime using the Kafka Admin API.
+For example to update the allowlist to only collect `kafka_controller` and `kafka_log` metrics, you can use:
+```shell
+bin/kafka-configs.sh --bootstrap-server localhost:9092 \
+  --alter --entity-type brokers --entity-default \
+  --add-config "prometheus.metrics.reporter.allowlist=[kafka_controller.*,kafka_log.*]"
 ```
 
 ### Kafka Clients
@@ -80,6 +89,16 @@ producer.auto.include.jmx.reporter=false
 consumer.metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
 consumer.prometheus.metrics.reporter.listener=http://:8081
 consumer.auto.include.jmx.reporter=false
+```
+
+The allowlist must be configured without prefixes and should include patterns for the desired metrics for all the clients.
+For example to only collect `kafka_consumer` and `kafka_producer` metrics, use:
+```properties
+metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
+prometheus.metrics.reporter.allowlist=kafka_consumer.*,kafka_producer.*
+admin.metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
+producer.metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
+consumer.metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter
 ```
 
 ## Accessing Metrics
