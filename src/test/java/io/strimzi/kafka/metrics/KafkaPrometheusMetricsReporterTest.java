@@ -17,8 +17,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static io.strimzi.kafka.metrics.MetricsUtils.getMetrics;
-import static io.strimzi.kafka.metrics.MetricsUtils.newKafkaMetric;
+import static io.strimzi.kafka.metrics.TestUtils.getMetrics;
+import static io.strimzi.kafka.metrics.TestUtils.newKafkaMetric;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

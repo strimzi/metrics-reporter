@@ -16,9 +16,9 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-import static io.strimzi.kafka.metrics.MetricsUtils.assertGaugeSnapshot;
-import static io.strimzi.kafka.metrics.MetricsUtils.assertInfoSnapshot;
-import static io.strimzi.kafka.metrics.MetricsUtils.newYammerMetric;
+import static io.strimzi.kafka.metrics.TestUtils.assertGaugeSnapshot;
+import static io.strimzi.kafka.metrics.TestUtils.assertInfoSnapshot;
+import static io.strimzi.kafka.metrics.TestUtils.newYammerMetric;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class YammerCollectorTest {

@@ -19,10 +19,10 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.strimzi.kafka.metrics.MetricsUtils.assertCounterSnapshot;
-import static io.strimzi.kafka.metrics.MetricsUtils.assertGaugeSnapshot;
-import static io.strimzi.kafka.metrics.MetricsUtils.assertInfoSnapshot;
-import static io.strimzi.kafka.metrics.MetricsUtils.assertSummarySnapshot;
+import static io.strimzi.kafka.metrics.TestUtils.assertCounterSnapshot;
+import static io.strimzi.kafka.metrics.TestUtils.assertGaugeSnapshot;
+import static io.strimzi.kafka.metrics.TestUtils.assertInfoSnapshot;
+import static io.strimzi.kafka.metrics.TestUtils.assertSummarySnapshot;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;

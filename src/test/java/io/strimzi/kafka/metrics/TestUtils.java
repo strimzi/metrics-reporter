@@ -11,29 +11,46 @@ import io.prometheus.metrics.model.snapshots.Labels;
 import io.prometheus.metrics.model.snapshots.MetricSnapshot;
 import io.prometheus.metrics.model.snapshots.Quantiles;
 import io.prometheus.metrics.model.snapshots.SummarySnapshot;
+import io.strimzi.kafka.metrics.http.Listener;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.utils.Time;
+import org.junit.jupiter.api.function.ThrowingConsumer;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.utility.MountableFile;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 /**
  * Utility class to create and retrieve metrics
  */
 @SuppressWarnings("ClassFanOutComplexity")
-public class MetricsUtils {
+public class TestUtils {
+
+    private static final String VERSION = "1.0.0-SNAPSHOT";
+    private static final String CLIENTS_IMAGE = "quay.io/strimzi-test-clients/test-clients:latest-kafka-3.9.0";
+    private static final Duration TIMEOUT = Duration.ofSeconds(10L);
+
+    public static final String REPORTER_JARS = "target/metrics-reporter-" + VERSION + "/metrics-reporter-" + VERSION + "/libs/";
+    public static final String MOUNT_PATH = "/opt/strimzi/metrics-reporter/";
+    public static final int PORT = Listener.parseListener(PrometheusMetricsReporterConfig.LISTENER_CONFIG_DEFAULT).port;
 
     /**
      * Query the HTTP endpoint and returns the output
@@ -162,6 +179,46 @@ public class MetricsUtils {
         assertEquals(expectedSum, datapoint.getSum());
         assertEquals(expectedQuantiles, datapoint.getQuantiles());
         assertEquals(expectedLabels, datapoint.getLabels());
+    }
+
+    /**
+     * Filter metrics that start with a specified prefix
+     * @param allMetrics all the metric names
+     * @param prefix the prefix
+     * @return the list of metric names that start with the prefix
+     */
+    public static List<String> filterMetrics(List<String> allMetrics, String prefix) {
+        List<String> metrics = new ArrayList<>();
+        for (String metric : allMetrics) {
+            if (metric.startsWith(prefix)) {
+                metrics.add(metric);
+            }
+        }
+        return metrics;
+    }
+
+    public static void verify(GenericContainer<?> container, String prefix, ThrowingConsumer<List<String>> condition) {
+        assertTimeoutPreemptively(TIMEOUT, () -> {
+            while (true) {
+                try {
+                    List<String> filteredMetrics = filterMetrics(getMetrics(container.getHost(), container.getMappedPort(PORT)), prefix);
+                    condition.accept(filteredMetrics);
+                    return;
+                } catch (Throwable t) {
+                    assertInstanceOf(AssertionError.class, t);
+                    TimeUnit.MILLISECONDS.sleep(100L);
+                }
+            }
+        });
+    }
+
+    public static GenericContainer<?> clientContainer(Map<String, String> env) {
+        return new GenericContainer<>(CLIENTS_IMAGE)
+                .withNetwork(Network.SHARED)
+                .withExposedPorts(PORT)
+                .withCopyFileToContainer(MountableFile.forHostPath(REPORTER_JARS), MOUNT_PATH)
+                .withEnv(env)
+                .waitingFor(Wait.forHttp("/metrics").forStatusCode(200));
     }
 
 }

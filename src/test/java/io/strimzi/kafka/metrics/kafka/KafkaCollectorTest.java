@@ -18,9 +18,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.strimzi.kafka.metrics.MetricsUtils.assertGaugeSnapshot;
-import static io.strimzi.kafka.metrics.MetricsUtils.assertInfoSnapshot;
-import static io.strimzi.kafka.metrics.MetricsUtils.newKafkaMetric;
+import static io.strimzi.kafka.metrics.TestUtils.assertGaugeSnapshot;
+import static io.strimzi.kafka.metrics.TestUtils.assertInfoSnapshot;
+import static io.strimzi.kafka.metrics.TestUtils.newKafkaMetric;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class KafkaCollectorTest {
