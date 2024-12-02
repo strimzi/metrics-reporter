@@ -28,12 +28,12 @@ public class TestProducerMetricsIT {
     public void setUp() {
         broker = new StrimziKafkaContainer()
                 .withKraft()
-                .withNetworkAliases("kafka");
+                .withNetworkAliases(TestUtils.KAFKA_NETWORK_ALIAS);
         broker.start();
 
         env = new HashMap<>();
         env.put("CLIENT_TYPE", "KafkaProducer");
-        env.put("BOOTSTRAP_SERVERS", "kafka:9091");
+        env.put("BOOTSTRAP_SERVERS", TestUtils.KAFKA_NETWORK_ALIAS + ":9091");
         env.put("TOPIC", "my-topic");
         env.put("ADDITIONAL_CONFIG", "metric.reporters=" + KafkaPrometheusMetricsReporter.class.getName());
         env.put("CLASSPATH", TestUtils.MOUNT_PATH + "*");

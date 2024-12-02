@@ -36,7 +36,7 @@ public class TestStreamsMetricsIT {
     public void setUp() throws Exception {
         broker = new StrimziKafkaContainer()
                 .withKraft()
-                .withNetworkAliases("kafka");
+                .withNetworkAliases(TestUtils.KAFKA_NETWORK_ALIAS);
         broker.start();
 
         try (Admin admin = Admin.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, broker.getBootstrapServers()))) {
@@ -59,7 +59,7 @@ public class TestStreamsMetricsIT {
 
         env = new HashMap<>();
         env.put("CLIENT_TYPE", "KafkaStreams");
-        env.put("BOOTSTRAP_SERVERS", "kafka:9091");
+        env.put("BOOTSTRAP_SERVERS", TestUtils.KAFKA_NETWORK_ALIAS + ":9091");
         env.put("APPLICATION_ID", "my-app-id");
         env.put("SOURCE_TOPIC", "source-topic");
         env.put("TARGET_TOPIC", "target-topic");
