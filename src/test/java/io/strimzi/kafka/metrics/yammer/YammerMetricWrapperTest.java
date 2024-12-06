@@ -8,7 +8,7 @@ import com.yammer.metrics.core.Gauge;
 import com.yammer.metrics.core.MetricName;
 import io.prometheus.metrics.model.snapshots.Labels;
 import io.prometheus.metrics.model.snapshots.PrometheusNaming;
-import io.strimzi.kafka.metrics.MetricsUtils;
+import io.strimzi.kafka.metrics.TestUtils;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -42,7 +42,7 @@ public class YammerMetricWrapperTest {
     public void testYammerMetric() {
         AtomicInteger value = new AtomicInteger(0);
         MetricName name = new MetricName("group", "type", "name");
-        Gauge<Integer> metric = MetricsUtils.newYammerMetric(value::get);
+        Gauge<Integer> metric = TestUtils.newYammerMetric(value::get);
         YammerMetricWrapper wrapper = new YammerMetricWrapper(YammerMetricWrapper.prometheusName(name), "", metric, "name");
         assertEquals(value.get(), ((Gauge<Integer>) wrapper.metric()).value());
         value.incrementAndGet();

@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import static io.strimzi.kafka.metrics.MetricsUtils.getMetrics;
+import static io.strimzi.kafka.metrics.TestUtils.getMetrics;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class YammerPrometheusMetricsReporterTest {

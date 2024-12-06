@@ -15,7 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.strimzi.kafka.metrics.MetricsUtils.newKafkaMetric;
+import static io.strimzi.kafka.metrics.TestUtils.newKafkaMetric;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class KafkaMetricWrapperTest {
