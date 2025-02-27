@@ -148,4 +148,9 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
         LOG.info("HTTP server listening on http://{}:{}", listener.host, server.port());
         return Optional.of(server);
     }
+
+    /** Prevent finalizer attack. */
+    protected final void finalize() {
+        // Do nothing
+    }
 }
