@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 /**
 * Configuration for the PrometheusMetricsReporter implementation.
 */
-public final class PrometheusMetricsReporterConfig extends AbstractConfig {
+public class PrometheusMetricsReporterConfig extends AbstractConfig {
 
     private static final Logger LOG = LoggerFactory.getLogger(PrometheusMetricsReporterConfig.class);
     private static final String CONFIG_PREFIX = "prometheus.metrics.reporter.";
