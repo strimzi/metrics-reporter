@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.metrics;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import io.strimzi.kafka.metrics.http.HttpServers;
 import io.strimzi.kafka.metrics.http.Listener;
@@ -77,6 +78,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
      * @param props the configuration properties.
      * @param registry the metrics registry
      */
+    @SuppressFBWarnings("CT_CONSTRUCTOR_THROW")
     public PrometheusMetricsReporterConfig(Map<?, ?> props, PrometheusRegistry registry) {
         super(CONFIG_DEF, props);
         this.listener = Listener.parseListener(getString(LISTENER_CONFIG));
@@ -147,10 +149,5 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
         HttpServers.ServerCounter server = HttpServers.getOrCreate(listener, registry);
         LOG.info("HTTP server listening on http://{}:{}", listener.host, server.port());
         return Optional.of(server);
-    }
-
-    /** Prevent finalizer attack. */
-    protected final void finalize() {
-        // Do nothing
     }
 }
