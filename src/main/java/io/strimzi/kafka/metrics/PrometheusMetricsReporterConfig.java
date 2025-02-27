@@ -13,7 +13,6 @@ import org.apache.kafka.common.config.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -24,7 +23,7 @@ import java.util.stream.Collectors;
 /**
 * Configuration for the PrometheusMetricsReporter implementation.
 */
-public class PrometheusMetricsReporterConfig extends AbstractConfig {
+public final class PrometheusMetricsReporterConfig extends AbstractConfig {
 
     private static final Logger LOG = LoggerFactory.getLogger(PrometheusMetricsReporterConfig.class);
     private static final String CONFIG_PREFIX = "prometheus.metrics.reporter.";
@@ -145,13 +144,8 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
             LOG.info("HTTP server listener not enabled");
             return Optional.empty();
         }
-        try {
-            HttpServers.ServerCounter server = HttpServers.getOrCreate(listener, registry);
-            LOG.info("HTTP server listening on http://{}:{}", listener.host, server.port());
-            return Optional.of(server);
-        } catch (IOException ioe) {
-            LOG.error("Failed starting HTTP server", ioe);
-            throw new RuntimeException(ioe);
-        }
+        HttpServers.ServerCounter server = HttpServers.getOrCreate(listener, registry);
+        LOG.info("HTTP server listening on http://{}:{}", listener.host, server.port());
+        return Optional.of(server);
     }
 }
