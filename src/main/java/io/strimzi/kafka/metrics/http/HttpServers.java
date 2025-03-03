@@ -53,9 +53,9 @@ public class HttpServers {
      * Class used to keep track of the HTTP server started on a listener.
      */
     public static class ServerCounter {
-        private HTTPServer.Builder builder;
-        private Listener listener;
-        private AtomicInteger count;
+        private final HTTPServer.Builder builder;
+        private final Listener listener;
+        private final AtomicInteger count;
         private HTTPServer server;
 
         private ServerCounter(Listener listener, PrometheusRegistry registry) {
@@ -72,7 +72,7 @@ public class HttpServers {
         /**
          * Start the HTTP server.
          */
-        public void start() {
+        private void start() {
             try {
                 this.server = builder.buildAndStart();
                 LOG.debug("Started HTTP server on http://{}:{}", listener.host, server.getPort());
