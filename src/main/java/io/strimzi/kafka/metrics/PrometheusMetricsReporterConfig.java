@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.metrics;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import io.strimzi.kafka.metrics.http.HttpServers;
 import io.strimzi.kafka.metrics.http.Listener;
@@ -13,7 +14,6 @@ import org.apache.kafka.common.config.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -78,6 +78,7 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
      * @param props the configuration properties.
      * @param registry the metrics registry
      */
+    @SuppressFBWarnings("CT_CONSTRUCTOR_THROW")
     public PrometheusMetricsReporterConfig(Map<?, ?> props, PrometheusRegistry registry) {
         super(CONFIG_DEF, props);
         this.listener = Listener.parseListener(getString(LISTENER_CONFIG));
@@ -145,13 +146,8 @@ public class PrometheusMetricsReporterConfig extends AbstractConfig {
             LOG.info("HTTP server listener not enabled");
             return Optional.empty();
         }
-        try {
-            HttpServers.ServerCounter server = HttpServers.getOrCreate(listener, registry);
-            LOG.info("HTTP server listening on http://{}:{}", listener.host, server.port());
-            return Optional.of(server);
-        } catch (IOException ioe) {
-            LOG.error("Failed starting HTTP server", ioe);
-            throw new RuntimeException(ioe);
-        }
+        HttpServers.ServerCounter server = HttpServers.getOrCreate(listener, registry);
+        LOG.info("HTTP server listening on http://{}:{}", listener.host, server.port());
+        return Optional.of(server);
     }
 }

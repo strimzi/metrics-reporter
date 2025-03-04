@@ -27,12 +27,12 @@ public class HttpServers {
      * @param listener The host and port
      * @param registry The Prometheus registry to expose
      * @return A ServerCounter instance
-     * @throws IOException if the HTTP server does not exist and cannot be started
      */
-    public synchronized static ServerCounter getOrCreate(Listener listener, PrometheusRegistry registry) throws IOException {
+    public synchronized static ServerCounter getOrCreate(Listener listener, PrometheusRegistry registry) {
         ServerCounter serverCounter = SERVERS.get(listener);
         if (serverCounter == null) {
             serverCounter = new ServerCounter(listener, registry);
+            serverCounter.start();
             SERVERS.put(listener, serverCounter);
         }
         serverCounter.count.incrementAndGet();
@@ -53,22 +53,33 @@ public class HttpServers {
      * Class used to keep track of the HTTP server started on a listener.
      */
     public static class ServerCounter {
-
-        private final AtomicInteger count;
-        private final HTTPServer server;
+        private final HTTPServer.Builder builder;
         private final Listener listener;
+        private final AtomicInteger count;
+        private HTTPServer server;
 
-        private ServerCounter(Listener listener, PrometheusRegistry registry) throws IOException {
-            this.count = new AtomicInteger();
-            HTTPServer.Builder builder = HTTPServer.builder()
-                    .port(listener.port)
-                    .registry(registry);
+        private ServerCounter(Listener listener, PrometheusRegistry registry) {
+            this.builder = HTTPServer.builder()
+                .port(listener.port)
+                .registry(registry);
             if (!listener.host.isEmpty()) {
                 builder.hostname(listener.host);
             }
-            this.server = builder.buildAndStart();
-            LOG.debug("Started HTTP server on http://{}:{}", listener.host, server.getPort());
             this.listener = listener;
+            this.count = new AtomicInteger();
+        }
+
+        /**
+         * Start the HTTP server.
+         */
+        private void start() {
+            try {
+                this.server = builder.buildAndStart();
+                LOG.debug("Started HTTP server on http://{}:{}", listener.host, server.getPort());
+            } catch (IOException e) {
+                LOG.error("Failed starting HTTP server", e);
+                throw new RuntimeException(e);
+            }
         }
 
         /**
