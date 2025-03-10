@@ -34,9 +34,9 @@ The metrics reporter has the following configurations:
 
 ## Running
 
-### Kafka Brokers
+### Kafka Brokers and Controllers
 
-To use the reporter with Kafka brokers, add the following to your broker configuration:
+To use the reporter with Kafka brokers and controllers, add the following to your broker configuration:
 
 ```properties
 metric.reporters=io.strimzi.kafka.metrics.prometheus.ServerKafkaMetricsReporter

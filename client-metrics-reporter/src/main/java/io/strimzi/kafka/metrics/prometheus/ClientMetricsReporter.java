@@ -112,7 +112,7 @@ public class ClientMetricsReporter extends AbstractReporter implements MetricsRe
     public void contextChange(MetricsContext metricsContext) {
         String prefix = metricsContext.contextLabels().get(MetricsContext.NAMESPACE);
         if (!PREFIXES.contains(prefix)) {
-            throw new IllegalStateException("ClientMetricsReporter should only be used in Kafka servers");
+            throw new IllegalStateException("ClientMetricsReporter should only be used in Kafka clients");
         }
         this.prefix = PrometheusNaming.prometheusName(prefix);
     }
