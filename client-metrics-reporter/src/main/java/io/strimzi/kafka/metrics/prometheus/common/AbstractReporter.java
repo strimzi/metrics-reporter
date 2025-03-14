@@ -14,17 +14,29 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 /**
- * Common reporter logic to track metrics that match an allowlist pattern.
+ * Common reporter logic to track metrics that match an allowlist pattern. This filters the metrics as they are added
+ * and removed so when Prometheus scrapes the /metrics endpoint, we just have to convert them to the Prometheus format.
  */
 public abstract class AbstractReporter {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractReporter.class);
 
+    // Metrics that match the allowlist
     private final Map<Object, MetricWrapper> allowedMetrics = new ConcurrentHashMap<>();
-    private final Map<Object, MetricWrapper> otherMetrics = new ConcurrentHashMap<>();
+    // Metrics that don't match the allowlist. This is only used by reporters that are reconfigurable so if the
+    // allowlist is updated we can update the matching metrics.
+    private final Map<Object, MetricWrapper> disallowedMetrics = new ConcurrentHashMap<>();
 
+    /**
+     * The current allowlist
+     * @return A {@link Pattern} representing the allowlist
+     */
     protected abstract Pattern allowlist();
 
+    /**
+     * Whether the reporter is reconfigurable.
+     * @return true for server side reporters, otherwise false
+     */
     protected boolean isReconfigurable() {
         return false;
     }
@@ -44,7 +56,7 @@ public abstract class AbstractReporter {
         } else {
             LOG.trace("Ignoring metric {} as it does not match the allowlist", metric.prometheusName());
             if (isReconfigurable()) {
-                otherMetrics.put(name, metric);
+                disallowedMetrics.put(name, metric);
             }
         }
     }
@@ -56,7 +68,7 @@ public abstract class AbstractReporter {
     public void removeMetric(Object name) {
         allowedMetrics.remove(name);
         if (isReconfigurable()) {
-            otherMetrics.remove(name);
+            disallowedMetrics.remove(name);
         }
     }
 
@@ -74,17 +86,17 @@ public abstract class AbstractReporter {
     public void updateAllowedMetrics() {
         if (!isReconfigurable()) return;
         Map<Object, MetricWrapper> newAllowedMetrics = new HashMap<>();
-        for (Map.Entry<Object, MetricWrapper> entry : otherMetrics.entrySet()) {
+        for (Map.Entry<Object, MetricWrapper> entry : disallowedMetrics.entrySet()) {
             String name = entry.getValue().prometheusName();
             if (matches(name)) {
                 newAllowedMetrics.put(entry.getKey(), entry.getValue());
-                otherMetrics.remove(entry.getKey());
+                disallowedMetrics.remove(entry.getKey());
             }
         }
         for (Map.Entry<Object, MetricWrapper> entry : allowedMetrics.entrySet()) {
             String name = entry.getValue().prometheusName();
             if (!matches(name)) {
-                otherMetrics.put(entry.getKey(), entry.getValue());
+                disallowedMetrics.put(entry.getKey(), entry.getValue());
                 allowedMetrics.remove(entry.getKey());
             }
         }
