@@ -43,7 +43,7 @@ public class ClientMetricsReporter extends AbstractReporter implements MetricsRe
     final PrometheusRegistry registry;
     final KafkaCollector kafkaCollector;
 
-    ClientMetricsReporterConfig config;
+    private ClientMetricsReporterConfig config;
     Optional<HttpServers.ServerCounter> httpServer = Optional.empty();
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the contextChange method
     String prefix;
@@ -78,6 +78,7 @@ public class ClientMetricsReporter extends AbstractReporter implements MetricsRe
         }
     }
 
+    @Override
     public void metricChange(KafkaMetric metric) {
         String prometheusName = KafkaMetricWrapper.prometheusName(prefix, metric.metricName());
         MetricWrapper metricWrapper = new KafkaMetricWrapper(prometheusName, metric, metric.metricName().name());
