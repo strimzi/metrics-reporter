@@ -88,7 +88,7 @@ public class YammerCollector implements MetricsCollector {
      */
     @SuppressWarnings({"CyclomaticComplexity", "JavaNCSS"})
     @Override
-    public List<MetricSnapshot<?>> collect() {
+    public List<MetricSnapshot> collect() {
         Map<String, MetricSnapshot.Builder<?>> builders = new HashMap<>();
         for (MetricWrapper metricWrapper : yammerMetrics.values()) {
             String prometheusMetricName = metricWrapper.prometheusName();
@@ -126,7 +126,7 @@ public class YammerCollector implements MetricsCollector {
                 LOG.error("The metric {} has an unexpected type: {}", prometheusMetricName, metric.getClass().getName());
             }
         }
-        List<MetricSnapshot<?>> snapshots = new ArrayList<>();
+        List<MetricSnapshot> snapshots = new ArrayList<>();
         for (MetricSnapshot.Builder<?> builder : builders.values()) {
             snapshots.add(builder.build());
         }

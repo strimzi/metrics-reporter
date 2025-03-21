@@ -18,5 +18,5 @@ public interface MetricsCollector {
      *
      * @return the list of metrics of this collector
      */
-    List<MetricSnapshot<?>> collect();
+    List<MetricSnapshot> collect();
 }
