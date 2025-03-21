@@ -83,7 +83,7 @@ public class KafkaCollector implements MetricsCollector {
      * @return the list of metrics of this collector
      */
     @Override
-    public List<MetricSnapshot<?>> collect() {
+    public List<MetricSnapshot> collect() {
         Map<String, MetricSnapshot.Builder<?>> builders = new HashMap<>();
         for (MetricWrapper metricWrapper : kafkaMetrics.values()) {
             String prometheusMetricName = metricWrapper.prometheusName();
@@ -100,7 +100,7 @@ public class KafkaCollector implements MetricsCollector {
                 builder.dataPoint(DataPointSnapshotBuilder.infoDataPoint(labels, metricValue, metricWrapper.attribute()));
             }
         }
-        List<MetricSnapshot<?>> snapshots = new ArrayList<>();
+        List<MetricSnapshot> snapshots = new ArrayList<>();
         for (MetricSnapshot.Builder<?> builder : builders.values()) {
             snapshots.add(builder.build());
         }
