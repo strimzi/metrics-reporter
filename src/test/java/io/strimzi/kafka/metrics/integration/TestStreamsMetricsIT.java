@@ -35,7 +35,6 @@ public class TestStreamsMetricsIT {
     @BeforeEach
     public void setUp() throws Exception {
         broker = new StrimziKafkaContainer()
-                .withKraft()
                 .withNetworkAliases(TestUtils.KAFKA_NETWORK_ALIAS);
         broker.start();
 
