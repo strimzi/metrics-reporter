@@ -34,7 +34,6 @@ public class TestBrokerMetricsIT {
 
         broker = new StrimziKafkaContainer()
                 .withNodeId(0)
-                .withKraft()
                 .withCopyFileToContainer(MountableFile.forHostPath(TestUtils.REPORTER_JARS), TestUtils.MOUNT_PATH)
                 .withExposedPorts(9092, TestUtils.PORT)
                 .withKafkaConfigurationMap(configs)

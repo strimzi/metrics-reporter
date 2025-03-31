@@ -27,7 +27,6 @@ public class TestProducerMetricsIT {
     @BeforeEach
     public void setUp() {
         broker = new StrimziKafkaContainer()
-                .withKraft()
                 .withNetworkAliases(TestUtils.KAFKA_NETWORK_ALIAS);
         broker.start();
 
