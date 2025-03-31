@@ -122,7 +122,7 @@
     <yammer.version>2.2.0</yammer.version>
     <slf4j.version>2.0.13</slf4j.version>
     <junit.version>5.10.2</junit.version>
-    <strimzi-test-container.version>0.110.0-rc1</strimzi-test-container.version>
+    <strimzi-test-container.version>0.110.0</strimzi-test-container.version>
     <testcontainers.version>1.20.1</testcontainers.version>
   </properties>
 
@@ -136,13 +136,6 @@
       <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
     </repository>
   </distributionManagement>
-
-  <repositories>
-    <repository>
-      <id>staging</id>
-      <url>https://oss.sonatype.org/content/repositories/iostrimzi-1255/</url>
-    </repository>
-  </repositories>
 
   <dependencies>
     <dependency>
