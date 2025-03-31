@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestServerMetricsIT {
 
-    private static final String REPORTER_JARS = "target/server-metrics-reporter-" + VERSION + "/server-metrics-reporter-" + VERSION + "/libs/";
+    private static final String REPORTER_JARS = "../target/metrics-reporter-" + VERSION + "/metrics-reporter-" + VERSION + "/libs/";
     private static final int PORT = Listener.parseListener(ServerMetricsReporterConfig.LISTENER_CONFIG_DEFAULT).port;
     private static final int NODE_ID = 0;
 
