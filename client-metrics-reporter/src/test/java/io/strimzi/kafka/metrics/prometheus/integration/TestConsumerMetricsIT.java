@@ -8,7 +8,7 @@ import io.strimzi.kafka.metrics.prometheus.ClientMetricsReporter;
 import io.strimzi.kafka.metrics.prometheus.ClientMetricsReporterConfig;
 import io.strimzi.kafka.metrics.prometheus.MetricsUtils;
 import io.strimzi.kafka.metrics.prometheus.http.Listener;
-import io.strimzi.test.container.StrimziKafkaContainer;
+import io.strimzi.test.container.StrimziKafkaCluster;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,18 +24,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestConsumerMetricsIT {
 
     private static final int PORT = Listener.parseListener(ClientMetricsReporterConfig.LISTENER_CONFIG_DEFAULT).port;
-    private StrimziKafkaContainer broker;
+    private StrimziKafkaCluster cluster;
     private Map<String, String> env;
 
     @BeforeEach
     public void setUp() {
-        broker = new StrimziKafkaContainer()
-                .withNetworkAliases("kafka");
-        broker.start();
+        cluster = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
+                .withNumberOfBrokers(1)
+                .withSharedNetwork()
+                .build();
+        cluster.start();
 
         env = new HashMap<>();
         env.put("CLIENT_TYPE", "KafkaConsumer");
-        env.put("BOOTSTRAP_SERVERS", "kafka:9091");
+        env.put("BOOTSTRAP_SERVERS", cluster.getNetworkBootstrapServers());
         env.put("TOPIC", "my-topic");
         env.put("GROUP_ID", "my-group");
         env.put("ADDITIONAL_CONFIG", "metric.reporters=" + ClientMetricsReporter.class.getName());
@@ -45,7 +47,7 @@ public class TestConsumerMetricsIT {
 
     @AfterEach
     public void tearDown() {
-        broker.stop();
+        cluster.stop();
     }
 
     @Test
