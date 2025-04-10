@@ -8,7 +8,7 @@ import io.strimzi.kafka.metrics.prometheus.ClientMetricsReporter;
 import io.strimzi.kafka.metrics.prometheus.ClientMetricsReporterConfig;
 import io.strimzi.kafka.metrics.prometheus.MetricsUtils;
 import io.strimzi.kafka.metrics.prometheus.http.Listener;
-import io.strimzi.test.container.StrimziKafkaContainer;
+import io.strimzi.test.container.StrimziKafkaCluster;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -31,16 +31,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestStreamsMetricsIT {
 
     private static final int PORT = Listener.parseListener(ClientMetricsReporterConfig.LISTENER_CONFIG_DEFAULT).port;
-    private StrimziKafkaContainer broker;
+    private StrimziKafkaCluster cluster;
     private Map<String, String> env;
 
     @BeforeEach
     public void setUp() throws Exception {
-        broker = new StrimziKafkaContainer()
-                .withNetworkAliases("kafka");
-        broker.start();
+        cluster = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
+                .withNumberOfBrokers(1)
+                .withSharedNetwork()
+                .build();
+        cluster.start();
 
-        try (Admin admin = Admin.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, broker.getBootstrapServers()))) {
+        try (Admin admin = Admin.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, cluster.getBootstrapServers()))) {
             admin.createTopics(List.of(
                     new NewTopic("source-topic", 1, (short) -1),
                     new NewTopic("target-topic", 1, (short) -1))
@@ -48,7 +50,7 @@ public class TestStreamsMetricsIT {
         }
 
         Map<String, Object> producerConfigs = Map.of(
-                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, broker.getBootstrapServers(),
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, cluster.getBootstrapServers(),
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName(),
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(producerConfigs)) {
@@ -60,7 +62,7 @@ public class TestStreamsMetricsIT {
 
         env = new HashMap<>();
         env.put("CLIENT_TYPE", "KafkaStreams");
-        env.put("BOOTSTRAP_SERVERS", "kafka:9091");
+        env.put("BOOTSTRAP_SERVERS", cluster.getNetworkBootstrapServers());
         env.put("APPLICATION_ID", "my-app-id");
         env.put("SOURCE_TOPIC", "source-topic");
         env.put("TARGET_TOPIC", "target-topic");
@@ -70,7 +72,7 @@ public class TestStreamsMetricsIT {
 
     @AfterEach
     public void tearDown() {
-        broker.stop();
+        cluster.stop();
     }
 
     @Test
