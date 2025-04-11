@@ -15,6 +15,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -27,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Utility class to create and retrieve metrics
@@ -128,7 +130,7 @@ public class MetricsUtils {
                     condition.accept(filteredMetrics);
                     return;
                 } catch (Throwable t) {
-                    assertInstanceOf(AssertionError.class, t);
+                    assertTrue(t instanceof AssertionError || t instanceof IOException);
                     TimeUnit.MILLISECONDS.sleep(100L);
                 }
             }
