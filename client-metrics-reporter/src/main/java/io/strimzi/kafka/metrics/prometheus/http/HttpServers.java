@@ -22,6 +22,10 @@ public class HttpServers {
     private final static Logger LOG = LoggerFactory.getLogger(HttpServers.class);
     private static final Map<Listener, ServerCounter> SERVERS = new HashMap<>();
 
+    private HttpServers() {
+        // utility class that shouldn't be instantiated
+    }
+
     /**
      * Get or create a new HTTP server if there isn't an existing instance for the specified listener.
      * @param listener The host and port
