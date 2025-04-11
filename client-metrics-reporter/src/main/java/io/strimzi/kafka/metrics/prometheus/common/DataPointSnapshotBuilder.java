@@ -21,6 +21,10 @@ public class DataPointSnapshotBuilder {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataPointSnapshotBuilder.class);
 
+    private DataPointSnapshotBuilder() {
+        // utility class that shouldn't be instantiated
+    }
+
     /**
      * Create a datapoint for a {@link InfoSnapshot} metric
      * @param labels The labels associated with the datapoint

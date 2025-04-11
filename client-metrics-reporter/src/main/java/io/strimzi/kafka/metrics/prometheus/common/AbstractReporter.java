@@ -28,6 +28,11 @@ public abstract class AbstractReporter {
     private final Map<Object, MetricWrapper> disallowedMetrics = new ConcurrentHashMap<>();
 
     /**
+     * Empty constructor
+     */
+    public AbstractReporter() { }
+
+    /**
      * The current allowlist
      * @return A {@link Pattern} representing the allowlist
      */
