@@ -86,6 +86,21 @@ consumer.prometheus.metrics.reporter.listener=http://:8081
 consumer.auto.include.jmx.reporter=false
 ```
 
+### MirrorMaker
+
+The Source and Checkpoints MirrorMaker connectors expose [metrics](https://kafka.apache.org/documentation/#georeplication-monitoring). To collect them with the reporter, add the metrics-reporter configurations to the connector configurations. Use the same listener (`prometheus.metrics.reporter.listener`) as Connect to have all metrics exposed together.
+
+For example:
+```json
+{
+    "name": "source",
+    "connector.class": "org.apache.kafka.connect.mirror.MirrorSourceConnector",
+    ...
+
+    "metric.reporters": "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter"
+}
+```
+
 ## Accessing Metrics
 
 Metrics are exposed on the configured listener on the `GET /metrics` endpoint. For example, by default this is `http://localhost:8080/metrics`.
