@@ -61,17 +61,15 @@ public class TestServerMetricsIT {
     public void testBrokerMetrics() {
         broker.start();
 
-        List<String> prefixes = List.of(
-            "jvm_",
-            "process_",
-            "kafka_controller_",
-            "kafka_coordinator_",
-            "kafka_log_",
-            "kafka_network_",
-            "kafka_server_");
-        for (String prefix : prefixes) {
-            MetricsUtils.verify(broker, prefix, PORT, metrics -> assertFalse(metrics.isEmpty()));
-        }
+        List<String> patterns = List.of(
+            "jvm_.*",
+            "process_.*",
+            "kafka_controller_.*",
+            "kafka_coordinator_.*",
+            "kafka_log_.*",
+            "kafka_network_.*",
+            "kafka_server_.*");
+        MetricsUtils.verify(broker, patterns, PORT, metrics -> assertFalse(metrics.isEmpty()));
     }
 
     @Test
@@ -80,21 +78,18 @@ public class TestServerMetricsIT {
         broker.withKafkaConfigurationMap(configs);
         broker.start();
 
-        List<String> allowedPrefixes = List.of(
-            "jvm_",
-            "process_",
-            "kafka_controller_",
-            "kafka_server_");
-        for (String prefix : allowedPrefixes) {
-            MetricsUtils.verify(broker, prefix, PORT, metrics -> assertFalse(metrics.isEmpty()));
-        }
-        List<String> disallowPrefixes = List.of(
-            "kafka_coordinator_",
-            "kafka_log_",
-            "kafka_network_");
-        for (String prefix : disallowPrefixes) {
-            MetricsUtils.verify(broker, prefix, PORT, metrics -> assertTrue(metrics.isEmpty()));
-        }
+        List<String> allowedPatterns = List.of(
+            "jvm_.*",
+            "process_.*",
+            "kafka_controller_.*",
+            "kafka_server_.*");
+        MetricsUtils.verify(broker, allowedPatterns, PORT, metrics -> assertFalse(metrics.isEmpty()));
+
+        List<String> disallowPatterns = List.of(
+            "kafka_coordinator_.*",
+            "kafka_log_.*",
+            "kafka_network_.*");
+        MetricsUtils.verify(broker, disallowPatterns, PORT, metrics -> assertTrue(metrics.isEmpty()));
     }
 
     @Test
@@ -103,21 +98,18 @@ public class TestServerMetricsIT {
         broker.withKafkaConfigurationMap(configs);
         broker.start();
 
-        List<String> allowedPrefixes = List.of(
-                "jvm_",
-                "process_",
-                "kafka_controller_",
-                "kafka_server_");
-        for (String prefix : allowedPrefixes) {
-            MetricsUtils.verify(broker, prefix, PORT, metrics -> assertFalse(metrics.isEmpty()));
-        }
-        List<String> disallowPrefixes = List.of(
-                "kafka_coordinator_",
-                "kafka_log_",
-                "kafka_network_");
-        for (String prefix : disallowPrefixes) {
-            MetricsUtils.verify(broker, prefix, PORT, metrics -> assertTrue(metrics.isEmpty()));
-        }
+        List<String> allowedPatterns = List.of(
+                "jvm_.*",
+                "process_.*",
+                "kafka_controller_.*",
+                "kafka_server_.*");
+        MetricsUtils.verify(broker, allowedPatterns, PORT, metrics -> assertFalse(metrics.isEmpty()));
+
+        List<String> disallowPatterns = List.of(
+                "kafka_coordinator_.*",
+                "kafka_log_.*",
+                "kafka_network_.*");
+        MetricsUtils.verify(broker, disallowPatterns, PORT, metrics -> assertTrue(metrics.isEmpty()));
 
         try (Admin admin = Admin.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, broker.getBootstrapServers()))) {
             admin.incrementalAlterConfigs(Map.of(
@@ -128,20 +120,17 @@ public class TestServerMetricsIT {
             )).all().get();
         }
 
-        allowedPrefixes = List.of(
-                "jvm_",
-                "process_",
-                "kafka_coordinator_",
-                "kafka_log_",
-                "kafka_network_");
-        for (String prefix : allowedPrefixes) {
-            MetricsUtils.verify(broker, prefix, PORT, metrics -> assertFalse(metrics.isEmpty()));
-        }
-        disallowPrefixes = List.of(
-                "kafka_controller_",
-                "kafka_server_");
-        for (String prefix : disallowPrefixes) {
-            MetricsUtils.verify(broker, prefix, PORT, metrics -> assertTrue(metrics.isEmpty()));
-        }
+        allowedPatterns = List.of(
+                "jvm_.*",
+                "process_.*",
+                "kafka_coordinator_.*",
+                "kafka_log_.*",
+                "kafka_network_.*");
+        MetricsUtils.verify(broker, allowedPatterns, PORT, metrics -> assertFalse(metrics.isEmpty()));
+
+        disallowPatterns = List.of(
+                "kafka_controller_.*",
+                "kafka_server_.*");
+        MetricsUtils.verify(broker, disallowPatterns, PORT, metrics -> assertTrue(metrics.isEmpty()));
     }
 }
