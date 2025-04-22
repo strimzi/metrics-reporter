@@ -37,6 +37,7 @@ public class ClientMetricsReporter extends AbstractReporter implements MetricsRe
             "kafka.consumer",
             "kafka.producer",
             "kafka.connect",
+            "kafka.connect.mirror",
             "kafka.streams"
     );
 
@@ -113,7 +114,8 @@ public class ClientMetricsReporter extends AbstractReporter implements MetricsRe
     public void contextChange(MetricsContext metricsContext) {
         String prefix = metricsContext.contextLabels().get(MetricsContext.NAMESPACE);
         if (!PREFIXES.contains(prefix)) {
-            throw new IllegalStateException("ClientMetricsReporter should only be used in Kafka clients");
+            throw new IllegalStateException("ClientMetricsReporter should only be used in Kafka clients. " +
+                    "Valid prefixes: " + PREFIXES + ", found " + prefix);
         }
         this.prefix = PrometheusNaming.prometheusName(prefix);
     }
