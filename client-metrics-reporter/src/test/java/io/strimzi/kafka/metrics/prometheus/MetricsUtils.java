@@ -15,6 +15,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -23,6 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -44,9 +47,8 @@ public class MetricsUtils {
      * Query the HTTP endpoint and returns the output
      * @param port The port to query
      * @return The lines from the output
-     * @throws Exception If any error occurs
      */
-    public static List<String> getMetrics(int port) throws Exception {
+    public static List<String> getMetrics(int port) {
         return getMetrics("localhost", port);
     }
 
@@ -55,22 +57,26 @@ public class MetricsUtils {
      * @param host The host to query
      * @param port The port to query
      * @return The lines from the output
-     * @throws Exception If any error occurs
      */
-    public static List<String> getMetrics(String host, int port) throws Exception {
+    public static List<String> getMetrics(String host, int port) {
         List<String> metrics = new ArrayList<>();
-        URL url = new URL("http://" + host + ":" + port + "/metrics");
-        HttpURLConnection con = (HttpURLConnection) url.openConnection();
-        con.setRequestMethod("GET");
-
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()))) {
-            String inputLine;
-            while ((inputLine = in.readLine()) != null) {
-                if (!inputLine.startsWith("#")) {
-                    metrics.add(inputLine);
+        assertTimeoutPreemptively(TIMEOUT, () -> {
+            try {
+                URL url = new URL("http://" + host + ":" + port + "/metrics");
+                HttpURLConnection con = (HttpURLConnection) url.openConnection();
+                con.setRequestMethod("GET");
+                try (BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()))) {
+                    String inputLine;
+                    while ((inputLine = in.readLine()) != null) {
+                        if (!inputLine.startsWith("#")) {
+                            metrics.add(inputLine);
+                        }
+                    }
                 }
+            } catch (IOException e) {
+                // swallow
             }
-        }
+        });
         return metrics;
     }
 
@@ -104,32 +110,31 @@ public class MetricsUtils {
         assertEquals(expectedLabels, infoSnapshot.getDataPoints().get(0).getLabels());
     }
 
-    /**
-     * Filter metrics that start with a specified prefix
-     * @param allMetrics all the metric names
-     * @param prefix the prefix
-     * @return the list of metric names that start with the prefix
-     */
-    public static List<String> filterMetrics(List<String> allMetrics, String prefix) {
+    private static List<String> filterMetrics(List<String> allMetrics, Pattern pattern) {
         List<String> metrics = new ArrayList<>();
         for (String metric : allMetrics) {
-            if (metric.startsWith(prefix)) {
+            if (pattern.matcher(metric).matches()) {
                 metrics.add(metric);
             }
         }
         return metrics;
     }
 
-    public static void verify(GenericContainer<?> container, String prefix, int port, ThrowingConsumer<List<String>> condition) {
+    public static void verify(GenericContainer<?> container, List<String> patterns, int port, ThrowingConsumer<List<String>> condition) {
         assertTimeoutPreemptively(TIMEOUT, () -> {
-            while (true) {
-                try {
-                    List<String> filteredMetrics = filterMetrics(getMetrics(container.getHost(), container.getMappedPort(port)), prefix);
-                    condition.accept(filteredMetrics);
-                    return;
-                } catch (Throwable t) {
-                    assertInstanceOf(AssertionError.class, t);
-                    TimeUnit.MILLISECONDS.sleep(100L);
+            List<String> metrics = getMetrics(container.getHost(), container.getMappedPort(port));
+            List<Pattern> expectedPatterns = patterns.stream().map(Pattern::compile).collect(Collectors.toList());
+            for (Pattern pattern : expectedPatterns) {
+                while (true) {
+                    try {
+                        List<String> filteredMetrics = filterMetrics(metrics, pattern);
+                        condition.accept(filteredMetrics);
+                        break;
+                    } catch (Throwable t) {
+                        assertInstanceOf(AssertionError.class, t);
+                        TimeUnit.MILLISECONDS.sleep(100L);
+                        metrics = getMetrics(container.getHost(), container.getMappedPort(port));
+                    }
                 }
             }
         });

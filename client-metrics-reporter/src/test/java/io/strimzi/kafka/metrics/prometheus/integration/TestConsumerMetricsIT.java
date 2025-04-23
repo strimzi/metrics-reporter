@@ -55,18 +55,16 @@ public class TestConsumerMetricsIT {
         try (GenericContainer<?> consumer = MetricsUtils.clientContainer(env, PORT)) {
             consumer.start();
 
-            List<String> prefixes = List.of(
-                    "jvm_",
-                    "process_",
-                    "kafka_consumer_app_info_",
-                    "kafka_consumer_kafka_metrics_",
-                    "kafka_consumer_consumer_metrics_",
-                    "kafka_consumer_consumer_node_metrics_",
-                    "kafka_consumer_consumer_coordinator_metrics_",
-                    "kafka_consumer_consumer_fetch_manager_metrics_");
-            for (String prefix : prefixes) {
-                MetricsUtils.verify(consumer, prefix, PORT, metrics -> assertFalse(metrics.isEmpty()));
-            }
+            List<String> patterns = List.of(
+                    "jvm_.*",
+                    "process_.*",
+                    "kafka_consumer_app_info_.*",
+                    "kafka_consumer_kafka_metrics_.*",
+                    "kafka_consumer_consumer_metrics_.*",
+                    "kafka_consumer_consumer_node_metrics_.*",
+                    "kafka_consumer_consumer_coordinator_metrics_.*",
+                    "kafka_consumer_consumer_fetch_manager_metrics_.*");
+            MetricsUtils.verify(consumer, patterns, PORT, metrics -> assertFalse(metrics.isEmpty()));
         }
     }
 
@@ -78,22 +76,19 @@ public class TestConsumerMetricsIT {
         try (GenericContainer<?> consumer = MetricsUtils.clientContainer(env, PORT)) {
             consumer.start();
 
-            List<String> allowedPrefixes = List.of(
-                    "jvm_",
-                    "process_",
-                    "kafka_consumer_kafka_metrics_",
-                    "kafka_consumer_consumer_coordinator_metrics_");
-            for (String prefix : allowedPrefixes) {
-                MetricsUtils.verify(consumer, prefix, PORT, metrics -> assertFalse(metrics.isEmpty()));
-            }
-            List<String> disallowedPrefixes = List.of(
-                    "kafka_consumer_app_info_",
-                    "kafka_consumer_consumer_metrics_",
-                    "kafka_consumer_consumer_node_metrics_",
-                    "kafka_consumer_consumer_fetch_manager_metrics_");
-            for (String prefix : disallowedPrefixes) {
-                MetricsUtils.verify(consumer, prefix, PORT, metrics -> assertTrue(metrics.isEmpty()));
-            }
+            List<String> allowedPatterns = List.of(
+                    "jvm_.*",
+                    "process_.*",
+                    "kafka_consumer_kafka_metrics_.*",
+                    "kafka_consumer_consumer_coordinator_metrics_.*");
+            MetricsUtils.verify(consumer, allowedPatterns, PORT, metrics -> assertFalse(metrics.isEmpty()));
+
+            List<String> disallowedPatterns = List.of(
+                    "kafka_consumer_app_info_.*",
+                    "kafka_consumer_consumer_metrics_.*",
+                    "kafka_consumer_consumer_node_metrics_.*",
+                    "kafka_consumer_consumer_fetch_manager_metrics_.*");
+            MetricsUtils.verify(consumer, disallowedPatterns, PORT, metrics -> assertTrue(metrics.isEmpty()));
         }
     }
 }

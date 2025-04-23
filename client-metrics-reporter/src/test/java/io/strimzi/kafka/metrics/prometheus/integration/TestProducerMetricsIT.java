@@ -55,17 +55,15 @@ public class TestProducerMetricsIT {
         try (GenericContainer<?> producer = MetricsUtils.clientContainer(env, PORT)) {
             producer.start();
 
-            List<String> prefixes = List.of(
-                    "jvm_",
-                    "process_",
-                    "kafka_producer_app_info_",
-                    "kafka_producer_kafka_metrics_",
-                    "kafka_producer_producer_metrics_",
-                    "kafka_producer_producer_node_metrics_",
-                    "kafka_producer_producer_topic_metrics_");
-            for (String prefix : prefixes) {
-                MetricsUtils.verify(producer, prefix, PORT, metrics -> assertFalse(metrics.isEmpty()));
-            }
+            List<String> patterns = List.of(
+                    "jvm_.*",
+                    "process_.*",
+                    "kafka_producer_app_info_.*",
+                    "kafka_producer_kafka_metrics_.*",
+                    "kafka_producer_producer_metrics_.*",
+                    "kafka_producer_producer_node_metrics_.*",
+                    "kafka_producer_producer_topic_metrics_.*");
+            MetricsUtils.verify(producer, patterns, PORT, metrics -> assertFalse(metrics.isEmpty()));
         }
     }
 
@@ -77,21 +75,18 @@ public class TestProducerMetricsIT {
         try (GenericContainer<?> producer = MetricsUtils.clientContainer(env, PORT)) {
             producer.start();
 
-            List<String> allowedPrefixes = List.of(
-                    "jvm_",
-                    "process_",
-                    "kafka_producer_kafka_metrics_",
-                    "kafka_producer_producer_topic_metrics_");
-            for (String prefix : allowedPrefixes) {
-                MetricsUtils.verify(producer, prefix, PORT, metrics -> assertFalse(metrics.isEmpty()));
-            }
-            List<String> disallowedPrefixes = List.of(
-                    "kafka_producer_app_info_",
-                    "kafka_producer_producer_metrics_",
-                    "kafka_producer_producer_node_metrics_");
-            for (String prefix : disallowedPrefixes) {
-                MetricsUtils.verify(producer, prefix, PORT, metrics -> assertTrue(metrics.isEmpty()));
-            }
+            List<String> allowedPatterns = List.of(
+                    "jvm_.*",
+                    "process_.*",
+                    "kafka_producer_kafka_metrics_.*",
+                    "kafka_producer_producer_topic_metrics_.*");
+            MetricsUtils.verify(producer, allowedPatterns, PORT, metrics -> assertFalse(metrics.isEmpty()));
+
+            List<String> disallowedPatterns = List.of(
+                    "kafka_producer_app_info_.*",
+                    "kafka_producer_producer_metrics_.*",
+                    "kafka_producer_producer_node_metrics_.*");
+            MetricsUtils.verify(producer, disallowedPatterns, PORT, metrics -> assertTrue(metrics.isEmpty()));
         }
     }
 }
