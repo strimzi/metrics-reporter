@@ -133,8 +133,12 @@ public class TestConnectMetricsIT {
 
     @AfterEach
     public void tearDown() {
-        connect.stop();
-        kafka.stop();
+        if (connect != null) {
+            connect.stop();
+        }
+        if (kafka != null) {
+            kafka.stop();
+        }
     }
 
     private void setupConnect(Map<String, String> overrides) {
