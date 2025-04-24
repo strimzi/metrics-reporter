@@ -88,7 +88,7 @@ consumer.auto.include.jmx.reporter=false
 
 ### MirrorMaker
 
-The Source and Checkpoints MirrorMaker connectors expose [metrics](https://kafka.apache.org/documentation/#georeplication-monitoring). To collect these metrics with the reporter, add the metrics-reporter configurations to the connector configurations. Use the same listener (`prometheus.metrics.reporter.listener`) as Kafka Connect so that all metrics are exposed together on same endpoint.
+The Source and Checkpoint MirrorMaker connectors expose [metrics](https://kafka.apache.org/documentation/#georeplication-monitoring). To collect these metrics with the reporter, add the metrics-reporter configurations to the connector configurations. Use the same listener (`prometheus.metrics.reporter.listener`) as Kafka Connect so that all metrics are exposed together on same endpoint.
 
 For example, if you configured Kafka Connect to export metrics with the listener set to `http://:8081`, do the same in the connector configuration:
 ```json
