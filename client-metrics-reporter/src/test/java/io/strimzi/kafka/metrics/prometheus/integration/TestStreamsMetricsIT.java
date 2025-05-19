@@ -80,33 +80,31 @@ public class TestStreamsMetricsIT {
         try (GenericContainer<?> streams = MetricsUtils.clientContainer(env, PORT)) {
             streams.start();
 
-            List<String> prefixes = List.of(
-                    "jvm_",
-                    "process_",
-                    "kafka_admin_client_app_info_",
-                    "kafka_admin_client_kafka_metrics_",
-                    "kafka_admin_client_admin_client_metrics_",
-                    "kafka_admin_client_admin_client_node_metrics_",
-                    "kafka_consumer_app_info_",
-                    "kafka_consumer_kafka_metrics_",
-                    "kafka_consumer_consumer_metrics_",
-                    "kafka_consumer_consumer_node_metrics_",
-                    "kafka_consumer_consumer_coordinator_metrics_",
-                    "kafka_consumer_consumer_fetch_manager_metrics_",
-                    "kafka_producer_app_info_",
-                    "kafka_producer_kafka_metrics_",
-                    "kafka_producer_producer_metrics_",
-                    "kafka_producer_producer_node_metrics_",
-                    "kafka_producer_producer_topic_metrics_",
-                    "kafka_streams_stream_metrics_",
-                    "kafka_streams_stream_processor_node_metrics_",
-                    "kafka_streams_stream_state_updater_metrics_",
-                    "kafka_streams_stream_task_metrics_",
-                    "kafka_streams_stream_thread_metrics_",
-                    "kafka_streams_stream_topic_metrics_");
-            for (String prefix : prefixes) {
-                MetricsUtils.verify(streams, prefix, PORT, metrics -> assertFalse(metrics.isEmpty()));
-            }
+            List<String> patterns = List.of(
+                    "jvm_.*",
+                    "process_.*",
+                    "kafka_admin_client_app_info_.*",
+                    "kafka_admin_client_kafka_metrics_.*",
+                    "kafka_admin_client_admin_client_metrics_.*",
+                    "kafka_admin_client_admin_client_node_metrics_.*",
+                    "kafka_consumer_app_info_.*",
+                    "kafka_consumer_kafka_metrics_.*",
+                    "kafka_consumer_consumer_metrics_.*",
+                    "kafka_consumer_consumer_node_metrics_.*",
+                    "kafka_consumer_consumer_coordinator_metrics_.*",
+                    "kafka_consumer_consumer_fetch_manager_metrics_.*",
+                    "kafka_producer_app_info_.*",
+                    "kafka_producer_kafka_metrics_.*",
+                    "kafka_producer_producer_metrics_.*",
+                    "kafka_producer_producer_node_metrics_.*",
+                    "kafka_producer_producer_topic_metrics_.*",
+                    "kafka_streams_stream_metrics_.*",
+                    "kafka_streams_stream_processor_node_metrics_.*",
+                    "kafka_streams_stream_state_updater_metrics_.*",
+                    "kafka_streams_stream_task_metrics_.*",
+                    "kafka_streams_stream_thread_metrics_.*",
+                    "kafka_streams_stream_topic_metrics_.*");
+            MetricsUtils.verify(streams, patterns, PORT, metrics -> assertFalse(metrics.isEmpty()));
         }
     }
 
@@ -118,37 +116,34 @@ public class TestStreamsMetricsIT {
         try (GenericContainer<?> streams = MetricsUtils.clientContainer(env, PORT)) {
             streams.start();
 
-            List<String> allowedPrefixes = List.of(
-                    "jvm_",
-                    "process_",
-                    "kafka_consumer_app_info_",
-                    "kafka_consumer_kafka_metrics_",
-                    "kafka_consumer_consumer_metrics_",
-                    "kafka_consumer_consumer_node_metrics_",
-                    "kafka_consumer_consumer_coordinator_metrics_",
-                    "kafka_consumer_consumer_fetch_manager_metrics_",
-                    "kafka_streams_stream_metrics_");
-            for (String prefix : allowedPrefixes) {
-                MetricsUtils.verify(streams, prefix, PORT, metrics -> assertFalse(metrics.isEmpty()));
-            }
-            List<String> disallowedPrefixes = List.of(
-                    "kafka_admin_client_app_info_",
-                    "kafka_admin_client_kafka_metrics_",
-                    "kafka_admin_client_admin_client_metrics_",
-                    "kafka_admin_client_admin_client_node_metrics_",
-                    "kafka_producer_app_info_",
-                    "kafka_producer_kafka_metrics_",
-                    "kafka_producer_producer_metrics_",
-                    "kafka_producer_producer_node_metrics_",
-                    "kafka_producer_producer_topic_metrics_",
-                    "kafka_streams_stream_processor_node_metrics_",
-                    "kafka_streams_stream_state_updater_metrics_",
-                    "kafka_streams_stream_task_metrics_",
-                    "kafka_streams_stream_thread_metrics_",
-                    "kafka_streams_stream_topic_metrics_");
-            for (String prefix : disallowedPrefixes) {
-                MetricsUtils.verify(streams, prefix, PORT, metrics -> assertTrue(metrics.isEmpty()));
-            }
+            List<String> allowedPatterns = List.of(
+                    "jvm_.*",
+                    "process_.*",
+                    "kafka_consumer_app_info_.*",
+                    "kafka_consumer_kafka_metrics_.*",
+                    "kafka_consumer_consumer_metrics_.*",
+                    "kafka_consumer_consumer_node_metrics_.*",
+                    "kafka_consumer_consumer_coordinator_metrics_.*",
+                    "kafka_consumer_consumer_fetch_manager_metrics_.*",
+                    "kafka_streams_stream_metrics_.*");
+            MetricsUtils.verify(streams, allowedPatterns, PORT, metrics -> assertFalse(metrics.isEmpty()));
+
+            List<String> disallowedPatterns = List.of(
+                    "kafka_admin_client_app_info_.*",
+                    "kafka_admin_client_kafka_metrics_.*",
+                    "kafka_admin_client_admin_client_metrics_.*",
+                    "kafka_admin_client_admin_client_node_metrics_.*",
+                    "kafka_producer_app_info_.*",
+                    "kafka_producer_kafka_metrics_.*",
+                    "kafka_producer_producer_metrics_.*",
+                    "kafka_producer_producer_node_metrics_.*",
+                    "kafka_producer_producer_topic_metrics_.*",
+                    "kafka_streams_stream_processor_node_metrics_.*",
+                    "kafka_streams_stream_state_updater_metrics_.*",
+                    "kafka_streams_stream_task_metrics_.*",
+                    "kafka_streams_stream_thread_metrics_.*",
+                    "kafka_streams_stream_topic_metrics_.*");
+            MetricsUtils.verify(streams, disallowedPatterns, PORT, metrics -> assertTrue(metrics.isEmpty()));
         }
     }
 }
