@@ -8,6 +8,7 @@ import io.prometheus.metrics.model.snapshots.GaugeSnapshot;
 import io.prometheus.metrics.model.snapshots.InfoSnapshot;
 import io.prometheus.metrics.model.snapshots.Labels;
 import io.prometheus.metrics.model.snapshots.MetricSnapshot;
+import io.strimzi.test.container.StrimziConnectCluster;
 import org.junit.jupiter.api.function.ThrowingConsumer;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
@@ -18,7 +19,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -120,6 +125,13 @@ public class MetricsUtils {
         return metrics;
     }
 
+    /**
+     * Verify the container exposes metrics that match a condition
+     * @param container the container to check
+     * @param patterns the expected metrics patterns
+     * @param port the port on which metrics are exposed
+     * @param condition the assertion to execute on the metrics matching the patterns
+     */
     public static void verify(GenericContainer<?> container, List<String> patterns, int port, ThrowingConsumer<List<String>> condition) {
         assertTimeoutPreemptively(TIMEOUT, () -> {
             List<String> metrics = getMetrics(container.getHost(), container.getMappedPort(port));
@@ -140,6 +152,12 @@ public class MetricsUtils {
         });
     }
 
+    /**
+     * Start a test-clients container
+     * @param env the environment variables
+     * @param port the port to expose
+     * @return the container instance
+     */
     public static GenericContainer<?> clientContainer(Map<String, String> env, int port) {
         return new GenericContainer<>(CLIENTS_IMAGE)
                 .withNetwork(Network.SHARED)
@@ -149,4 +167,31 @@ public class MetricsUtils {
                 .waitingFor(Wait.forHttp("/metrics").forStatusCode(200));
     }
 
+    /**
+     * Start a connector
+     * @param connect the Connect cluster
+     * @param name the name of the connector
+     * @param config the connector configuration
+     */
+    public static void startConnector(StrimziConnectCluster connect, String name, String config) {
+        assertTimeoutPreemptively(TIMEOUT, () -> {
+            while (true) {
+                HttpClient httpClient = HttpClient.newHttpClient();
+                URI uri = new URI(connect.getRestEndpoint() + "/connectors/" + name + "/config");
+                HttpRequest request = HttpRequest.newBuilder()
+                        .PUT(HttpRequest.BodyPublishers.ofString(config))
+                        .setHeader("Content-Type", "application/json")
+                        .uri(uri)
+                        .build();
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                try {
+                    assertEquals(HttpURLConnection.HTTP_CREATED, response.statusCode());
+                    break;
+                } catch (Throwable t) {
+                    assertInstanceOf(AssertionError.class, t);
+                    TimeUnit.MILLISECONDS.sleep(100L);
+                }
+            }
+        });
+    }
 }
