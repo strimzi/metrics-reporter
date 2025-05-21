@@ -33,6 +33,11 @@ public class KafkaCollector implements MetricsCollector {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaCollector.class);
     private static final KafkaCollector INSTANCE = new KafkaCollector();
     private static final AtomicBoolean REGISTERED = new AtomicBoolean(false);
+    private static final List<String> IGNORED_METRIC_NAMES = List.of(
+        // The MirrorMaker connectors register this metric multiple times
+        // See https://issues.apache.org/jira/browse/KAFKA-19168
+        "kafka_connect_mirror_kafka_metrics_count_count"
+    );
 
     private final Set<AbstractReporter> reporters = ConcurrentHashMap.newKeySet();
 
@@ -86,6 +91,9 @@ public class KafkaCollector implements MetricsCollector {
         for (AbstractReporter reporter : reporters) {
             for (MetricWrapper metricWrapper : reporter.allowedMetrics()) {
                 String prometheusMetricName = metricWrapper.prometheusName();
+                if (IGNORED_METRIC_NAMES.contains(prometheusMetricName)) {
+                    continue;
+                }
                 Object metricValue = ((KafkaMetric) metricWrapper.metric()).metricValue();
                 Labels labels = metricWrapper.labels();
                 LOG.debug("Collecting Kafka metric {} with the following labels: {}", prometheusMetricName, labels);
