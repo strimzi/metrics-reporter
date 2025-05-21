@@ -125,6 +125,13 @@ public class MetricsUtils {
         return metrics;
     }
 
+    /**
+     * Verify the container exposes metrics that match a condition
+     * @param container the container to check
+     * @param patterns the expected metrics patterns
+     * @param port the port on which metrics are exposed
+     * @param condition the assertion to execute on the metrics matching the patterns
+     */
     public static void verify(GenericContainer<?> container, List<String> patterns, int port, ThrowingConsumer<List<String>> condition) {
         assertTimeoutPreemptively(TIMEOUT, () -> {
             List<String> metrics = getMetrics(container.getHost(), container.getMappedPort(port));
@@ -145,6 +152,12 @@ public class MetricsUtils {
         });
     }
 
+    /**
+     * Start a test-clients container
+     * @param env the environment variables
+     * @param port the port to expose
+     * @return the container instance
+     */
     public static GenericContainer<?> clientContainer(Map<String, String> env, int port) {
         return new GenericContainer<>(CLIENTS_IMAGE)
                 .withNetwork(Network.SHARED)
@@ -181,5 +194,4 @@ public class MetricsUtils {
             }
         });
     }
-
 }
