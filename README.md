@@ -44,6 +44,14 @@ kafka.metrics.reporters=io.strimzi.kafka.metrics.prometheus.ServerYammerMetricsR
 auto.include.jmx.reporter=false
 ```
 
+The `prometheus.metrics.reporter.allowlist` configuration of brokers and controllers can be updated at runtime using the `kafka-configs.sh` tool or the `incrementalAlterConfigs()` method from the `Admin` API. For example:
+
+```sh
+./bin/kafka-configs.sh --bootstrap-server localhost:9092 \
+  --alter --entity-type brokers --entity-default \
+  --add-config "prometheus.metrics.reporter.allowlist=[kafka_controller.*,kafka_log.*]"
+```
+
 ### Kafka Clients
 
 To use the reporter with Kafka producers, consumers or admin clients, add the following to your client configuration:
