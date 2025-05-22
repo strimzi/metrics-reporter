@@ -24,18 +24,12 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.MountableFile;
 
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static io.strimzi.kafka.metrics.prometheus.ClientMetricsReporterConfig.ALLOWLIST_CONFIG;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -158,7 +152,7 @@ public class TestConnectMetricsIT {
     }
 
     @Test
-    public void testConnectMetrics() throws Exception {
+    public void testConnectMetrics() {
         setupConnect(Map.of(
                 "consumer.metric.reporters", ClientMetricsReporter.class.getName(),
                 "producer.metric.reporters", ClientMetricsReporter.class.getName(),
@@ -175,7 +169,7 @@ public class TestConnectMetricsIT {
                 "  \"topics\": \"" + TOPIC + "\",\n" +
                 "  \"file\": \"" + FILE + "\"\n" +
                 "}";
-        httpPut("/connectors/" + SINK_CONNECTOR + "/config", connectorConfig);
+        MetricsUtils.startConnector(connect, SINK_CONNECTOR, connectorConfig);
         checkMetricsExist(SINK_PATTERNS);
 
         // Start a source connector metrics and check its metrics
@@ -185,12 +179,12 @@ public class TestConnectMetricsIT {
                 "  \"topic\": \"" + TOPIC + "\",\n" +
                 "  \"file\": \"" + FILE + "\"\n" +
                 "}";
-        httpPut("/connectors/" + SOURCE_CONNECTOR + "/config", connectorConfig);
+        MetricsUtils.startConnector(connect, SOURCE_CONNECTOR, connectorConfig);
         checkMetricsExist(SOURCE_PATTERNS);
     }
 
     @Test
-    public void testConnectMetricsWithAllowlist() throws Exception {
+    public void testConnectMetricsWithAllowlist() {
         setupConnect(Map.of(
                 "consumer.metric.reporters", ClientMetricsReporter.class.getName(),
                 "producer.metric.reporters", ClientMetricsReporter.class.getName(),
@@ -223,7 +217,7 @@ public class TestConnectMetricsIT {
                 "  \"topics\": \"" + TOPIC + "\",\n" +
                 "  \"file\": \"" + FILE + "\"\n" +
                 "}";
-        httpPut("/connectors/" + SINK_CONNECTOR + "/config", connectorConfig);
+        MetricsUtils.startConnector(connect, SINK_CONNECTOR, connectorConfig);
         List<String> allowedSinkPatterns = List.of(
                 "kafka_connect_connector_metrics_.*" + SINK_CONNECTOR_PATTERN,
                 "kafka_connect_connect_worker_metrics_connector_count 1.0",
@@ -241,7 +235,7 @@ public class TestConnectMetricsIT {
                 "  \"topic\": \"" + TOPIC + "\",\n" +
                 "  \"file\": \"" + FILE + "\"\n" +
                 "}";
-        httpPut("/connectors/" + SOURCE_CONNECTOR + "/config", connectorConfig);
+        MetricsUtils.startConnector(connect, SOURCE_CONNECTOR, connectorConfig);
         List<String> allowedSourcePatterns = List.of(
                 "kafka_connect_connector_metrics_.*" + SOURCE_CONNECTOR_PATTERN,
                 "kafka_connect_connect_worker_metrics_connector_count 2.0",
@@ -263,17 +257,5 @@ public class TestConnectMetricsIT {
         for (GenericContainer<?> worker : connect.getWorkers()) {
             MetricsUtils.verify(worker, patterns, PORT, metrics -> assertTrue(metrics.isEmpty()));
         }
-    }
-
-    private void httpPut(String path, String body) throws Exception {
-        HttpClient httpClient = HttpClient.newHttpClient();
-        URI uri = new URI(connect.getRestEndpoint() + path);
-        HttpRequest request = HttpRequest.newBuilder()
-                .PUT(HttpRequest.BodyPublishers.ofString(body))
-                .setHeader("Content-Type", "application/json")
-                .uri(uri)
-                .build();
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        assertEquals(HttpURLConnection.HTTP_CREATED, response.statusCode());
     }
 }
