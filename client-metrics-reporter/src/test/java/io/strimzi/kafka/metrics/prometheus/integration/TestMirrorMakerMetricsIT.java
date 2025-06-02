@@ -125,7 +125,7 @@ public class TestMirrorMakerMetricsIT {
                 "{\n" +
                 "  \"name\": \"" + SOURCE_CONNECTOR + "\",\n" +
                 "  \"connector.class\": \"org.apache.kafka.connect.mirror.MirrorSourceConnector\",\n" +
-                "  \"tasks.max\": \"10\",\n" +
+                "  \"tasks.max\": \"2\",\n" +
                 "  \"key.converter\": \"org.apache.kafka.connect.converters.ByteArrayConverter\",\n" +
                 "  \"value.converter\": \"org.apache.kafka.connect.converters.ByteArrayConverter\",\n" +
                 "  \"source.cluster.alias\": \"source\",\n" +
@@ -139,7 +139,7 @@ public class TestMirrorMakerMetricsIT {
                 "  \"metric.reporters\": \"" + ClientMetricsReporter.class.getName() + "\",\n" +
                 "  \"prometheus.metrics.reporter.listener.enable\": \"false\"" +
                 "}";
-        MetricsUtils.startConnector(connect, SOURCE_CONNECTOR, sourceConfig);
+        MetricsUtils.startConnector(connect, SOURCE_CONNECTOR, sourceConfig, 2);
         checkMetricsExist(sourceMetricsPatterns);
 
         // Start MirrorCheckpointConnector and check its metrics
@@ -154,7 +154,7 @@ public class TestMirrorMakerMetricsIT {
                 "{\n" +
                 "  \"name\": \"" + CHECKPOINT_CONNECTOR + "\",\n" +
                 "  \"connector.class\": \"org.apache.kafka.connect.mirror.MirrorCheckpointConnector\",\n" +
-                "  \"tasks.max\": \"10\",\n" +
+                "  \"tasks.max\": \"2\",\n" +
                 "  \"key.converter\": \"org.apache.kafka.connect.converters.ByteArrayConverter\",\n" +
                 "  \"value.converter\": \"org.apache.kafka.connect.converters.ByteArrayConverter\",\n" +
                 "  \"source.cluster.alias\": \"source\",\n" +
@@ -167,7 +167,7 @@ public class TestMirrorMakerMetricsIT {
                 "  \"metric.reporters\": \"" + ClientMetricsReporter.class.getName() + "\",\n" +
                 "  \"prometheus.metrics.reporter.listener.enable\": \"false\"" +
                 "}";
-        MetricsUtils.startConnector(connect, CHECKPOINT_CONNECTOR, checkpointConfig);
+        MetricsUtils.startConnector(connect, CHECKPOINT_CONNECTOR, checkpointConfig, 2);
         checkMetricsExist(checkpointMetricPatterns);
     }
 

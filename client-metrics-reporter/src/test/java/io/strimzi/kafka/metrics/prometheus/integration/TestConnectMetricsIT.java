@@ -169,7 +169,7 @@ public class TestConnectMetricsIT {
                 "  \"topics\": \"" + TOPIC + "\",\n" +
                 "  \"file\": \"" + FILE + "\"\n" +
                 "}";
-        MetricsUtils.startConnector(connect, SINK_CONNECTOR, connectorConfig);
+        MetricsUtils.startConnector(connect, SINK_CONNECTOR, connectorConfig, 1);
         checkMetricsExist(SINK_PATTERNS);
 
         // Start a source connector metrics and check its metrics
@@ -179,7 +179,7 @@ public class TestConnectMetricsIT {
                 "  \"topic\": \"" + TOPIC + "\",\n" +
                 "  \"file\": \"" + FILE + "\"\n" +
                 "}";
-        MetricsUtils.startConnector(connect, SOURCE_CONNECTOR, connectorConfig);
+        MetricsUtils.startConnector(connect, SOURCE_CONNECTOR, connectorConfig, 1);
         checkMetricsExist(SOURCE_PATTERNS);
     }
 
@@ -217,7 +217,7 @@ public class TestConnectMetricsIT {
                 "  \"topics\": \"" + TOPIC + "\",\n" +
                 "  \"file\": \"" + FILE + "\"\n" +
                 "}";
-        MetricsUtils.startConnector(connect, SINK_CONNECTOR, connectorConfig);
+        MetricsUtils.startConnector(connect, SINK_CONNECTOR, connectorConfig, 1);
         List<String> allowedSinkPatterns = List.of(
                 "kafka_connect_connector_metrics_.*" + SINK_CONNECTOR_PATTERN,
                 "kafka_connect_connect_worker_metrics_connector_count 1.0",
@@ -235,7 +235,7 @@ public class TestConnectMetricsIT {
                 "  \"topic\": \"" + TOPIC + "\",\n" +
                 "  \"file\": \"" + FILE + "\"\n" +
                 "}";
-        MetricsUtils.startConnector(connect, SOURCE_CONNECTOR, connectorConfig);
+        MetricsUtils.startConnector(connect, SOURCE_CONNECTOR, connectorConfig, 1);
         List<String> allowedSourcePatterns = List.of(
                 "kafka_connect_connector_metrics_.*" + SOURCE_CONNECTOR_PATTERN,
                 "kafka_connect_connect_worker_metrics_connector_count 2.0",

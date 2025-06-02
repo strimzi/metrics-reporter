@@ -169,12 +169,13 @@ public class MetricsUtils {
     }
 
     /**
-     * Start a connector
+     * Start a connector and ensure its tasks are running
      * @param connect the Connect cluster
      * @param name the name of the connector
      * @param config the connector configuration
+     * @param expectedTasks the number of tasks
      */
-    public static void startConnector(StrimziConnectCluster connect, String name, String config) {
+    public static void startConnector(StrimziConnectCluster connect, String name, String config, int expectedTasks) {
         assertTimeoutPreemptively(TIMEOUT, () -> {
             HttpClient httpClient = HttpClient.newHttpClient();
             while (true) {
@@ -193,6 +194,7 @@ public class MetricsUtils {
                     TimeUnit.MILLISECONDS.sleep(100L);
                 }
             }
+
             while (true) {
                 URI uri = new URI(connect.getRestEndpoint() + "/connectors/" + name + "/status");
                 HttpRequest request = HttpRequest.newBuilder()
@@ -201,7 +203,9 @@ public class MetricsUtils {
                 HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
                 try {
                     assertEquals(HttpURLConnection.HTTP_OK, response.statusCode());
-                    assertTrue(response.body().contains("RUNNING"));
+                    for (int taskId = 0; taskId < expectedTasks; taskId++) {
+                        assertTrue(response.body().contains("{\"id\":" + taskId + ",\"state\":\"RUNNING\""));
+                    }
                     break;
                 } catch (Throwable t) {
                     assertInstanceOf(AssertionError.class, t);
