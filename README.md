@@ -44,7 +44,12 @@ kafka.metrics.reporters=io.strimzi.kafka.metrics.prometheus.ServerYammerMetricsR
 auto.include.jmx.reporter=false
 ```
 
-The `prometheus.metrics.reporter.allowlist` configuration of brokers and controllers can be updated at runtime using the `kafka-configs.sh` tool or the `incrementalAlterConfigs()` method from the `Admin` API. For example:
+The `prometheus.metrics.reporter.allowlist` configuration of brokers and controllers can be updated at runtime without restarting Kafka.
+
+You can update the configuration using either of these approaches:
+
+* The `kafka-configs.sh` command-line tool 
+* The `incrementalAlterConfigs()` method from the `Admin` API. 
 
 ```sh
 ./bin/kafka-configs.sh --bootstrap-server localhost:9092 \
