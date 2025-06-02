@@ -22,8 +22,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.utility.MountableFile;
 
+import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -146,7 +148,10 @@ public class TestConnectMetricsIT {
         for (GenericContainer<?> worker : connect.getWorkers()) {
             worker.withCopyFileToContainer(MountableFile.forHostPath(MetricsUtils.REPORTER_JARS), MetricsUtils.MOUNT_PATH)
                     .withExposedPorts(8083, PORT)
-                    .withEnv(Map.of("CLASSPATH", MetricsUtils.MOUNT_PATH + "*"));
+                    .withEnv(Map.of("CLASSPATH", MetricsUtils.MOUNT_PATH + "*"))
+                    .waitingFor(new HttpWaitStrategy()
+                            .forPath("/health")
+                            .forStatusCode(HttpURLConnection.HTTP_OK));
         }
         connect.start();
     }
