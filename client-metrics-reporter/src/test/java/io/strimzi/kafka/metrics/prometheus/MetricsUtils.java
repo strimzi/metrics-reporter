@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Utility class to create and retrieve metrics
@@ -175,8 +176,8 @@ public class MetricsUtils {
      */
     public static void startConnector(StrimziConnectCluster connect, String name, String config) {
         assertTimeoutPreemptively(TIMEOUT, () -> {
+            HttpClient httpClient = HttpClient.newHttpClient();
             while (true) {
-                HttpClient httpClient = HttpClient.newHttpClient();
                 URI uri = new URI(connect.getRestEndpoint() + "/connectors/" + name + "/config");
                 HttpRequest request = HttpRequest.newBuilder()
                         .PUT(HttpRequest.BodyPublishers.ofString(config))
@@ -186,6 +187,21 @@ public class MetricsUtils {
                 HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
                 try {
                     assertEquals(HttpURLConnection.HTTP_CREATED, response.statusCode());
+                    break;
+                } catch (Throwable t) {
+                    assertInstanceOf(AssertionError.class, t);
+                    TimeUnit.MILLISECONDS.sleep(100L);
+                }
+            }
+            while (true) {
+                URI uri = new URI(connect.getRestEndpoint() + "/connectors/" + name + "/status");
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(uri)
+                        .build();
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                try {
+                    assertEquals(HttpURLConnection.HTTP_OK, response.statusCode());
+                    assertTrue(response.body().contains("RUNNING"));
                     break;
                 } catch (Throwable t) {
                     assertInstanceOf(AssertionError.class, t);
