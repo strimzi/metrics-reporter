@@ -93,6 +93,9 @@ public class TestMirrorMakerMetricsIT {
     @AfterEach
     public void tearDown() {
         if (connect != null) {
+            for (GenericContainer<?> container : connect.getWorkers()) {
+                System.out.println(container.getLogs());
+            }
             connect.stop();
         }
         if (source != null) {
