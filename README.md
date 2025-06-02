@@ -51,11 +51,11 @@ You can update the configuration using either of these approaches:
 * The `kafka-configs.sh` command-line tool 
 * The `incrementalAlterConfigs()` method from the `Admin` API. 
 
+**Example update using `kafka-configs.sh`**
 ```sh
 ./bin/kafka-configs.sh --bootstrap-server localhost:9092 \
   --alter --entity-type brokers --entity-default \
   --add-config "prometheus.metrics.reporter.allowlist=[kafka_controller.*,kafka_log.*]"
-```
 
 ### Kafka Clients
 
