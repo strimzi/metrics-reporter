@@ -113,7 +113,7 @@ public class TestServerMetricsIT {
 
         try (Admin admin = Admin.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, broker.getBootstrapServers()))) {
             admin.incrementalAlterConfigs(Map.of(
-                    new ConfigResource(ConfigResource.Type.BROKER, String.valueOf(NODE_ID)),
+                    new ConfigResource(ConfigResource.Type.BROKER, ""),
                     List.of(new AlterConfigOp(
                             new ConfigEntry(ALLOWLIST_CONFIG, "kafka_coordinator.*,kafka_log.*,kafka_network.*"),
                             AlterConfigOp.OpType.SET))
