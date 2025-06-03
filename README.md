@@ -56,6 +56,19 @@ You can update the configuration using either of these approaches:
 ./bin/kafka-configs.sh --bootstrap-server localhost:9092 \
   --alter --entity-type brokers --entity-default \
   --add-config "prometheus.metrics.reporter.allowlist=[kafka_controller.*,kafka_log.*]"
+```
+
+**Example update using `Admin` API**
+```java
+try (Admin admin = Admin.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092"))) {
+    admin.incrementalAlterConfigs(Map.of(
+        new ConfigResource(ConfigResource.Type.BROKER, ""),
+        List.of(new AlterConfigOp(
+            new ConfigEntry(ALLOWLIST_CONFIG, "kafka_controller.*,kafka_log.*"),
+            AlterConfigOp.OpType.SET))
+    )).all().get();
+}
+```
 
 ### Kafka Clients
 
