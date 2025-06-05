@@ -42,31 +42,27 @@ public class TestMirrorMakerMetricsIT {
     private static final String SOURCE_CONNECTOR = "source";
     private static final String CHECKPOINT_CONNECTOR = "checkpoint";
 
-    private StrimziKafkaCluster source;
-    private StrimziKafkaCluster target;
+    private StrimziKafkaCluster kafka;
     private StrimziConnectCluster connect;
 
     @BeforeEach
     public void setUp() throws Exception {
-        source = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
+        // Use a single cluster as source and target
+        // MirrorSourceConnector is configured with a fixed topics configuration to avoid loop
+        kafka = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
                 .withNumberOfBrokers(1)
                 .withSharedNetwork()
                 .build();
-        source.start();
-
-        target = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
-                .withNumberOfBrokers(1)
-                .withSharedNetwork()
-                .build();
-        target.start();
+        kafka.start();
 
         connect = new StrimziConnectCluster.StrimziConnectClusterBuilder()
                 .withGroupId(CONNECT_ID)
-                .withKafkaCluster(source)
+                .withKafkaCluster(kafka)
                 .withAdditionalConnectConfiguration(Map.of(
                         CommonClientConfigs.METRIC_REPORTER_CLASSES_CONFIG, ClientMetricsReporter.class.getName()
                 ))
                 .build();
+
         for (GenericContainer<?> worker : connect.getWorkers()) {
             worker.withCopyFileToContainer(MountableFile.forHostPath(MetricsUtils.REPORTER_JARS), MetricsUtils.MOUNT_PATH)
                     .withExposedPorts(8083, PORT)
@@ -77,7 +73,7 @@ public class TestMirrorMakerMetricsIT {
         }
         connect.start();
 
-        try (Admin admin = Admin.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, source.getBootstrapServers()))) {
+        try (Admin admin = Admin.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers()))) {
             // Create a topic with 2 partitions so we get 2 MirrorSourceConnector tasks
             admin.createTopics(List.of(new NewTopic(TOPIC, 2, (short) -1))).all().get();
             // Create 2 consumer groups so we get 2 MirrorCheckpointConnector tasks
@@ -85,7 +81,7 @@ public class TestMirrorMakerMetricsIT {
             admin.alterConsumerGroupOffsets(GROUP + "-2", Map.of(new TopicPartition(TOPIC, 0), new OffsetAndMetadata(1))).all().get();
         }
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(Map.of(
-                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, source.getBootstrapServers(),
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers(),
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName(),
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName()
         ))) {
@@ -98,16 +94,10 @@ public class TestMirrorMakerMetricsIT {
     @AfterEach
     public void tearDown() {
         if (connect != null) {
-            for (GenericContainer<?> container : connect.getWorkers()) {
-                System.out.println(container.getLogs());
-            }
             connect.stop();
         }
-        if (source != null) {
-            source.stop();
-        }
-        if (target != null) {
-            target.stop();
+        if (kafka != null) {
+            kafka.stop();
         }
     }
 
@@ -138,8 +128,8 @@ public class TestMirrorMakerMetricsIT {
                 "  \"value.converter\": \"org.apache.kafka.connect.converters.ByteArrayConverter\",\n" +
                 "  \"source.cluster.alias\": \"source\",\n" +
                 "  \"target.cluster.alias\": \"target\",\n" +
-                "  \"source.cluster.bootstrap.servers\": \"" + source.getNetworkBootstrapServers() + "\",\n" +
-                "  \"target.cluster.bootstrap.servers\": \"" + target.getNetworkBootstrapServers() + "\",\n" +
+                "  \"source.cluster.bootstrap.servers\": \"" + kafka.getNetworkBootstrapServers() + "\",\n" +
+                "  \"target.cluster.bootstrap.servers\": \"" + kafka.getNetworkBootstrapServers() + "\",\n" +
                 "  \"replication.factor\": \"-1\",\n" +
                 "  \"offset-syncs.topic.replication.factor\": \"-1\",\n" +
                 "  \"refresh.topics.interval.seconds\": \"1\",\n" +
@@ -167,8 +157,8 @@ public class TestMirrorMakerMetricsIT {
                 "  \"value.converter\": \"org.apache.kafka.connect.converters.ByteArrayConverter\",\n" +
                 "  \"source.cluster.alias\": \"source\",\n" +
                 "  \"target.cluster.alias\": \"target\",\n" +
-                "  \"source.cluster.bootstrap.servers\": \"" + source.getNetworkBootstrapServers() + "\",\n" +
-                "  \"target.cluster.bootstrap.servers\": \"" + target.getNetworkBootstrapServers() + "\",\n" +
+                "  \"source.cluster.bootstrap.servers\": \"" + kafka.getNetworkBootstrapServers() + "\",\n" +
+                "  \"target.cluster.bootstrap.servers\": \"" + kafka.getNetworkBootstrapServers() + "\",\n" +
                 "  \"checkpoints.topic.replication.factor\": \"-1\",\n" +
                 "  \"emit.checkpoints.interval.seconds\": \"1\",\n" +
                 "  \"refresh.groups.interval.seconds\": \"1\",\n" +
