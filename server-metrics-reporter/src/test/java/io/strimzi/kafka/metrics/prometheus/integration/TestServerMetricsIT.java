@@ -13,8 +13,10 @@ import io.strimzi.test.container.StrimziKafkaContainer;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.AlterConfigOp;
+import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.common.config.ConfigResource;
+import org.apache.kafka.common.errors.InvalidRequestException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,10 +25,13 @@ import org.testcontainers.utility.MountableFile;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import static io.strimzi.kafka.metrics.prometheus.MetricsUtils.VERSION;
 import static io.strimzi.kafka.metrics.prometheus.ServerMetricsReporterConfig.ALLOWLIST_CONFIG;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestServerMetricsIT {
@@ -132,5 +137,31 @@ public class TestServerMetricsIT {
                 "kafka_controller_.*",
                 "kafka_server_.*");
         MetricsUtils.verify(broker, disallowPatterns, PORT, metrics -> assertTrue(metrics.isEmpty()));
+    }
+
+    @Test
+    public void testReconfigureValidatesAllowlist() throws Exception {
+        configs.put(ALLOWLIST_CONFIG, "kafka_controller.*,kafka_server.*");
+        broker.withKafkaConfigurationMap(configs);
+        broker.start();
+
+        try (Admin admin = Admin.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, broker.getBootstrapServers()))) {
+            ConfigResource cr = new ConfigResource(ConfigResource.Type.BROKER, String.valueOf(NODE_ID));
+            try {
+                admin.incrementalAlterConfigs(Map.of(
+                        cr,
+                        List.of(new AlterConfigOp(
+                                new ConfigEntry(ALLOWLIST_CONFIG, "not_a_pattern[[("),
+                                AlterConfigOp.OpType.SET))
+                )).all().get();
+            } catch (ExecutionException ee) {
+                assertInstanceOf(InvalidRequestException.class, ee.getCause());
+                assertTrue(ee.getCause().getMessage().contains("ConfigException"));
+                assertTrue(ee.getCause().getMessage().contains("Invalid regex pattern found"));
+            }
+
+            Config config = admin.describeConfigs(List.of(cr)).all().get().get(cr);
+            assertEquals(ConfigEntry.ConfigSource.STATIC_BROKER_CONFIG, config.get(ALLOWLIST_CONFIG).source());
+        }
     }
 }
