@@ -22,8 +22,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.utility.MountableFile;
 
+import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -146,7 +148,10 @@ public class TestConnectMetricsIT {
         for (GenericContainer<?> worker : connect.getWorkers()) {
             worker.withCopyFileToContainer(MountableFile.forHostPath(MetricsUtils.REPORTER_JARS), MetricsUtils.MOUNT_PATH)
                     .withExposedPorts(8083, PORT)
-                    .withEnv(Map.of("CLASSPATH", MetricsUtils.MOUNT_PATH + "*"));
+                    .withEnv(Map.of("CLASSPATH", MetricsUtils.MOUNT_PATH + "*"))
+                    .waitingFor(new HttpWaitStrategy()
+                            .forPath("/health")
+                            .forStatusCode(HttpURLConnection.HTTP_OK));
         }
         connect.start();
     }
@@ -169,7 +174,7 @@ public class TestConnectMetricsIT {
                 "  \"topics\": \"" + TOPIC + "\",\n" +
                 "  \"file\": \"" + FILE + "\"\n" +
                 "}";
-        MetricsUtils.startConnector(connect, SINK_CONNECTOR, connectorConfig);
+        MetricsUtils.startConnector(connect, SINK_CONNECTOR, connectorConfig, 1);
         checkMetricsExist(SINK_PATTERNS);
 
         // Start a source connector metrics and check its metrics
@@ -179,7 +184,7 @@ public class TestConnectMetricsIT {
                 "  \"topic\": \"" + TOPIC + "\",\n" +
                 "  \"file\": \"" + FILE + "\"\n" +
                 "}";
-        MetricsUtils.startConnector(connect, SOURCE_CONNECTOR, connectorConfig);
+        MetricsUtils.startConnector(connect, SOURCE_CONNECTOR, connectorConfig, 1);
         checkMetricsExist(SOURCE_PATTERNS);
     }
 
@@ -217,7 +222,7 @@ public class TestConnectMetricsIT {
                 "  \"topics\": \"" + TOPIC + "\",\n" +
                 "  \"file\": \"" + FILE + "\"\n" +
                 "}";
-        MetricsUtils.startConnector(connect, SINK_CONNECTOR, connectorConfig);
+        MetricsUtils.startConnector(connect, SINK_CONNECTOR, connectorConfig, 1);
         List<String> allowedSinkPatterns = List.of(
                 "kafka_connect_connector_metrics_.*" + SINK_CONNECTOR_PATTERN,
                 "kafka_connect_connect_worker_metrics_connector_count 1.0",
@@ -235,7 +240,7 @@ public class TestConnectMetricsIT {
                 "  \"topic\": \"" + TOPIC + "\",\n" +
                 "  \"file\": \"" + FILE + "\"\n" +
                 "}";
-        MetricsUtils.startConnector(connect, SOURCE_CONNECTOR, connectorConfig);
+        MetricsUtils.startConnector(connect, SOURCE_CONNECTOR, connectorConfig, 1);
         List<String> allowedSourcePatterns = List.of(
                 "kafka_connect_connector_metrics_.*" + SOURCE_CONNECTOR_PATTERN,
                 "kafka_connect_connect_worker_metrics_connector_count 2.0",

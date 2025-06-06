@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Utility class to create and retrieve metrics
@@ -43,7 +44,7 @@ public class MetricsUtils {
 
     public static final String VERSION = "1.0.0-SNAPSHOT";
     private static final String CLIENTS_IMAGE = "quay.io/strimzi-test-clients/test-clients:latest-kafka-3.9.0";
-    private static final Duration TIMEOUT = Duration.ofSeconds(10L);
+    private static final Duration TIMEOUT = Duration.ofSeconds(30L);
 
     public static final String REPORTER_JARS = "target/client-metrics-reporter-" + VERSION + "/client-metrics-reporter-" + VERSION + "/libs/";
     public static final String MOUNT_PATH = "/opt/strimzi/metrics-reporter/";
@@ -125,6 +126,13 @@ public class MetricsUtils {
         return metrics;
     }
 
+    /**
+     * Verify the container exposes metrics that match a condition
+     * @param container the container to check
+     * @param patterns the expected metrics patterns
+     * @param port the port on which metrics are exposed
+     * @param condition the assertion to execute on the metrics matching the patterns
+     */
     public static void verify(GenericContainer<?> container, List<String> patterns, int port, ThrowingConsumer<List<String>> condition) {
         assertTimeoutPreemptively(TIMEOUT, () -> {
             List<String> metrics = getMetrics(container.getHost(), container.getMappedPort(port));
@@ -145,6 +153,12 @@ public class MetricsUtils {
         });
     }
 
+    /**
+     * Start a test-clients container
+     * @param env the environment variables
+     * @param port the port to expose
+     * @return the container instance
+     */
     public static GenericContainer<?> clientContainer(Map<String, String> env, int port) {
         return new GenericContainer<>(CLIENTS_IMAGE)
                 .withNetwork(Network.SHARED)
@@ -155,15 +169,17 @@ public class MetricsUtils {
     }
 
     /**
-     * Start a connector
+     * Start a connector and ensure its tasks are running
      * @param connect the Connect cluster
      * @param name the name of the connector
      * @param config the connector configuration
+     * @param expectedTasks the number of tasks
      */
-    public static void startConnector(StrimziConnectCluster connect, String name, String config) {
+    public static void startConnector(StrimziConnectCluster connect, String name, String config, int expectedTasks) {
         assertTimeoutPreemptively(TIMEOUT, () -> {
+            HttpClient httpClient = HttpClient.newHttpClient();
+            // Wait for the connector creation to succeed
             while (true) {
-                HttpClient httpClient = HttpClient.newHttpClient();
                 URI uri = new URI(connect.getRestEndpoint() + "/connectors/" + name + "/config");
                 HttpRequest request = HttpRequest.newBuilder()
                         .PUT(HttpRequest.BodyPublishers.ofString(config))
@@ -179,7 +195,25 @@ public class MetricsUtils {
                     TimeUnit.MILLISECONDS.sleep(100L);
                 }
             }
+
+            // Wait for the connector's tasks to be in RUNNING state
+            while (true) {
+                URI uri = new URI(connect.getRestEndpoint() + "/connectors/" + name + "/status");
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(uri)
+                        .build();
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                try {
+                    assertEquals(HttpURLConnection.HTTP_OK, response.statusCode());
+                    for (int taskId = 0; taskId < expectedTasks; taskId++) {
+                        assertTrue(response.body().contains("{\"id\":" + taskId + ",\"state\":\"RUNNING\""));
+                    }
+                    break;
+                } catch (Throwable t) {
+                    assertInstanceOf(AssertionError.class, t);
+                    TimeUnit.MILLISECONDS.sleep(100L);
+                }
+            }
         });
     }
-
 }
