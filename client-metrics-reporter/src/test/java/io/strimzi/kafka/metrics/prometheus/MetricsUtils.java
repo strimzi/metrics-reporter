@@ -178,6 +178,7 @@ public class MetricsUtils {
     public static void startConnector(StrimziConnectCluster connect, String name, String config, int expectedTasks) {
         assertTimeoutPreemptively(TIMEOUT, () -> {
             HttpClient httpClient = HttpClient.newHttpClient();
+            // Wait for the connector creation to succeed
             while (true) {
                 URI uri = new URI(connect.getRestEndpoint() + "/connectors/" + name + "/config");
                 HttpRequest request = HttpRequest.newBuilder()
@@ -195,6 +196,7 @@ public class MetricsUtils {
                 }
             }
 
+            // Wait for the connector's tasks to be in RUNNING state
             while (true) {
                 URI uri = new URI(connect.getRestEndpoint() + "/connectors/" + name + "/status");
                 HttpRequest request = HttpRequest.newBuilder()
