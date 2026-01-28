@@ -9,6 +9,7 @@
         <version>0.3.0</version>
     </parent>
 
+    <name>Client Metrics Reporter</name>
     <artifactId>client-metrics-reporter</artifactId>
 
     <properties>
