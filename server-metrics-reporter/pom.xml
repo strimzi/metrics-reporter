@@ -9,6 +9,7 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
+    <name>Server Metrics Reporter</name>
     <artifactId>server-metrics-reporter</artifactId>
 
     <dependencies>
