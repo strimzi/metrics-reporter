@@ -28,10 +28,15 @@ import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.utility.MountableFile;
 
 import java.net.HttpURLConnection;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestMirrorMakerMetricsIT {
 
@@ -76,6 +81,18 @@ public class TestMirrorMakerMetricsIT {
         try (Admin admin = Admin.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers()))) {
             // Create a topic with 2 partitions so we get 2 MirrorSourceConnector tasks
             admin.createTopics(List.of(new NewTopic(TOPIC, 2, (short) -1))).all().get();
+            // Wait for the topic to be created
+            assertTimeoutPreemptively(Duration.ofSeconds(10L), () -> {
+                while (true) {
+                    try {
+                        assertTrue(admin.listTopics().names().get().contains(TOPIC));
+                        break;
+                    } catch (Throwable t) {
+                        assertInstanceOf(AssertionError.class, t);
+                        TimeUnit.MILLISECONDS.sleep(100L);
+                    }
+                }
+            });
             // Create 2 consumer groups so we get 2 MirrorCheckpointConnector tasks
             admin.alterConsumerGroupOffsets(GROUP, Map.of(new TopicPartition(TOPIC, 0), new OffsetAndMetadata(1))).all().get();
             admin.alterConsumerGroupOffsets(GROUP + "-2", Map.of(new TopicPartition(TOPIC, 0), new OffsetAndMetadata(1))).all().get();
