@@ -51,7 +51,7 @@ runs:
     - name: Create release archives tarball
       shell: bash
       run: |
-        tar -cvpf release.tar -C target \ 
+        ls && pwd && tar -cvpf release.tar -C ./target \ 
         metrics-reporter-${{ inputs.releaseVersion }}.tar.gz \
         metrics-reporter-${{ inputs.releaseVersion }}.zip 
 
