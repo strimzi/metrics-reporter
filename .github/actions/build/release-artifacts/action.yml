@@ -48,17 +48,18 @@ runs:
       shell: bash
       run: mvn -B install -DskipTests
 
-    - name: Archive release tar
-      uses: actions/upload-artifact@v5
-      with:
-        name: metrics-reporter-${{ inputs.releaseVersion }}.tar.gz
-        path: ./target/metrics-reporter-${{ inputs.releaseVersion }}.tar.gz
+    - name: Create release archives tarball
+      shell: bash
+      run: |
+        tar -cvpf release.tar -C target \ 
+        metrics-reporter-${{ inputs.releaseVersion }}.tar.gz \
+        metrics-reporter-${{ inputs.releaseVersion }}.zip 
 
-    - name: Archive release zip
+    - name: Upload release archives
       uses: actions/upload-artifact@v5
       with:
-        name: metrics-reporter-${{ inputs.releaseVersion }}.zip
-        path: ./target/metrics-reporter-${{ inputs.releaseVersion }}.zip
+        name: release.tar
+        path: release.tar
 
     - name: Deploy Java artifacts to Maven Central
       shell: bash
