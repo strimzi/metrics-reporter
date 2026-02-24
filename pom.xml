@@ -124,6 +124,7 @@
     <prometheus.version>1.3.6</prometheus.version>
     <yammer.version>2.2.0</yammer.version>
     <slf4j.version>2.0.17</slf4j.version>
+    <log4j.version>2.24.3</log4j.version>
     <junit.version>5.10.2</junit.version>
     <strimzi-test-container.version>0.115.0</strimzi-test-container.version>
     <testcontainers.version>1.20.1</testcontainers.version>
@@ -191,9 +192,15 @@
         <scope>test</scope>
       </dependency>
       <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-simple</artifactId>
-        <version>${slf4j.version}</version>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-core</artifactId>
+        <version>${log4j.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-slf4j2-impl</artifactId>
+        <version>${log4j.version}</version>
         <scope>test</scope>
       </dependency>
       <dependency>
@@ -289,7 +296,8 @@
               <failOnWarning>true</failOnWarning>
               <ignoredUnusedDeclaredDependencies>
                 <!-- Needed for logging in tests -->
-                <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-simple</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.apache.logging.log4j:log4j-core</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.apache.logging.log4j:log4j-slf4j2-impl</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>io.strimzi:strimzi-test-container</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.testcontainers:testcontainers</ignoredUnusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
