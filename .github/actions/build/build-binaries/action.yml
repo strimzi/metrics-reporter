@@ -51,6 +51,7 @@ runs:
         MVN_ARGS: "-e -V -B -Dsurefire.rerunFailingTestsCount=5 -Dfailsafe.rerunFailingTestsCount=2"
         TESTCONTAINERS_RYUK_DISABLED: "TRUE"
         TESTCONTAINERS_CHECKS_DISABLE: "TRUE"
+        STRIMZI_TEST_CONTAINER_LOGGING_ENABLED: false
 
     - name: Create tarball with target directory
       shell: bash
