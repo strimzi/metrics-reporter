@@ -40,7 +40,7 @@ jobs:
         uses: strimzi/github-actions/.github/actions/build/build-binaries@main
         with:
           mainJavaBuild: ${{ matrix.java.mainBuild }}
-          artifactSuffix: "kafka-kubernetes-config-provider"
+          artifactSuffix: "metrics-reporter"
           clusterOperatorBuild: "false"
   
   deploy-java:
