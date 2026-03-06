@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'pom.xml'
+      - 'server-metrics-reporter/pom.xml'
+      - 'client-metrics-reporter/pom.xml'
       - 'Makefile'
       - 'Makefile.maven'
       - 'Makefile.os'

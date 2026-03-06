@@ -36,11 +36,12 @@ jobs:
         with:
           javaVersion: ${{ matrix.java.version }}
 
-      - uses: ./.github/actions/build/build-binaries
+      - name: Build binaries using build-binaries action
+        uses: strimzi/github-actions/.github/actions/build/build-binaries@main
         with:
-          javaVersion: ${{ matrix.java.version }}
-          mainBuild: ${{ matrix.java.mainBuild }}
-          runnerArch: "amd64"
+          mainJavaBuild: ${{ matrix.java.mainBuild }}
+          artifactSuffix: "kafka-kubernetes-config-provider"
+          clusterOperatorBuild: "false"
   
   deploy-java:
     name: Deploy Java artifacts to Maven Central
@@ -56,10 +57,10 @@ jobs:
         with:
           javaVersion: "17"
 
-      - uses: ./.github/actions/build/deploy-java
+      - name: Deploy to Maven Central
+        uses: strimzi/github-actions/.github/actions/build/deploy-java@main
         with:
-          javaVersion: "17"
-          runnerArch: "amd64"
+          modules: "./"
           gpgPassphrase: ${{ secrets.GPG_PASSPHRASE }}
           gpgSigningKey: ${{ secrets.GPG_SIGNING_KEY }}
           centralUsername: ${{ secrets.CENTRAL_USERNAME }}
