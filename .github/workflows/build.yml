@@ -30,6 +30,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
+      - name: Setup Java and Maven
+        uses: strimzi/github-actions/.github/actions/dependencies/setup-java@main
+        with:
+          javaVersion: ${{ matrix.java.version }}
+
       - uses: ./.github/actions/build/build-binaries
         with:
           javaVersion: ${{ matrix.java.version }}
@@ -44,6 +50,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
+      - name: Setup Java and Maven
+        uses: strimzi/github-actions/.github/actions/dependencies/setup-java@main
+        with:
+          javaVersion: "17"
+
       - uses: ./.github/actions/build/deploy-java
         with:
           javaVersion: "17"
