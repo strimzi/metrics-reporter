@@ -37,7 +37,7 @@ Wait until the build workflow is (successfully) finished for the last commit in 
 
 Then run the release workflow manually from the GitHub Actions UI:
 1. Go to the **Actions** tab in the GitHub repository
-2. Select the **Release** workflow from the left sidebar
+2. Select the [**Release**](https://github.com/strimzi/metrics-reporter/actions/workflows/release.yml) workflow from the left sidebar
 3. Click **Run workflow** button
 4. Fill in the required parameters:
    * **Release Version**: for example `1.2.0`
@@ -49,7 +49,6 @@ The release workflow will publish the Java artifacts to Maven Central.
 > Release candidates are built with the same release workflow as the final releases.
 > When starting the workflow, use the RC name as the release version.
 > For example `1.2.0-rc1` or `1.2.0-rc2`.
-> For release workflows, you should skip the suffixed build since it is not needed.
 
 ### Creating the release
 
