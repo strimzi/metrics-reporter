@@ -42,7 +42,7 @@ Then run the release workflow manually from the GitHub Actions UI:
 4. Fill in the required parameters:
    * **Release Version**: for example `1.2.0`
 
-The release workflow will push the images to the registry and publish the Java artifacts to Maven Central.
+The release workflow will publish the Java artifacts to Maven Central.
 
 > **Note for RCs:**
 > 
