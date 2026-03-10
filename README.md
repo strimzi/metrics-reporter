@@ -41,14 +41,13 @@ To use the reporter with Kafka brokers and controllers, add the following to you
 ```properties
 metric.reporters=io.strimzi.kafka.metrics.prometheus.ServerKafkaMetricsReporter
 kafka.metrics.reporters=io.strimzi.kafka.metrics.prometheus.ServerYammerMetricsReporter
-auto.include.jmx.reporter=false
 ```
 
 The `prometheus.metrics.reporter.allowlist` configuration of brokers and controllers can be updated at runtime without restarting Kafka.
 
 You can update the configuration using either of these approaches:
 
-* The `kafka-configs.sh` command-line tool 
+* The `kafka-configs.sh` command-line tool.
 * The `incrementalAlterConfigs()` method from the `Admin` API. 
 
 **Example update using `kafka-configs.sh`**
@@ -76,7 +75,6 @@ To use the reporter with Kafka producers, consumers or admin clients, add the fo
 
 ```properties
 metric.reporters=io.strimzi.kafka.metrics.prometheus.ClientMetricsReporter
-auto.include.jmx.reporter=false
 ```
 
 ### Kafka Connect and Kafka Streams
@@ -85,13 +83,9 @@ To use the reporter with Kafka Connect and Kafka Streams, add the following to y
 
 ```properties
 metric.reporters=io.strimzi.kafka.metrics.prometheus.ClientMetricsReporter
-auto.include.jmx.reporter=false
 admin.metric.reporters=io.strimzi.kafka.metrics.prometheus.ClientMetricsReporter
-admin.auto.include.jmx.reporter=false
 producer.metric.reporters=io.strimzi.kafka.metrics.prometheus.ClientMetricsReporter
-producer.auto.include.jmx.reporter=false
 consumer.metric.reporters=io.strimzi.kafka.metrics.prometheus.ClientMetricsReporter
-consumer.auto.include.jmx.reporter=false
 ```
 
 When setting configurations for the Prometheus metrics reporter, they also need to be set with the `admin.`, `producer.` and `consumer.`.
@@ -100,16 +94,12 @@ For example, to set the `listener` to `http://:8081`:
 ```properties
 metric.reporters=io.strimzi.kafka.metrics.prometheus.ClientMetricsReporter
 prometheus.metrics.reporter.listener=http://:8081
-auto.include.jmx.reporter=false
 admin.metric.reporters=io.strimzi.kafka.metrics.prometheus.ClientMetricsReporter
 admin.prometheus.metrics.reporter.listener=http://:8081
-admin.auto.include.jmx.reporter=false
 producer.metric.reporters=io.strimzi.kafka.metrics.prometheus.ClientMetricsReporter
 producer.prometheus.metrics.reporter.listener=http://:8081
-producer.auto.include.jmx.reporter=false
 consumer.metric.reporters=io.strimzi.kafka.metrics.prometheus.ClientMetricsReporter
 consumer.prometheus.metrics.reporter.listener=http://:8081
-consumer.auto.include.jmx.reporter=false
 ```
 
 ### MirrorMaker
