@@ -23,21 +23,19 @@ concurrency:
 
 jobs:
   test-github-actions-integration:
-    # TODO - change ref once we will have released version
-    uses: strimzi/github-actions/.github/workflows/reusable-test-integrations.yml@main
+    uses: strimzi/github-actions/.github/workflows/reusable-test-integrations.yml@v1
     with:
       repo: ${{ github.repository }}
       ref: ${{ github.sha }}
       architecture: "amd64"
       artifactSuffix: "metrics-reporter"
       buildContainers: false
-      modules: "./"
-      nexusCheck: "metrics-reporter"
+      modules: "./,client-metrics-reporter,server-metrics-reporter"
+      nexusCheck: "server-metrics-reporter"
       javaVersion: "17"
       helmChartName: "none"
       releaseVersion: "6.6.6"
       imagesDir: "none"
       clusterOperatorBuild: false
-      # TODO - change ref once we will have released version
-      githubActionsRef: "main"
+      githubActionsRef: "v1"
     secrets: inherit

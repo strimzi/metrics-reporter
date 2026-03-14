@@ -1,3 +1,6 @@
+[![Build Status](https://github.com/strimzi/strimzi-kafka-oauth/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/strimzi/strimzi-kafka-oauth/actions/workflows/build.yml?query=branch%3Amain)
+[![GitHub release](https://img.shields.io/github/release/strimzi/metrics-reporter.svg)](https://github.com/strimzi/metrics-reporter/releases/latest)
+[![Maven Central](https://img.shields.io/maven-central/v/io.strimzi/metrics-reporter)](https://search.maven.org/artifact/io.strimzi/metrics-reporter)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Twitter Follow](https://img.shields.io/twitter/follow/strimziio?style=social)](https://twitter.com/strimziio)
 
