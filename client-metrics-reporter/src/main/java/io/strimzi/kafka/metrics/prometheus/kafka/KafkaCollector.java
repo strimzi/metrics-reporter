@@ -97,13 +97,13 @@ public class KafkaCollector implements MetricsCollector {
                 Object metricValue = ((KafkaMetric) metricWrapper.metric()).metricValue();
                 Labels labels = metricWrapper.labels();
                 LOG.debug("Collecting Kafka metric {} with the following labels: {}", prometheusMetricName, labels);
-
+                String helpMessage = String.format("Use '" + prometheusMetricName + "' in allowlist");
                 if (metricValue instanceof Number) {
                     double value = ((Number) metricValue).doubleValue();
-                    GaugeSnapshot.Builder builder = (GaugeSnapshot.Builder) builders.computeIfAbsent(prometheusMetricName, k -> GaugeSnapshot.builder().name(prometheusMetricName));
+                    GaugeSnapshot.Builder builder = (GaugeSnapshot.Builder) builders.computeIfAbsent(prometheusMetricName, k -> GaugeSnapshot.builder().name(prometheusMetricName).help(helpMessage));
                     builder.dataPoint(DataPointSnapshotBuilder.gaugeDataPoint(labels, value));
                 } else {
-                    InfoSnapshot.Builder builder = (InfoSnapshot.Builder) builders.computeIfAbsent(prometheusMetricName, k -> InfoSnapshot.builder().name(prometheusMetricName));
+                    InfoSnapshot.Builder builder = (InfoSnapshot.Builder) builders.computeIfAbsent(prometheusMetricName, k -> InfoSnapshot.builder().name(prometheusMetricName).help(helpMessage));
                     builder.dataPoint(DataPointSnapshotBuilder.infoDataPoint(labels, metricValue, metricWrapper.attribute()));
                 }
             }
