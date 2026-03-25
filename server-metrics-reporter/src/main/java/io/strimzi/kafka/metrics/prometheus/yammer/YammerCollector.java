@@ -93,7 +93,7 @@ public class YammerCollector implements MetricsCollector {
                 Object metric = metricWrapper.metric();
                 Labels labels = metricWrapper.labels();
                 LOG.debug("Collecting Yammer metric {} with the following labels: {}", prometheusMetricName, labels);
-                String helpMessage = String.format("Use '" + prometheusMetricName + "' in allowlist");
+                String helpMessage = "Use " + prometheusMetricName + " in allowlist";
                 if (metric instanceof Counter) {
                     Counter counter = (Counter) metric;
                     CounterSnapshot.Builder builder = (CounterSnapshot.Builder) builders.computeIfAbsent(prometheusMetricName, k -> CounterSnapshot.builder().name(prometheusMetricName).help(helpMessage));

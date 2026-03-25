@@ -97,7 +97,7 @@ public class KafkaCollector implements MetricsCollector {
                 Object metricValue = ((KafkaMetric) metricWrapper.metric()).metricValue();
                 Labels labels = metricWrapper.labels();
                 LOG.debug("Collecting Kafka metric {} with the following labels: {}", prometheusMetricName, labels);
-                String helpMessage = String.format("Use '" + prometheusMetricName + "' in allowlist");
+                String helpMessage = "Use " + prometheusMetricName + " in allowlist";
                 if (metricValue instanceof Number) {
                     double value = ((Number) metricValue).doubleValue();
                     GaugeSnapshot.Builder builder = (GaugeSnapshot.Builder) builders.computeIfAbsent(prometheusMetricName, k -> GaugeSnapshot.builder().name(prometheusMetricName).help(helpMessage));

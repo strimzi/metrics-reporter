@@ -114,6 +114,57 @@ public class KafkaCollectorTest {
         assertEquals(0, metrics.size());
     }
 
+    @Test
+    public void testHelpMessageForMetric() {
+        KafkaCollector collector = new KafkaCollector();
+        AbstractReporter reporter = new AbstractReporter() {
+            @Override
+            protected Pattern allowlist() {
+                return Pattern.compile(".*");
+            }
+        };
+        collector.addReporter(reporter);
+
+        // Adding a numeric metric
+        AtomicInteger value = new AtomicInteger(1);
+        MetricName metricName = new MetricName("testMetric", "testGroup", "description", tagsMap);
+        MetricWrapper metricWrapper = newKafkaMetricWrapper(metricName, (config, now) -> value.get());
+        reporter.addMetric(metricName, metricWrapper);
+
+        List<? extends MetricSnapshot> metrics = collector.collect();
+        assertEquals(1, metrics.size());
+        MetricSnapshot snapshot = metrics.get(0);
+
+        String expectedHelpMessage = "Use kafka_server_testgroup_testmetric in allowlist";
+        assertEquals(expectedHelpMessage, snapshot.getMetadata().getHelp());
+    }
+
+    @Test
+    public void testHelpMessageForNonNumericMetric() {
+        KafkaCollector collector = new KafkaCollector();
+        AbstractReporter reporter = new AbstractReporter() {
+            @Override
+            protected Pattern allowlist() {
+                return Pattern.compile(".*");
+            }
+        };
+        collector.addReporter(reporter);
+
+        // Adding a non-numeric metric
+        String nonNumericValue = "testValue";
+        MetricName metricName = new MetricName("stringMetric", "testGroup", "description", tagsMap);
+        MetricWrapper metricWrapper = newKafkaMetricWrapper(metricName, (config, now) -> nonNumericValue);
+        reporter.addMetric(metricName, metricWrapper);
+
+        List<? extends MetricSnapshot> metrics = collector.collect();
+        assertEquals(1, metrics.size());
+        MetricSnapshot snapshot = metrics.get(0);
+
+        // Verify help message contains the JMX attribute
+        String expectedHelpMessage = "Use kafka_server_testgroup_stringmetric in allowlist";
+        assertEquals(expectedHelpMessage, snapshot.getMetadata().getHelp());
+    }
+
     private MetricWrapper newKafkaMetricWrapper(MetricName metricName, Gauge<?> gauge) {
         KafkaMetric kafkaMetric = newKafkaMetric(metricName.name(), metricName.group(), gauge, metricName.tags());
         String prometheusName = KafkaMetricWrapper.prometheusName(METRIC_PREFIX, metricName);

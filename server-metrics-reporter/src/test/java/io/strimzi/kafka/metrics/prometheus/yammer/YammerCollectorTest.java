@@ -102,6 +102,53 @@ public class YammerCollectorTest {
         assertInfoSnapshot(snapshot, labels, "name", nonNumericValue);
     }
 
+    @Test
+    public void testHelpMessageForMetric() {
+        AbstractReporter reporter = new AbstractReporter() {
+            @Override
+            protected Pattern allowlist() {
+                return Pattern.compile(".*");
+            }
+        };
+        collector.addReporter(reporter);
+
+        AtomicInteger value = new AtomicInteger(1);
+        MetricName metricName = new MetricName("group", "type", "testMetric", scope);
+        MetricWrapper metricWrapper = newYammerMetricWrapper(metricName, value::get);
+        reporter.addMetric(metricName, metricWrapper);
+
+        List<? extends MetricSnapshot> metrics = collector.collect();
+        assertEquals(1, metrics.size());
+        MetricSnapshot snapshot = metrics.get(0);
+
+        String expectedHelpMessage = "Use " + metricWrapper.prometheusName() + " in allowlist";
+        assertEquals(expectedHelpMessage, snapshot.getMetadata().getHelp());
+    }
+
+    @Test
+    public void testHelpMessageForNonNumericMetric() {
+        AbstractReporter reporter = new AbstractReporter() {
+            @Override
+            protected Pattern allowlist() {
+                return Pattern.compile(".*");
+            }
+        };
+        collector.addReporter(reporter);
+
+        String stringValue = "testValue";
+        MetricName metricName = new MetricName("group", "type", "stringMetric", scope);
+        MetricWrapper metricWrapper = newYammerMetricWrapper(metricName, () -> stringValue);
+        reporter.addMetric(metricName, metricWrapper);
+
+        List<? extends MetricSnapshot> metrics = collector.collect();
+        assertEquals(1, metrics.size());
+        MetricSnapshot snapshot = metrics.get(0);
+
+        // Verify help message follows the allowlist pattern
+        String expectedHelpMessage = "Use " + metricWrapper.prometheusName() + " in allowlist";
+        assertEquals(expectedHelpMessage, snapshot.getMetadata().getHelp());
+    }
+
     private <T> MetricWrapper newYammerMetricWrapper(MetricName metricName, Supplier<T> valueSupplier) {
         Gauge<T> gauge = newYammerMetric(valueSupplier);
         String prometheusName = YammerMetricWrapper.prometheusName(metricName);
