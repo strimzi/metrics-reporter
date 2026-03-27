@@ -126,32 +126,28 @@ public class KafkaCollectorTest {
         collector.addReporter(reporter);
 
         // Test numeric metric
-        AtomicInteger value = new AtomicInteger(1);
         MetricName numericMetricName = new MetricName("testMetric", "testGroup", "description", tagsMap);
-        MetricWrapper metricWrapper = newKafkaMetricWrapper(numericMetricName, (config, now) -> value.get());
+        MetricWrapper metricWrapper = newKafkaMetricWrapper(numericMetricName, (config, now) -> new AtomicInteger(1).get());
         reporter.addMetric(numericMetricName, metricWrapper);
 
         List<? extends MetricSnapshot> metrics = collector.collect();
         assertEquals(1, metrics.size());
-        MetricSnapshot snapshot = metrics.get(0);
 
         String expectedHelpMessage = "Use " + metricWrapper.prometheusName() + " in allowlist";
-        assertEquals(expectedHelpMessage, snapshot.getMetadata().getHelp());
+        assertEquals(expectedHelpMessage, metrics.get(0).getMetadata().getHelp());
 
         reporter.removeMetric(numericMetricName);
 
         // Test non-numeric metric
-        String nonNumericValue = "testValue";
         MetricName stringMetricName = new MetricName("stringMetric", "testGroup", "description", tagsMap);
-        MetricWrapper stringMetricWrapper = newKafkaMetricWrapper(stringMetricName, (config, now) -> nonNumericValue);
+        MetricWrapper stringMetricWrapper = newKafkaMetricWrapper(stringMetricName, (config, now) -> "testValue");
         reporter.addMetric(stringMetricName, stringMetricWrapper);
 
         metrics = collector.collect();
         assertEquals(1, metrics.size());
-        MetricSnapshot stringSnapshot = metrics.get(0);
 
         expectedHelpMessage = "Use " + stringMetricWrapper.prometheusName() + " in allowlist";
-        assertEquals(expectedHelpMessage, stringSnapshot.getMetadata().getHelp());
+        assertEquals(expectedHelpMessage, metrics.get(0).getMetadata().getHelp());
     }
 
     private MetricWrapper newKafkaMetricWrapper(MetricName metricName, Gauge<?> gauge) {
