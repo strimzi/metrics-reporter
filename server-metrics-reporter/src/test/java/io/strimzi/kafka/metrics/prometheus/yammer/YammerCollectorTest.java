@@ -114,7 +114,7 @@ public class YammerCollectorTest {
 
         // Test numeric metric
         MetricName numericMetricName = new MetricName("group", "type", "testMetric", scope);
-        MetricWrapper numericMetricWrapper = newYammerMetricWrapper(numericMetricName, new AtomicInteger(1)::get);
+        MetricWrapper numericMetricWrapper = newYammerMetricWrapper(numericMetricName, () -> 1);
         reporter.addMetric(numericMetricName, numericMetricWrapper);
 
         List<? extends MetricSnapshot> metrics = collector.collect();

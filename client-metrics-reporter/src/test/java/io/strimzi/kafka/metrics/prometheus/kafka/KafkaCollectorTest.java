@@ -127,7 +127,7 @@ public class KafkaCollectorTest {
 
         // Test numeric metric
         MetricName numericMetricName = new MetricName("testMetric", "testGroup", "description", tagsMap);
-        MetricWrapper metricWrapper = newKafkaMetricWrapper(numericMetricName, (config, now) -> new AtomicInteger(1).get());
+        MetricWrapper metricWrapper = newKafkaMetricWrapper(numericMetricName, (config, now) -> 1);
         reporter.addMetric(numericMetricName, metricWrapper);
 
         List<? extends MetricSnapshot> metrics = collector.collect();
