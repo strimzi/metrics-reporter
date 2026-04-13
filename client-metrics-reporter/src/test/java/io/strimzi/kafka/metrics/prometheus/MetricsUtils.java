@@ -60,11 +60,32 @@ public class MetricsUtils {
 
     /**
      * Query the HTTP endpoint and returns the output
+     * @param port The port to query
+     * @param includeComments Whether to include comment lines starting with #
+     * @return The lines from the output
+     */
+    public static List<String> getMetrics(int port, boolean includeComments) {
+        return getMetrics("localhost", port, includeComments);
+    }
+
+    /**
+     * Query the HTTP endpoint and returns the output
      * @param host The host to query
      * @param port The port to query
      * @return The lines from the output
      */
     public static List<String> getMetrics(String host, int port) {
+        return getMetrics(host, port, false);
+    }
+
+    /**
+     * Query the HTTP endpoint and returns the output
+     * @param host The host to query
+     * @param port The port to query
+     * @param includeComments Whether to include comment lines starting with #
+     * @return The lines from the output
+     */
+    public static List<String> getMetrics(String host, int port, boolean includeComments) {
         List<String> metrics = new ArrayList<>();
         assertTimeoutPreemptively(TIMEOUT, () -> {
             try {
@@ -74,7 +95,7 @@ public class MetricsUtils {
                 try (BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()))) {
                     String inputLine;
                     while ((inputLine = in.readLine()) != null) {
-                        if (!inputLine.startsWith("#")) {
+                        if (includeComments || !inputLine.startsWith("#")) {
                             metrics.add(inputLine);
                         }
                     }

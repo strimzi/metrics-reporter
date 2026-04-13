@@ -126,4 +126,28 @@ public class ClientMetricsReporterTest {
         }
     }
 
+    @Test
+    public void testHelpMessageInOutput() throws Exception {
+        ClientMetricsReporter reporter = new ClientMetricsReporter(registry, kafkaCollector);
+        configs.put(ClientMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_producer_group_name.*");
+        reporter.configure(configs);
+        reporter.contextChange(new KafkaMetricsContext("kafka.producer"));
+
+        int port = reporter.getPort().orElseThrow();
+
+        // Add a metric that matches the allowlist
+        KafkaMetric metric = newKafkaMetric("name", "group", (config, now) -> 0, LABELS);
+        reporter.metricChange(metric);
+
+        // Get metrics  including comments
+        List<String> metrics = getMetrics(port, true);
+
+        // Verify that the metrics contains the "Use prometheusMetricName in allowlist" help line
+        boolean foundHelpLine = metrics.stream()
+                .anyMatch(line -> line.startsWith("# HELP") && line.contains("Use kafka_producer_group_name") && line.contains("in allowlist"));
+        assertTrue(foundHelpLine, "Expected to find '# HELP' line with 'Use prometheusMetricName in allowlist' message");
+
+        reporter.close();
+    }
+
 }
