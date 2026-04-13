@@ -7,6 +7,7 @@ package io.strimzi.kafka.metrics.prometheus;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import io.strimzi.kafka.metrics.prometheus.common.PrometheusCollector;
 import io.strimzi.kafka.metrics.prometheus.kafka.KafkaCollector;
+import io.strimzi.kafka.metrics.prometheus.kafka.KafkaMetricWrapper;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.KafkaMetricsContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -142,10 +143,12 @@ public class ClientMetricsReporterTest {
         // Get metrics  including comments
         List<String> metrics = getMetrics(port, true);
 
+        String expectedPrometheusName = KafkaMetricWrapper.prometheusName("kafka.producer", metric.metricName());
+
         // Verify that the metrics contains the "Use prometheusMetricName in allowlist" help line
         boolean foundHelpLine = metrics.stream()
-                .anyMatch(line -> line.startsWith("# HELP") && line.contains("Use kafka_producer_group_name") && line.contains("in allowlist"));
-        assertTrue(foundHelpLine, "Expected to find '# HELP' line with 'Use prometheusMetricName in allowlist' message");
+                .anyMatch(line -> line.startsWith("# HELP") && line.contains("Use " + expectedPrometheusName) && line.contains("in allowlist"));
+        assertTrue(foundHelpLine, "Expected to find '# HELP' line with 'Use " + expectedPrometheusName + "in allowlist' message");
 
         reporter.close();
     }

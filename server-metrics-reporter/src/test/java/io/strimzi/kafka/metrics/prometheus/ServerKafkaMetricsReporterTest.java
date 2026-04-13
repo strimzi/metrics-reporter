@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.metrics.prometheus;
 
+import io.strimzi.kafka.metrics.prometheus.kafka.KafkaMetricWrapper;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.KafkaMetricsContext;
@@ -90,10 +91,12 @@ public class ServerKafkaMetricsReporterTest extends ClientMetricsReporterTest {
         // Get metrics output including comments
         List<String> metrics = getMetrics(port, true);
 
+        String expectedPrometheusName = KafkaMetricWrapper.prometheusName("kafka.server", metric.metricName());
+
         // Verify that the output contains the "Use prometheusMetricName in allowlist" help line
         boolean foundHelpLine = metrics.stream()
-                .anyMatch(line -> line.startsWith("# HELP") && line.contains("Use kafka_server_group_name") && line.contains("in allowlist"));
-        assertTrue(foundHelpLine, "Expected to find '# HELP' line with 'Use prometheusMetricName in allowlist' message");
+                .anyMatch(line -> line.startsWith("# HELP") && line.contains("Use " + expectedPrometheusName) && line.contains("in allowlist"));
+        assertTrue(foundHelpLine, "Expected to find '# HELP' line with 'Use " + expectedPrometheusName + "in allowlist' message");
 
         reporter.close();
     }

@@ -12,6 +12,7 @@ import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import io.strimzi.kafka.metrics.prometheus.common.PrometheusCollector;
 import io.strimzi.kafka.metrics.prometheus.http.HttpServers;
 import io.strimzi.kafka.metrics.prometheus.yammer.YammerCollector;
+import io.strimzi.kafka.metrics.prometheus.yammer.YammerMetricWrapper;
 import kafka.utils.VerifiableProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -121,16 +122,20 @@ public class ServerYammerMetricsReporterTest {
             httpServer = reporter.config.startHttpServer().orElseThrow();
             int port = httpServer.port();
 
+            MetricName metricName = new MetricName("group", "type", "name", "");
+
             // Add a metric that matches the allowlist
             newCounter("group", "type", "name");
 
             // Get metrics output including comments
             List<String> metrics = getMetrics(port, true);
 
+            String expectedPrometheusName = YammerMetricWrapper.prometheusName(metricName);
+
             // Verify that the output contains the "Use prometheusMetricName in allowlist" help line
             boolean foundHelpLine = metrics.stream()
-                    .anyMatch(line -> line.startsWith("# HELP") && line.contains("Use group_type_name") && line.contains("in allowlist"));
-            assertTrue(foundHelpLine, "Expected to find '# HELP' line with 'Use prometheusMetricName in allowlist' message");
+                    .anyMatch(line -> line.startsWith("# HELP") && line.contains("Use " + YammerMetricWrapper.prometheusName(metricName)) && line.contains("in allowlist"));
+            assertTrue(foundHelpLine, "Expected to find '# HELP' line with 'Use " + expectedPrometheusName + " in allowlist' message");
         } finally {
             if (httpServer != null) HttpServers.release(httpServer);
         }
