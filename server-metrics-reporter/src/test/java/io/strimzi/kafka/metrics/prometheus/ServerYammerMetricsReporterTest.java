@@ -134,7 +134,7 @@ public class ServerYammerMetricsReporterTest {
 
             // Verify that the output contains the "Use prometheusMetricName in allowlist" help line
             boolean foundHelpLine = metrics.stream()
-                    .anyMatch(line -> line.startsWith("# HELP") && line.contains("Use " + YammerMetricWrapper.prometheusName(metricName)) && line.contains("in allowlist"));
+                    .anyMatch(line -> line.startsWith("# HELP") && line.contains("Use " + YammerMetricWrapper.prometheusName(metricName) + " in allowlist"));
             assertTrue(foundHelpLine, "Expected to find '# HELP' line with 'Use " + expectedPrometheusName + " in allowlist' message");
         } finally {
             if (httpServer != null) HttpServers.release(httpServer);
