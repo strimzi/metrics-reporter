@@ -95,7 +95,7 @@ public class ServerKafkaMetricsReporterTest extends ClientMetricsReporterTest {
 
         // Verify that the output contains the "Use prometheusMetricName in allowlist" help line
         boolean foundHelpLine = metrics.stream()
-                .anyMatch(line -> line.startsWith("# HELP") && line.contains("Use " + expectedPrometheusName) && line.contains("in allowlist"));
+                .anyMatch(line -> line.startsWith("# HELP") && line.contains("Use " + expectedPrometheusName + " in allowlist"));
         assertTrue(foundHelpLine, "Expected to find '# HELP' line with 'Use " + expectedPrometheusName + "in allowlist' message");
 
         reporter.close();
