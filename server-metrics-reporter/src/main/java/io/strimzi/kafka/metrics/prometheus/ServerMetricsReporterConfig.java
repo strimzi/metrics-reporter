@@ -56,7 +56,7 @@ public class ServerMetricsReporterConfig extends ClientMetricsReporterConfig {
     @Override
     public String toString() {
         return "ServerMetricsReporterConfig{" +
-                ", listener=" + listener +
+                "listener=" + listener +
                 ", listenerEnabled=" + listenerEnabled +
                 ", allowlist=" + allowlist +
                 '}';

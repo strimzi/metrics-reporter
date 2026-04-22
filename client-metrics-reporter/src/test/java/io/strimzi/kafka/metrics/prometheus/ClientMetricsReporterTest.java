@@ -43,7 +43,7 @@ public class ClientMetricsReporterTest {
     }
 
     @Test
-    public void testLifeCycle() throws Exception {
+    public void testLifeCycle() {
         ClientMetricsReporter reporter = new ClientMetricsReporter(registry, kafkaCollector);
         configs.put(ClientMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_producer_group_name.*");
         reporter.configure(configs);
@@ -79,7 +79,7 @@ public class ClientMetricsReporterTest {
     }
 
     @Test
-    public void testMultipleReporters() throws Exception {
+    public void testMultipleReporters() {
         ClientMetricsReporter reporter1 = new ClientMetricsReporter(registry, kafkaCollector);
         reporter1.configure(configs);
         reporter1.contextChange(new KafkaMetricsContext("kafka.producer"));
@@ -90,7 +90,7 @@ public class ClientMetricsReporterTest {
         ClientMetricsReporter reporter2 = new ClientMetricsReporter(registry, kafkaCollector);
         reporter2.configure(configs);
         reporter2.contextChange(new KafkaMetricsContext("kafka.producer"));
-        Optional<Integer> port2 = reporter1.getPort();
+        Optional<Integer> port2 = reporter2.getPort();
         assertTrue(port2.isPresent());
         assertEquals(0, getMetrics(port2.get()).size());
 

@@ -33,7 +33,7 @@ public class KafkaCollector implements MetricsCollector {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaCollector.class);
     private static final KafkaCollector INSTANCE = new KafkaCollector();
     private static final AtomicBoolean REGISTERED = new AtomicBoolean(false);
-    private static final List<String> IGNORED_METRIC_NAMES = List.of(
+    private static final Set<String> IGNORED_METRIC_NAMES = Set.of(
         // The MirrorMaker connectors register this metric multiple times
         // See https://issues.apache.org/jira/browse/KAFKA-19168
         "kafka_connect_mirror_kafka_metrics_count_count"

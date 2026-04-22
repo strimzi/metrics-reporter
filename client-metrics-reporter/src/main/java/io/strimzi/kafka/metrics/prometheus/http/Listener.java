@@ -75,17 +75,9 @@ public class Listener {
      */
     public static class ListenerValidator implements ConfigDef.Validator {
 
-        /**
-         * Empty constructor
-         */
-        public ListenerValidator() { }
-
         @Override
         public void ensureValid(String name, Object value) {
-            Matcher matcher = PATTERN.matcher(String.valueOf(value));
-            if (!matcher.matches()) {
-                throw new ConfigException(name, value, "Listener must be of format http://[host]:[port]");
-            }
+            parseListener(String.valueOf(value));
         }
     }
 }

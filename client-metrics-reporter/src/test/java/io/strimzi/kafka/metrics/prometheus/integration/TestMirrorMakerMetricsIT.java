@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -87,8 +86,7 @@ public class TestMirrorMakerMetricsIT {
                     try {
                         assertTrue(admin.listTopics().names().get().contains(TOPIC));
                         break;
-                    } catch (Throwable t) {
-                        assertInstanceOf(AssertionError.class, t);
+                    } catch (AssertionError e) {
                         TimeUnit.MILLISECONDS.sleep(100L);
                     }
                 }

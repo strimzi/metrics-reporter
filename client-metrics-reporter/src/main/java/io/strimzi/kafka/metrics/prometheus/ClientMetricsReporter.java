@@ -122,7 +122,7 @@ public class ClientMetricsReporter extends AbstractReporter implements MetricsRe
 
     // for testing
     Optional<Integer> getPort() {
-        return Optional.ofNullable(httpServer.isPresent() ? httpServer.get().port() : null);
+        return httpServer.map(HttpServers.ServerCounter::port);
     }
 
     @Override
