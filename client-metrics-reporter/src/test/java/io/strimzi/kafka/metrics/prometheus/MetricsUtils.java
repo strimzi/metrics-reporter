@@ -164,8 +164,7 @@ public class MetricsUtils {
                         List<String> filteredMetrics = filterMetrics(metrics, pattern);
                         condition.accept(filteredMetrics);
                         break;
-                    } catch (Throwable t) {
-                        assertInstanceOf(AssertionError.class, t);
+                    } catch (AssertionError e) {
                         TimeUnit.MILLISECONDS.sleep(100L);
                         metrics = getMetrics(container.getHost(), container.getMappedPort(port));
                     }
@@ -211,8 +210,7 @@ public class MetricsUtils {
                 try {
                     assertEquals(HttpURLConnection.HTTP_CREATED, response.statusCode());
                     break;
-                } catch (Throwable t) {
-                    assertInstanceOf(AssertionError.class, t);
+                } catch (AssertionError e) {
                     TimeUnit.MILLISECONDS.sleep(100L);
                 }
             }
@@ -230,8 +228,7 @@ public class MetricsUtils {
                         assertTrue(response.body().contains("{\"id\":" + taskId + ",\"state\":\"RUNNING\""));
                     }
                     break;
-                } catch (Throwable t) {
-                    assertInstanceOf(AssertionError.class, t);
+                } catch (AssertionError e) {
                     TimeUnit.MILLISECONDS.sleep(100L);
                 }
             }

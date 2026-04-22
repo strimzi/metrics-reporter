@@ -94,8 +94,7 @@ public class YammerCollector implements MetricsCollector {
                 Labels labels = metricWrapper.labels();
                 LOG.debug("Collecting Yammer metric {} with the following labels: {}", prometheusMetricName, labels);
                 String helpMessage = "Use " + prometheusMetricName + " in allowlist";
-                if (metric instanceof Counter) {
-                    Counter counter = (Counter) metric;
+                if (metric instanceof Counter counter) {
                     CounterSnapshot.Builder builder = (CounterSnapshot.Builder) builders.computeIfAbsent(prometheusMetricName, k -> CounterSnapshot.builder().name(prometheusMetricName).help(helpMessage));
                     builder.dataPoint(DataPointSnapshotBuilder.counterDataPoint(labels, counter.count()));
                 } else if (metric instanceof Gauge) {
@@ -108,16 +107,13 @@ public class YammerCollector implements MetricsCollector {
                         InfoSnapshot.Builder builder = (InfoSnapshot.Builder) builders.computeIfAbsent(prometheusMetricName, k -> InfoSnapshot.builder().name(prometheusMetricName).help(helpMessage));
                         builder.dataPoint(DataPointSnapshotBuilder.infoDataPoint(labels, valueObj, metricWrapper.attribute()));
                     }
-                } else if (metric instanceof Timer) {
-                    Timer timer = (Timer) metric;
+                } else if (metric instanceof Timer timer) {
                     SummarySnapshot.Builder builder = (SummarySnapshot.Builder) builders.computeIfAbsent(prometheusMetricName, k -> SummarySnapshot.builder().name(prometheusMetricName).help(helpMessage));
                     builder.dataPoint(DataPointSnapshotBuilder.summaryDataPoint(labels, timer.count(), timer.sum(), quantiles(timer)));
-                } else if (metric instanceof Histogram) {
-                    Histogram histogram = (Histogram) metric;
+                } else if (metric instanceof Histogram histogram) {
                     SummarySnapshot.Builder builder = (SummarySnapshot.Builder) builders.computeIfAbsent(prometheusMetricName, k -> SummarySnapshot.builder().name(prometheusMetricName).help(helpMessage));
                     builder.dataPoint(DataPointSnapshotBuilder.summaryDataPoint(labels, histogram.count(), histogram.sum(), quantiles(histogram)));
-                } else if (metric instanceof Meter) {
-                    Meter meter = (Meter) metric;
+                } else if (metric instanceof Meter meter) {
                     CounterSnapshot.Builder builder = (CounterSnapshot.Builder) builders.computeIfAbsent(prometheusMetricName, k -> CounterSnapshot.builder().name(prometheusMetricName).help(helpMessage));
                     builder.dataPoint(DataPointSnapshotBuilder.counterDataPoint(labels, meter.count()));
                 } else {

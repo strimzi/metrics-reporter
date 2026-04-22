@@ -45,7 +45,7 @@ public class ServerYammerMetricsReporterTest {
     }
 
     @Test
-    public void testLifeCycle() throws Exception {
+    public void testLifeCycle() {
         ServerYammerMetricsReporter reporter = new ServerYammerMetricsReporter(registry, yammerCollector);
         configs.put(ServerMetricsReporterConfig.ALLOWLIST_CONFIG, "group_type.*");
         reporter.init(new VerifiableProperties(configs));
@@ -77,7 +77,7 @@ public class ServerYammerMetricsReporterTest {
     }
 
     @Test
-    public void testReconfigure() throws Exception {
+    public void testReconfigure() {
         ServerYammerMetricsReporter reporter = new ServerYammerMetricsReporter(registry, yammerCollector);
         configs.put(ServerMetricsReporterConfig.ALLOWLIST_CONFIG, "group_type.*");
         reporter.init(new VerifiableProperties(configs));
@@ -112,7 +112,7 @@ public class ServerYammerMetricsReporterTest {
     }
 
     @Test
-    public void testHelpMessageInOutput() throws Exception {
+    public void testHelpMessageInOutput() {
         ServerYammerMetricsReporter reporter = new ServerYammerMetricsReporter(registry, yammerCollector);
         configs.put(ServerMetricsReporterConfig.ALLOWLIST_CONFIG, "group_type.*");
         reporter.init(new VerifiableProperties(configs));

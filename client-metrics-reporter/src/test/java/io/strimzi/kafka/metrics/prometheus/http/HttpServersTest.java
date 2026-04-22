@@ -20,7 +20,7 @@ public class HttpServersTest {
     private final PrometheusRegistry registry = new PrometheusRegistry();
 
     @Test
-    public void testLifecycle() throws IOException {
+    public void testLifecycle() {
         Listener listener1 = Listener.parseListener("http://localhost:0");
         HttpServers.ServerCounter server1 = HttpServers.getOrCreate(listener1, registry);
         assertTrue(listenerStarted(listener1.host, server1.port()));

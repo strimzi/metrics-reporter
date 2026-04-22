@@ -29,7 +29,7 @@ public class ServerKafkaMetricsReporterTest extends ClientMetricsReporterTest {
     }
 
     @Test
-    public void testReconfigure() throws Exception {
+    public void testReconfigure() {
         try (ServerKafkaMetricsReporter reporter = new ServerKafkaMetricsReporter(registry, kafkaCollector)) {
             configs.put(ServerMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server_group_name.*");
             reporter.configure(configs);
@@ -76,7 +76,7 @@ public class ServerKafkaMetricsReporterTest extends ClientMetricsReporterTest {
     }
 
     @Test
-    public void testHelpMessageInOutput() throws Exception {
+    public void testHelpMessageInOutput() {
         ServerKafkaMetricsReporter reporter = new ServerKafkaMetricsReporter(registry, kafkaCollector);
         configs.put(ServerMetricsReporterConfig.ALLOWLIST_CONFIG, "kafka_server_group_name.*");
         reporter.configure(configs);

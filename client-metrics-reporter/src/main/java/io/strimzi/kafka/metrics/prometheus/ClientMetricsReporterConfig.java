@@ -138,7 +138,7 @@ public class ClientMetricsReporterConfig extends AbstractConfig {
     @Override
     public String toString() {
         return "ClientMetricsReporterConfig{" +
-                ", listener=" + listener +
+                "listener=" + listener +
                 ", listenerEnabled=" + listenerEnabled +
                 ", allowlist=" + allowlist +
                 '}';
