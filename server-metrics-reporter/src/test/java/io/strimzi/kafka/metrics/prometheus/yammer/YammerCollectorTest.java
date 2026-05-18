@@ -28,18 +28,27 @@ public class YammerCollectorTest {
 
     private Labels labels;
     private String scope;
+    private String mbeanLabels;
     private YammerCollector collector;
 
     @BeforeEach
     public void setup() {
         Labels.Builder labelsBuilder = Labels.builder();
         scope = "";
+        StringBuilder mbeanBuilder = new StringBuilder();
         for (int i = 0; i < 2; i++) {
             labelsBuilder.label("k" + i, "v" + i);
             scope += "k" + i + ".v" + i + ".";
+            mbeanBuilder.append(",k").append(i).append("=v").append(i);
         }
         labels = labelsBuilder.build();
+        mbeanLabels = mbeanBuilder.toString();
         collector = new YammerCollector(new PrometheusCollector());
+    }
+
+    private MetricName createMetricName(String name) {
+        String mBeanName = "group:type=type,name=" + name + mbeanLabels;
+        return new MetricName("group", "type", name, scope, mBeanName);
     }
 
     @Test
@@ -57,7 +66,7 @@ public class YammerCollectorTest {
 
         // Adding a metric
         AtomicInteger value = new AtomicInteger(1);
-        MetricName metricName = new MetricName("group", "type", "name", scope);
+        MetricName metricName = createMetricName("name");
         MetricWrapper metricWrapper = newYammerMetricWrapper(metricName, value::get);
         reporter.addMetric(metricName, metricWrapper);
 
@@ -91,7 +100,7 @@ public class YammerCollectorTest {
         assertEquals(0, metrics.size());
 
         String nonNumericValue = "value";
-        MetricName metricName = new MetricName("group", "type", "name", scope);
+        MetricName metricName = createMetricName("name");
         MetricWrapper metricWrapper = newYammerMetricWrapper(metricName, () -> nonNumericValue);
         reporter.addMetric(metricName, metricWrapper);
         metrics = collector.collect();
@@ -113,7 +122,7 @@ public class YammerCollectorTest {
         collector.addReporter(reporter);
 
         // Test numeric metric
-        MetricName numericMetricName = new MetricName("group", "type", "testMetric", scope);
+        MetricName numericMetricName = createMetricName("testMetric");
         MetricWrapper numericMetricWrapper = newYammerMetricWrapper(numericMetricName, () -> 1);
         reporter.addMetric(numericMetricName, numericMetricWrapper);
 
@@ -126,7 +135,7 @@ public class YammerCollectorTest {
         reporter.removeMetric(numericMetricName);
 
         // Test non-numeric metric
-        MetricName stringMetricName = new MetricName("group", "type", "stringMetric", scope);
+        MetricName stringMetricName = createMetricName("stringMetric");
         MetricWrapper stringMetricWrapper = newYammerMetricWrapper(stringMetricName, () -> "testValue");
         reporter.addMetric(stringMetricName, stringMetricWrapper);
 
@@ -140,6 +149,6 @@ public class YammerCollectorTest {
     private <T> MetricWrapper newYammerMetricWrapper(MetricName metricName, Supplier<T> valueSupplier) {
         Gauge<T> gauge = newYammerMetric(valueSupplier);
         String prometheusName = YammerMetricWrapper.prometheusName(metricName);
-        return new YammerMetricWrapper(prometheusName, metricName.getScope(), gauge, metricName.getName());
+        return new YammerMetricWrapper(prometheusName, metricName, gauge, metricName.getName());
     }
 }

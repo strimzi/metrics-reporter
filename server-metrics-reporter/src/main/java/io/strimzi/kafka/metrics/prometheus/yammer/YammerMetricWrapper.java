@@ -26,12 +26,12 @@ public class YammerMetricWrapper extends MetricWrapper {
     /**
      * Constructor from Yammer Metrics
      * @param prometheusName The name of the metric in the prometheus format
-     * @param scope The scope of the Yammer metric
+     * @param metricName The Yammer MetricName
      * @param metric The Yammer metric
      * @param attribute The attribute of the Yammer metric
      */
-    public YammerMetricWrapper(String prometheusName, String scope, Metric metric, String attribute) {
-        super(prometheusName, labelsFromScope(scope, prometheusName), metric, attribute);
+    public YammerMetricWrapper(String prometheusName, MetricName metricName, Metric metric, String attribute) {
+        super(prometheusName, labelsFromScopeAndMBeanName(metricName.getScope(), metricName.getMBeanName(), prometheusName), metric, attribute);
     }
 
     /**
@@ -47,19 +47,34 @@ public class YammerMetricWrapper extends MetricWrapper {
                         metricName.getName()).toLowerCase(Locale.ROOT));
     }
 
-    static Labels labelsFromScope(String scope, String metricName) {
-        Labels.Builder builder = Labels.builder();
-        Set<String> labelNames = new HashSet<>();
+    static Labels labelsFromScopeAndMBeanName(String scope, String mbeanName, String metricName) {
+        // Example scope: "type.kafka.name.BytesInPerSec"
+        Set<String> labelKeys = new HashSet<>();
         if (scope != null) {
             String[] parts = scope.split("\\.");
-            if (parts.length % 2 == 0) {
-                for (int i = 0; i < parts.length; i += 2) {
-                    String newLabelName = PrometheusNaming.sanitizeLabelName(parts[i]);
-                    if (labelNames.add(newLabelName)) {
-                        builder.label(newLabelName, parts[i + 1]);
-                    } else {
-                        LOG.warn("Ignoring duplicate label key: {} with value: {} from metric: {} ", newLabelName, parts[i + 1], metricName);
-                    }
+            for (int i = 0; i < parts.length - 1; i += 2) {
+                // Example labelKeys = {"type", "name"}
+                labelKeys.add(parts[i]);
+            }
+        }
+        if (labelKeys.isEmpty() || mbeanName == null) return Labels.EMPTY;
+        Labels.Builder builder = Labels.builder();
+        Set<String> labelNames = new HashSet<>();
+        // Example mbeanName: "kafka.server:type=BrokerTopicMetrics,name=BytesInPerSec,topic=my-topic"
+        int colonIdx = mbeanName.indexOf(':');
+        if (colonIdx >= 0) {
+            for (String property : mbeanName.substring(colonIdx + 1).split(",")) {
+                int eqIdx = property.indexOf('=');
+                if (eqIdx < 0) continue;
+                String key = property.substring(0, eqIdx);
+                String value = property.substring(eqIdx + 1);
+                // Example labels: {type="BrokerTopicMetrics", name="BytesInPerSec"} - topic label is ignored as not in scope
+                if (!labelKeys.contains(key)) continue;
+                String labelName = PrometheusNaming.sanitizeLabelName(key);
+                if (labelNames.add(labelName)) {
+                    builder.label(labelName, value);
+                } else {
+                    LOG.warn("Ignoring duplicate label key: {} with value: {} from metric: {} ", labelName, value, metricName);
                 }
             }
         }
