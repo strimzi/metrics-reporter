@@ -18,7 +18,7 @@ public class YammerMetricWrapperTest {
 
     @Test
     public void testLabelsFromScopeAndMBeanName() {
-        assertEquals(Labels.of("k1", "v1", "k2", "v2"),YammerMetricWrapper.labelsFromScopeAndMBeanName("k1.v1.k2.v2", "group:type=T,name=N,k1=v1,k2=v2", "name"));
+        assertEquals(Labels.of("k1", "v1", "k2", "v2"), YammerMetricWrapper.labelsFromScopeAndMBeanName("k1.v1.k2.v2", "group:type=T,name=N,k1=v1,k2=v2", "name"));
         // Dots in topic names are preserved: scope determines which keys are labels, MBean name provides the original (unsanitized) values
         assertEquals(Labels.of("topic", "env.topicname.version"),
                 YammerMetricWrapper.labelsFromScopeAndMBeanName(
