@@ -31,9 +31,25 @@ After building, make sure the metrics reporter JARs located under `target/metric
 
 The metrics reporter has the following configurations:
 
-- `prometheus.metrics.reporter.listener`: The HTTP listener to expose the metrics. It must be in the `http://[host]:[port]` format. This defaults to `http://:8080`.
+- `prometheus.metrics.reporter.listener`: The HTTP or HTTPS listener to expose the metrics. It must be in the `http://[host]:[port]` or `https://[host]:[port]` format. This defaults to `http://:8080`.
 - `prometheus.metrics.reporter.listener.enable`: Enable the listener to expose the metrics. This defaults to `true`.
 - `prometheus.metrics.reporter.allowlist`: A comma separated list of regex patterns to specify the metrics to collect. This defaults to `.*`.
+- `prometheus.metrics.reporter.listener.ssl.certificate.location`: The path to the PEM file containing the server certificate or certificate chain.
+- `prometheus.metrics.reporter.listener.ssl.key.location`: The path to the PEM file containing the unencrypted private key.
+- `prometheus.metrics.reporter.listener.ssl.certificate`: The server certificate or certificate chain in PEM format, provided as an inline string. This takes precedence over `prometheus.metrics.reporter.listener.ssl.certificate.location`.
+- `prometheus.metrics.reporter.listener.ssl.key`: The unencrypted private key in PEM format, provided as an inline string. This takes precedence over `prometheus.metrics.reporter.listener.ssl.key.location`.
+- `prometheus.metrics.reporter.listener.ssl.enabled.protocols`: A comma separated list of enabled secure transport protocols. This defaults to `TLSv1.2,TLSv1.3`.
+- `prometheus.metrics.reporter.listener.ssl.enabled.cipher.suites`: A comma separated list of cipher suites that the server will support. Empty uses Java's default cipher suites.
+
+To expose metrics over HTTPS, configure the listener with the `https://` scheme and provide the server certificate and private key:
+
+```properties
+prometheus.metrics.reporter.listener=https://:8443
+prometheus.metrics.reporter.listener.ssl.certificate.location=/path/to/tls.crt
+prometheus.metrics.reporter.listener.ssl.key.location=/path/to/tls.key
+```
+
+The HTTPS listener accepts PEM certificate chains and unencrypted PEM private keys. If the TLS configuration is invalid, such as a missing certificate, unsupported key format, mismatched key, unsupported protocol, or unsupported cipher suite, the reporter fails to start with a configuration error.
 
 ## Running
 
