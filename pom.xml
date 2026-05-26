@@ -65,7 +65,7 @@
     <yammer.version>2.2.0</yammer.version>
     <slf4j.version>2.0.17</slf4j.version>
     <log4j.version>2.25.4</log4j.version>
-    <junit.version>5.10.2</junit.version>
+    <junit.version>6.0.0</junit.version>
     <strimzi-test-container.version>0.115.0</strimzi-test-container.version>
     <testcontainers.version>1.20.1</testcontainers.version>
   </properties>
@@ -128,6 +128,18 @@
       <dependency>
         <groupId>org.junit.jupiter</groupId>
         <artifactId>junit-jupiter-api</artifactId>
+        <version>${junit.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-params</artifactId>
+        <version>${junit.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-engine</artifactId>
         <version>${junit.version}</version>
         <scope>test</scope>
       </dependency>
