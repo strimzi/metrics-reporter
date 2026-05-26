@@ -4,6 +4,8 @@
  */
 package io.strimzi.kafka.metrics.prometheus.http;
 
+import com.sun.net.httpserver.HttpsConfigurator;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import io.prometheus.metrics.exporter.httpserver.HTTPServer;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import org.slf4j.Logger;
@@ -33,9 +35,23 @@ public class HttpServers {
      * @return A ServerCounter instance
      */
     public synchronized static ServerCounter getOrCreate(Listener listener, PrometheusRegistry registry) {
+        return getOrCreate(listener, registry, null);
+    }
+
+    /**
+     * Get or create a new HTTP server if there isn't an existing instance for the specified listener.
+     * @param listener The host and port
+     * @param registry The Prometheus registry to expose
+     * @param httpsConfigurator The HTTPS configurator, or {@code null} to use HTTP.
+     * @return A ServerCounter instance
+     */
+    public synchronized static ServerCounter getOrCreate(
+            Listener listener,
+            PrometheusRegistry registry,
+            @Nullable HttpsConfigurator httpsConfigurator) {
         ServerCounter serverCounter = SERVERS.get(listener);
         if (serverCounter == null) {
-            serverCounter = new ServerCounter(listener, registry);
+            serverCounter = new ServerCounter(listener, registry, httpsConfigurator);
             serverCounter.start();
             SERVERS.put(listener, serverCounter);
         }
@@ -62,13 +78,21 @@ public class HttpServers {
         private final AtomicInteger count;
         private HTTPServer server;
 
-        private ServerCounter(Listener listener, PrometheusRegistry registry) {
+        private ServerCounter(
+                Listener listener,
+                PrometheusRegistry registry,
+                @Nullable HttpsConfigurator httpsConfigurator) {
             this.builder = HTTPServer.builder()
-                .port(listener.port)
-                .registry(registry);
+                    .port(listener.port)
+                    .registry(registry);
             if (!listener.host.isEmpty()) {
                 builder.hostname(listener.host);
             }
+
+            if (httpsConfigurator != null) {
+                builder.httpsConfigurator(httpsConfigurator);
+            }
+
             this.listener = listener;
             this.count = new AtomicInteger();
         }
@@ -79,7 +103,7 @@ public class HttpServers {
         private void start() {
             try {
                 this.server = builder.buildAndStart();
-                LOG.debug("Started HTTP server on http://{}:{}", listener.host, server.getPort());
+                LOG.debug("Started HTTP server on {}://{}:{}", listener.scheme, listener.host, server.getPort());
             } catch (IOException e) {
                 LOG.error("Failed starting HTTP server", e);
                 throw new RuntimeException(e);
@@ -99,7 +123,7 @@ public class HttpServers {
             int remaining = count.decrementAndGet();
             if (remaining == 0) {
                 server.close();
-                LOG.debug("Stopped HTTP server on http://{}:{}", listener.host, server.getPort());
+                LOG.debug("Stopped HTTP server on {}://{}:{}", listener.scheme, listener.host, server.getPort());
                 return true;
             }
             return false;

@@ -20,7 +20,7 @@ import static io.strimzi.kafka.metrics.prometheus.ClientMetricsReporterConfig.LI
  */
 public class Listener {
 
-    private static final Pattern PATTERN = Pattern.compile("http://\\[?([0-9a-zA-Z\\-%._:]*)]?:([0-9]+)");
+    private static final Pattern PATTERN = Pattern.compile("(https?)://\\[?([0-9a-zA-Z\\-%._:]*)]?:([0-9]+)");
 
     /**
      * The host of the listener
@@ -30,31 +30,50 @@ public class Listener {
      * The port of the listener
      */
     public final int port;
+    /**
+     * The scheme of the listener. Default is "http"
+     */
+    public final String scheme;
 
     /* test */ Listener(String host, int port) {
+        this("http", host, port);
+    }
+
+    /* test */ Listener(String scheme, String host, int port) {
+        this.scheme = scheme;
         this.host = host;
         this.port = port;
     }
 
     /**
-     * Build a Listener instance from a "http://[host]:[port]" string
+     * Build a Listener instance from an "http(s)://[host]:[port]" string
      * @param listener the input string
      * @return the listener
      */
     public static Listener parseListener(String listener) {
         Matcher matcher = PATTERN.matcher(listener);
         if (matcher.matches()) {
-            String host = matcher.group(1);
-            int port = Integer.parseInt(matcher.group(2));
-            return new Listener(host, port);
+            String scheme = matcher.group(1);
+            String host = matcher.group(2);
+            int port = Integer.parseInt(matcher.group(3));
+            return new Listener(scheme, host, port);
         } else {
-            throw new ConfigException(LISTENER_CONFIG, listener, "Listener must be of format http://[host]:[port]");
+            throw new ConfigException(LISTENER_CONFIG, listener, "Listener must be of format http(s)://[host]:[port]");
         }
+    }
+
+    /**
+     * Checks whether the listener uses HTTPS.
+     *
+     * @return true when the listener scheme is HTTPS.
+     */
+    public boolean isHttps() {
+        return "https".equals(scheme);
     }
 
     @Override
     public String toString() {
-        return "http://" + host + ":" + port;
+        return scheme + "://" + host + ":" + port;
     }
 
     @Override
@@ -62,12 +81,14 @@ public class Listener {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Listener listener = (Listener) o;
-        return port == listener.port && Objects.equals(host, listener.host);
+        return port == listener.port
+                && Objects.equals(scheme, listener.scheme)
+                && Objects.equals(host, listener.host);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(host, port);
+        return Objects.hash(scheme, host, port);
     }
 
     /**
@@ -75,9 +96,17 @@ public class Listener {
      */
     public static class ListenerValidator implements ConfigDef.Validator {
 
+        /**
+         * Constructor.
+         */
+        public ListenerValidator() { }
+
         @Override
         public void ensureValid(String name, Object value) {
-            parseListener(String.valueOf(value));
+            Matcher matcher = PATTERN.matcher(String.valueOf(value));
+            if (!matcher.matches()) {
+                throw new ConfigException(name, value, "The Listener must be of format http(s)://[host]:[port]");
+            }
         }
     }
 }
