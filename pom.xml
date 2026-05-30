@@ -252,6 +252,8 @@
                 <ignoredUnusedDeclaredDependency>org.apache.logging.log4j:log4j-slf4j2-impl</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>io.strimzi:strimzi-test-container</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.testcontainers:testcontainers</ignoredUnusedDeclaredDependency>
+                <!-- Needed by junit 6 -->
+                <ignoredUnusedDeclaredDependency>org.junit.jupiter:junit-jupiter-engine</ignoredUnusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
