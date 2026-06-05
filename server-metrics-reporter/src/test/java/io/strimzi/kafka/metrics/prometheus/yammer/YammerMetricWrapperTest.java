@@ -7,6 +7,7 @@ package io.strimzi.kafka.metrics.prometheus.yammer;
 import com.yammer.metrics.core.Gauge;
 import com.yammer.metrics.core.MetricName;
 import io.prometheus.metrics.model.snapshots.Labels;
+import io.prometheus.metrics.model.snapshots.PrometheusNaming;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -19,6 +20,13 @@ public class YammerMetricWrapperTest {
     @Test
     public void testLabelsFromScopeAndMBeanName() {
         assertEquals(Labels.of("k1", "v1", "k2", "v2"), YammerMetricWrapper.labelsFromScopeAndMBeanName("k1.v1.k2.v2", "group:type=T,name=N,k1=v1,k2=v2", "name"));
+        assertEquals(Labels.EMPTY, YammerMetricWrapper.labelsFromScopeAndMBeanName(null, "group:type=T,name=N,k1=v1", "name"));
+        assertEquals(Labels.EMPTY, YammerMetricWrapper.labelsFromScopeAndMBeanName("", "group:type=T,name=N,k1=v1", "name"));
+        assertEquals(Labels.EMPTY, YammerMetricWrapper.labelsFromScopeAndMBeanName("k1.v1", null, "name"));
+        Labels labels = YammerMetricWrapper.labelsFromScopeAndMBeanName("k-1.v1.k_1.v2", "group:k-1=v1,k_1=v2", "name");
+        assertEquals("k_1", PrometheusNaming.sanitizeLabelName("k-1"));
+        assertEquals("v1", labels.get("k_1"));
+        assertEquals(1, labels.size());
         // Dots in topic names are preserved: scope determines which keys are labels, MBean name provides the original (unsanitized) values
         assertEquals(Labels.of("topic", "env.topicname.version"),
                 YammerMetricWrapper.labelsFromScopeAndMBeanName(
@@ -31,9 +39,6 @@ public class YammerMetricWrapperTest {
                         "client-id.my-producer",
                         "kafka.server:type=T,name=N,client-id=my-producer",
                         "name"));
-        assertEquals(Labels.EMPTY, YammerMetricWrapper.labelsFromScopeAndMBeanName(null, "group:type=T,name=N,k1=v1", "name"));
-        assertEquals(Labels.EMPTY, YammerMetricWrapper.labelsFromScopeAndMBeanName("", "group:type=T,name=N,k1=v1", "name"));
-        assertEquals(Labels.EMPTY, YammerMetricWrapper.labelsFromScopeAndMBeanName("k1.v1", null, "name"));
     }
 
     @Test
