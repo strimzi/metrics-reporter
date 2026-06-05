@@ -175,7 +175,7 @@ public class TestServerMetricsIT {
             producer.send(new ProducerRecord<>(topic, "key", "value")).get();
         }
 
-        List<String> patterns = List.of("kafka_server_brokertopicmetrics_.*topic=\"env\\.topicname\\.version\".*");
+        List<String> patterns = List.of("kafka_server_brokertopicmetrics_.*topic=\"" + topic + "\".*");
         for (GenericContainer<?> broker : cluster.getNodes()) {
             MetricsUtils.verify(broker, patterns, PORT, metrics -> assertFalse(metrics.isEmpty()));
         }
