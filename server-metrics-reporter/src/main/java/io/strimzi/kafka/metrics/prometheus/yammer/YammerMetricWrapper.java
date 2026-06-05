@@ -48,19 +48,19 @@ public class YammerMetricWrapper extends MetricWrapper {
     }
 
     static Labels labelsFromScopeAndMBeanName(String scope, String mbeanName, String metricName) {
-        // Example scope: "type.kafka.name.BytesInPerSec"
+        // Example scope: "topic.env_topicname_version"
         Set<String> labelKeys = new HashSet<>();
         if (scope != null) {
             String[] parts = scope.split("\\.");
             for (int i = 0; i < parts.length - 1; i += 2) {
-                // Example labelKeys = {"type", "name"}
+                // Example labelKeys = {"topic"}
                 labelKeys.add(parts[i]);
             }
         }
         if (labelKeys.isEmpty() || mbeanName == null) return Labels.EMPTY;
         Labels.Builder builder = Labels.builder();
         Set<String> labelNames = new HashSet<>();
-        // Example mbeanName: "kafka.server:type=BrokerTopicMetrics,name=BytesInPerSec,topic=my-topic"
+        // Example mbeanName: "kafka.server:type=BrokerTopicMetrics,name=MessagesInPerSec,topic=env.topicname.version"
         int colonIdx = mbeanName.indexOf(':');
         if (colonIdx >= 0) {
             for (String property : mbeanName.substring(colonIdx + 1).split(",")) {
@@ -68,7 +68,7 @@ public class YammerMetricWrapper extends MetricWrapper {
                 if (eqIdx < 0) continue;
                 String key = property.substring(0, eqIdx);
                 String value = property.substring(eqIdx + 1);
-                // Example labels: {type="BrokerTopicMetrics", name="BytesInPerSec"} - topic label is ignored as not in scope
+                // Example labels: {topic="env.topicname.version"} - type and name properties are ignored as not in scope
                 if (!labelKeys.contains(key)) continue;
                 String labelName = PrometheusNaming.sanitizeLabelName(key);
                 if (labelNames.add(labelName)) {
