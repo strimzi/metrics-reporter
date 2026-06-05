@@ -15,8 +15,13 @@ import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
+import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.errors.InvalidRequestException;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
@@ -151,6 +156,28 @@ public class TestServerMetricsIT {
                 "kafka_server_.*");
         for (GenericContainer<?> broker : cluster.getNodes()) {
             MetricsUtils.verify(broker, disallowPatterns, PORT, metrics -> assertTrue(metrics.isEmpty()));
+        }
+    }
+
+    @Test
+    public void testTopicWithDotsInName() throws Exception {
+        setupCluster(Map.of());
+        String topic = "env.topicname.version";
+
+        try (Admin admin = Admin.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, cluster.getBootstrapServers()))) {
+            admin.createTopics(List.of(new NewTopic(topic, 1, (short) -1))).all().get();
+        }
+
+        try (KafkaProducer<String, String> producer = new KafkaProducer<>(Map.of(
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, cluster.getBootstrapServers(),
+                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName(),
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName()))) {
+            producer.send(new ProducerRecord<>(topic, "key", "value")).get();
+        }
+
+        List<String> patterns = List.of("kafka_server_brokertopicmetrics_.*topic=\"env\\.topicname\\.version\".*");
+        for (GenericContainer<?> broker : cluster.getNodes()) {
+            MetricsUtils.verify(broker, patterns, PORT, metrics -> assertFalse(metrics.isEmpty()));
         }
     }
 
