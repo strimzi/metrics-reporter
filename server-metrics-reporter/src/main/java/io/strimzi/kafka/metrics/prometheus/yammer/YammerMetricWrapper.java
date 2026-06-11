@@ -57,7 +57,9 @@ public class YammerMetricWrapper extends MetricWrapper {
                 labelKeys.add(parts[i]);
             }
         }
-        if (labelKeys.isEmpty() || mbeanName == null) return Labels.EMPTY;
+        if (labelKeys.isEmpty() || mbeanName == null) {
+            return Labels.EMPTY;
+        }
         Labels.Builder builder = Labels.builder();
         Set<String> labelNames = new HashSet<>();
         // Example mbeanName: "kafka.server:type=BrokerTopicMetrics,name=MessagesInPerSec,topic=env.topicname.version"
