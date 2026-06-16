@@ -81,7 +81,7 @@ public class ServerYammerMetricsReporter extends AbstractReporter implements Kaf
     @Override
     public void onMetricAdded(MetricName name, Metric metric) {
         String prometheusName = YammerMetricWrapper.prometheusName(name);
-        MetricWrapper metricWrapper = new YammerMetricWrapper(prometheusName, name.getScope(), metric, name.getName());
+        MetricWrapper metricWrapper = new YammerMetricWrapper(prometheusName, name, metric, name.getName());
         addMetric(name, metricWrapper);
     }
 
