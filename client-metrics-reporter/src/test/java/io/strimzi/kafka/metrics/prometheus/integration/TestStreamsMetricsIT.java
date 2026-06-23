@@ -19,6 +19,10 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.containers.GenericContainer;
 
 import java.util.HashMap;
@@ -28,15 +32,22 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@ParameterizedClass
+@MethodSource("io.strimzi.test.container.StrimziKafkaCluster#getLatestPatchVersions")
 public class TestStreamsMetricsIT {
 
     private static final int PORT = Listener.parseListener(ClientMetricsReporterConfig.LISTENER_CONFIG_DEFAULT).port;
     private StrimziKafkaCluster cluster;
     private Map<String, String> env;
 
+    @Parameter
+    protected String kafkaVersion;
+
     @BeforeEach
     public void setUp() throws Exception {
         cluster = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
+                .withKafkaVersion(kafkaVersion)
                 .withNumberOfBrokers(1)
                 .withSharedNetwork()
                 .build();
@@ -77,7 +88,7 @@ public class TestStreamsMetricsIT {
 
     @Test
     public void testStreamsMetrics() {
-        try (GenericContainer<?> streams = MetricsUtils.clientContainer(env, PORT)) {
+        try (GenericContainer<?> streams = MetricsUtils.clientContainer(env, PORT, kafkaVersion)) {
             streams.start();
 
             List<String> patterns = List.of(
@@ -113,7 +124,7 @@ public class TestStreamsMetricsIT {
         env.put("ADDITIONAL_CONFIG",
                 "metric.reporters=" + ClientMetricsReporter.class.getName() + "\n" +
                         "prometheus.metrics.reporter.allowlist=kafka_consumer_.*,kafka_streams_stream_metrics_.*");
-        try (GenericContainer<?> streams = MetricsUtils.clientContainer(env, PORT)) {
+        try (GenericContainer<?> streams = MetricsUtils.clientContainer(env, PORT, kafkaVersion)) {
             streams.start();
 
             List<String> allowedPatterns = List.of(

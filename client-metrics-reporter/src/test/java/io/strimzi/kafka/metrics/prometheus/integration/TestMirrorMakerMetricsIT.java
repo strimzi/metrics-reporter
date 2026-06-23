@@ -23,6 +23,10 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.utility.MountableFile;
@@ -37,6 +41,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@ParameterizedClass
+@MethodSource("io.strimzi.test.container.StrimziKafkaCluster#getLatestPatchVersions")
 public class TestMirrorMakerMetricsIT {
 
     private static final int PORT = Listener.parseListener(ClientMetricsReporterConfig.LISTENER_CONFIG_DEFAULT).port;
@@ -49,11 +56,15 @@ public class TestMirrorMakerMetricsIT {
     private StrimziKafkaCluster kafka;
     private StrimziConnectCluster connect;
 
+    @Parameter
+    protected String kafkaVersion;
+
     @BeforeEach
     public void setUp() throws Exception {
         // Use a single cluster as source and target
         // MirrorSourceConnector is configured with a fixed topics configuration to avoid loop
         kafka = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
+                .withKafkaVersion(kafkaVersion)
                 .withNumberOfBrokers(1)
                 .withSharedNetwork()
                 .build();
@@ -62,6 +73,7 @@ public class TestMirrorMakerMetricsIT {
         connect = new StrimziConnectCluster.StrimziConnectClusterBuilder()
                 .withGroupId(CONNECT_ID)
                 .withKafkaCluster(kafka)
+                .withKafkaVersion(kafkaVersion)
                 .withAdditionalConnectConfiguration(Map.of(
                         CommonClientConfigs.METRIC_REPORTER_CLASSES_CONFIG, ClientMetricsReporter.class.getName()
                 ))

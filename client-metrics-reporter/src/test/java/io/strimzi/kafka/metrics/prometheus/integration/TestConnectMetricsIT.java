@@ -21,6 +21,10 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.MountableFile;
 
@@ -33,6 +37,9 @@ import static io.strimzi.kafka.metrics.prometheus.ClientMetricsReporterConfig.AL
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@ParameterizedClass
+@MethodSource("io.strimzi.test.container.StrimziKafkaCluster#getLatestPatchVersions")
 public class TestConnectMetricsIT {
 
     private static final int PORT = Listener.parseListener(ClientMetricsReporterConfig.LISTENER_CONFIG_DEFAULT).port;
@@ -103,9 +110,13 @@ public class TestConnectMetricsIT {
     private StrimziKafkaCluster kafka;
     private StrimziConnectCluster connect;
 
+    @Parameter
+    protected String kafkaVersion;
+
     @BeforeEach
     public void setUp() {
         kafka = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
+                .withKafkaVersion(kafkaVersion)
                 .withNumberOfBrokers(1)
                 .withSharedNetwork()
                 .build();
@@ -141,6 +152,7 @@ public class TestConnectMetricsIT {
         connect = new StrimziConnectCluster.StrimziConnectClusterBuilder()
                 .withGroupId(GROUP_ID)
                 .withKafkaCluster(kafka)
+                .withKafkaVersion(kafkaVersion)
                 .withAdditionalConnectConfiguration(configs)
                 .build();
         for (GenericContainer<?> worker : connect.getWorkers()) {

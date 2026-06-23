@@ -24,6 +24,10 @@ import org.apache.kafka.common.errors.InvalidRequestException;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.MountableFile;
 
@@ -39,12 +43,18 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@ParameterizedClass
+@MethodSource("io.strimzi.test.container.StrimziKafkaCluster#getLatestPatchVersions")
 public class TestServerMetricsIT {
 
     private static final String REPORTER_JARS = "../target/metrics-reporter-" + VERSION + "/metrics-reporter-" + VERSION + "/libs/";
     private static final int PORT = Listener.parseListener(ServerMetricsReporterConfig.LISTENER_CONFIG_DEFAULT).port;
 
     private StrimziKafkaCluster cluster;
+
+    @Parameter
+    protected String kafkaVersion;
 
     @AfterEach
     public void tearDown() {
@@ -59,6 +69,7 @@ public class TestServerMetricsIT {
         configs.put("kafka.metrics.reporters", ServerYammerMetricsReporter.class.getName());
 
         cluster = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
+                .withKafkaVersion(kafkaVersion)
                 .withAdditionalKafkaConfiguration(configs)
                 .withNumberOfBrokers(1)
                 .withSharedNetwork()
