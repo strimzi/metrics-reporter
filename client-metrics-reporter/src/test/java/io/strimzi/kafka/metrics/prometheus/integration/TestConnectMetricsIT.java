@@ -152,6 +152,7 @@ public class TestConnectMetricsIT {
         connect = new StrimziConnectCluster.StrimziConnectClusterBuilder()
                 .withGroupId(GROUP_ID)
                 .withKafkaCluster(kafka)
+                .withKafkaVersion(kafkaVersion)
                 .withAdditionalConnectConfiguration(configs)
                 .build();
         for (GenericContainer<?> worker : connect.getWorkers()) {

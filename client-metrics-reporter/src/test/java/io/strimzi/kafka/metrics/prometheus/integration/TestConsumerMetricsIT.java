@@ -63,7 +63,7 @@ public class TestConsumerMetricsIT {
 
     @Test
     public void testConsumerMetrics() {
-        try (GenericContainer<?> consumer = MetricsUtils.clientContainer(env, PORT)) {
+        try (GenericContainer<?> consumer = MetricsUtils.clientContainer(env, PORT, kafkaVersion)) {
             consumer.start();
 
             List<String> patterns = List.of(
@@ -84,7 +84,7 @@ public class TestConsumerMetricsIT {
         env.put("ADDITIONAL_CONFIG",
                 "metric.reporters=" + ClientMetricsReporter.class.getName() + "\n" +
                         "prometheus.metrics.reporter.allowlist=kafka_consumer_kafka_metrics_.*,kafka_consumer_consumer_coordinator_metrics_.*");
-        try (GenericContainer<?> consumer = MetricsUtils.clientContainer(env, PORT)) {
+        try (GenericContainer<?> consumer = MetricsUtils.clientContainer(env, PORT, kafkaVersion)) {
             consumer.start();
 
             List<String> allowedPatterns = List.of(

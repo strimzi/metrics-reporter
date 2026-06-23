@@ -73,6 +73,7 @@ public class TestMirrorMakerMetricsIT {
         connect = new StrimziConnectCluster.StrimziConnectClusterBuilder()
                 .withGroupId(CONNECT_ID)
                 .withKafkaCluster(kafka)
+                .withKafkaVersion(kafkaVersion)
                 .withAdditionalConnectConfiguration(Map.of(
                         CommonClientConfigs.METRIC_REPORTER_CLASSES_CONFIG, ClientMetricsReporter.class.getName()
                 ))

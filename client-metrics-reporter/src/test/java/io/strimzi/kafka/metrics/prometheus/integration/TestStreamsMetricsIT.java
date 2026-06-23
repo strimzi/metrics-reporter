@@ -88,7 +88,7 @@ public class TestStreamsMetricsIT {
 
     @Test
     public void testStreamsMetrics() {
-        try (GenericContainer<?> streams = MetricsUtils.clientContainer(env, PORT)) {
+        try (GenericContainer<?> streams = MetricsUtils.clientContainer(env, PORT, kafkaVersion)) {
             streams.start();
 
             List<String> patterns = List.of(
@@ -124,7 +124,7 @@ public class TestStreamsMetricsIT {
         env.put("ADDITIONAL_CONFIG",
                 "metric.reporters=" + ClientMetricsReporter.class.getName() + "\n" +
                         "prometheus.metrics.reporter.allowlist=kafka_consumer_.*,kafka_streams_stream_metrics_.*");
-        try (GenericContainer<?> streams = MetricsUtils.clientContainer(env, PORT)) {
+        try (GenericContainer<?> streams = MetricsUtils.clientContainer(env, PORT, kafkaVersion)) {
             streams.start();
 
             List<String> allowedPatterns = List.of(

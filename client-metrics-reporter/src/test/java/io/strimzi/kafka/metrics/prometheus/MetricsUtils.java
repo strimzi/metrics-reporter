@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class MetricsUtils {
 
     public static final String VERSION = "1.0.0-SNAPSHOT";
-    private static final String CLIENTS_IMAGE = "quay.io/strimzi-test-clients/test-clients:0.12.0-kafka-4.0.0";
+    private static final String CLIENTS_IMAGE_PREFIX = "quay.io/strimzi-test-clients/test-clients:latest-kafka-";
     private static final Duration TIMEOUT = Duration.ofSeconds(30L);
 
     public static final String REPORTER_JARS = "target/client-metrics-reporter-" + VERSION + "/client-metrics-reporter-" + VERSION + "/libs/";
@@ -177,10 +177,11 @@ public class MetricsUtils {
      * Start a test-clients container
      * @param env the environment variables
      * @param port the port to expose
+     * @param kafkaVersion the Kafka version the client should run against
      * @return the container instance
      */
-    public static GenericContainer<?> clientContainer(Map<String, String> env, int port) {
-        return new GenericContainer<>(CLIENTS_IMAGE)
+    public static GenericContainer<?> clientContainer(Map<String, String> env, int port, String kafkaVersion) {
+        return new GenericContainer<>(CLIENTS_IMAGE_PREFIX + kafkaVersion)
                 .withNetwork(Network.SHARED)
                 .withExposedPorts(port)
                 .withCopyFileToContainer(MountableFile.forHostPath(REPORTER_JARS), MOUNT_PATH)
