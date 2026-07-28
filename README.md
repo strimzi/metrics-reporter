@@ -34,6 +34,7 @@ The metrics reporter has the following configurations:
 - `prometheus.metrics.reporter.listener`: The HTTP listener to expose the metrics. It must be in the `http://[host]:[port]` format. This defaults to `http://:8080`.
 - `prometheus.metrics.reporter.listener.enable`: Enable the listener to expose the metrics. This defaults to `true`.
 - `prometheus.metrics.reporter.allowlist`: A comma separated list of regex patterns to specify the metrics to collect. This defaults to `.*`.
+- `prometheus.metrics.reporter.client.telemetry.labels`: A comma separated list of label names to include in client telemetry metrics. Valid values are: `client_id`, `listener_name`, `security_protocol`, `principal`, `client_address`. This defaults to `client_id`.
 
 ## Running
 
@@ -46,9 +47,10 @@ metric.reporters=io.strimzi.kafka.metrics.prometheus.ServerKafkaMetricsReporter
 kafka.metrics.reporters=io.strimzi.kafka.metrics.prometheus.ServerYammerMetricsReporter
 ```
 
-The `prometheus.metrics.reporter.allowlist` configuration of brokers and controllers can be updated at runtime without restarting Kafka.
+The `prometheus.metrics.reporter.allowlist` and `prometheus.metrics.reporter.client.telemetry.labels` configurations of
+brokers and controllers can be updated at runtime without restarting Kafka.
 
-You can update the configuration using either of these approaches:
+You can update the configurations using either of these approaches:
 
 * The `kafka-configs.sh` command-line tool.
 * The `incrementalAlterConfigs()` method from the `Admin` API. 
