@@ -40,7 +40,6 @@ public class TestProducerMetricsIT {
     @BeforeEach
     public void setUp() {
         cluster = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
-                .withKafkaVersion(kafkaVersion)
                 .withNumberOfBrokers(1)
                 .withSharedNetwork()
                 .build();

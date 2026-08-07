@@ -47,7 +47,6 @@ public class TestStreamsMetricsIT {
     @BeforeEach
     public void setUp() throws Exception {
         cluster = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
-                .withKafkaVersion(kafkaVersion)
                 .withNumberOfBrokers(1)
                 .withSharedNetwork()
                 .build();

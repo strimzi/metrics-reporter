@@ -64,7 +64,6 @@ public class TestMirrorMakerMetricsIT {
         // Use a single cluster as source and target
         // MirrorSourceConnector is configured with a fixed topics configuration to avoid loop
         kafka = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
-                .withKafkaVersion(kafkaVersion)
                 .withNumberOfBrokers(1)
                 .withSharedNetwork()
                 .build();

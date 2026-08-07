@@ -116,7 +116,6 @@ public class TestConnectMetricsIT {
     @BeforeEach
     public void setUp() {
         kafka = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
-                .withKafkaVersion(kafkaVersion)
                 .withNumberOfBrokers(1)
                 .withSharedNetwork()
                 .build();
