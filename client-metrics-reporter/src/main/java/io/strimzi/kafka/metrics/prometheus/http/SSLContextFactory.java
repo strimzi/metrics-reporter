@@ -88,7 +88,7 @@ public class SSLContextFactory {
 
             char[] keyPassword = KEY_STORE_PASSWORD.toCharArray();
 
-            KeyStore keyStore = KeyStore.getInstance("PKCS12");
+            KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
             keyStore.load(null, null);
             keyStore.setKeyEntry(KEY_ENTRY_ALIAS, privateKey, keyPassword, certificateChain);
 
@@ -103,8 +103,7 @@ public class SSLContextFactory {
             throw e;
         } catch (Exception e) {
             throw new ConfigException(
-                    "Failed to create SSL context for the metrics reporter listener",
-                    e);
+                    "Failed to create SSL context for the metrics reporter listener");
         }
     }
 
@@ -145,7 +144,7 @@ public class SSLContextFactory {
                         "Failed to read " + description + ": " + e.getMessage());
             }
         }
-        throw new ConfigException(inlineConfig, null, description + " must be configured for HTTPS listeners");
+        throw new ConfigException(description + " must be configured for HTTPS listeners");
     }
 
     private X509Certificate[] certificateChain(String pem) throws Exception {
@@ -449,7 +448,7 @@ public class SSLContextFactory {
 
     @Override
     public String toString() {
-        return "SslContextFactory{" +
+        return "SSLContextFactory{" +
                 "certificateLocation=" + certificateLocation +
                 ", keyLocation=" + keyLocation +
                 ", certificate=" + (certificate != null ? "[hidden]" : null) +

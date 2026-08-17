@@ -71,6 +71,7 @@ public class HttpsConfiguratorFactory {
     /**
      * @return SSL enabled Protocols.
      */
+    @SuppressWarnings("doclint:missing")
     public List<String> enabledProtocols() {
         return enabledProtocols;
     }
@@ -78,6 +79,7 @@ public class HttpsConfiguratorFactory {
     /**
      * @return SSL cipher suites.
      */
+    @SuppressWarnings("doclint:missing")
     public List<String> enabledCipherSuites() {
         return enabledCipherSuites;
     }

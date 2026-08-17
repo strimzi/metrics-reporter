@@ -150,8 +150,8 @@ public class ClientMetricsReporterConfig extends AbstractConfig {
     final boolean listenerEnabled;
     final PrometheusRegistry registry;
     final Pattern allowlist;
-    SSLContextFactory sslContextFactory = null;
-    HttpsConfiguratorFactory httpsConfiguratorFactory = null;
+    final SSLContextFactory sslContextFactory;
+    final HttpsConfiguratorFactory httpsConfiguratorFactory;
 
     /**
      * Constructor.
@@ -175,6 +175,9 @@ public class ClientMetricsReporterConfig extends AbstractConfig {
             this.httpsConfiguratorFactory = new HttpsConfiguratorFactory(
                     getList(LISTENER_SSL_ENABLED_PROTOCOLS_CONFIG),
                     getList(LISTENER_SSL_ENABLED_CIPHER_SUITES_CONFIG));
+        } else {
+            this.sslContextFactory = null;
+            this.httpsConfiguratorFactory = null;
         }
     }
 

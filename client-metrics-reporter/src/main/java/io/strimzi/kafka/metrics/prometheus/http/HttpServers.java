@@ -5,7 +5,6 @@
 package io.strimzi.kafka.metrics.prometheus.http;
 
 import com.sun.net.httpserver.HttpsConfigurator;
-import edu.umd.cs.findbugs.annotations.Nullable;
 import io.prometheus.metrics.exporter.httpserver.HTTPServer;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import org.slf4j.Logger;
@@ -48,7 +47,7 @@ public class HttpServers {
     public synchronized static ServerCounter getOrCreate(
             Listener listener,
             PrometheusRegistry registry,
-            @Nullable HttpsConfigurator httpsConfigurator) {
+            HttpsConfigurator httpsConfigurator) {
         ServerCounter serverCounter = SERVERS.get(listener);
         if (serverCounter == null) {
             serverCounter = new ServerCounter(listener, registry, httpsConfigurator);
@@ -81,7 +80,7 @@ public class HttpServers {
         private ServerCounter(
                 Listener listener,
                 PrometheusRegistry registry,
-                @Nullable HttpsConfigurator httpsConfigurator) {
+                HttpsConfigurator httpsConfigurator) {
             this.builder = HTTPServer.builder()
                     .port(listener.port)
                     .registry(registry);
