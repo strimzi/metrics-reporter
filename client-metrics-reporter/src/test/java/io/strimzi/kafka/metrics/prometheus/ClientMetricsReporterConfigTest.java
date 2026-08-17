@@ -63,7 +63,7 @@ public class ClientMetricsReporterConfigTest {
     }
 
     @Test
-    public void testHttpListenerDoesNotCreateSslFactories() {
+    public void testHttpListenerDoesNotCreateSslFactory() {
         ClientMetricsReporterConfig config = new ClientMetricsReporterConfig(Map.of(), new PrometheusRegistry());
 
         assertNull(config.sslContextFactory);
@@ -194,7 +194,7 @@ public class ClientMetricsReporterConfigTest {
     }
 
     @Test
-    public void testStartHttpsServer() throws Exception {
+    public void testStartHttpsServer() {
         Map<String, String> props = Map.of(
                 LISTENER_CONFIG, "https://localhost:0",
                 LISTENER_SSL_CERTIFICATE_CONFIG, CERTIFICATE,

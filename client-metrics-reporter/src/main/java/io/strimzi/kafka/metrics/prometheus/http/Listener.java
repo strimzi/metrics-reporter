@@ -47,6 +47,7 @@ public class Listener {
 
     /**
      * Build a Listener instance from an "http(s)://[host]:[port]" string
+     *
      * @param listener the input string
      * @return the listener
      */
@@ -96,17 +97,9 @@ public class Listener {
      */
     public static class ListenerValidator implements ConfigDef.Validator {
 
-        /**
-         * Constructor.
-         */
-        public ListenerValidator() { }
-
         @Override
         public void ensureValid(String name, Object value) {
-            Matcher matcher = PATTERN.matcher(String.valueOf(value));
-            if (!matcher.matches()) {
-                throw new ConfigException(name, value, "The Listener must be of format http(s)://[host]:[port]");
-            }
+            parseListener(String.valueOf(value));
         }
     }
 }
