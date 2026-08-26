@@ -12,10 +12,6 @@ import io.strimzi.test.container.StrimziKafkaCluster;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.params.Parameter;
-import org.junit.jupiter.params.ParameterizedClass;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.containers.GenericContainer;
 
 import java.util.HashMap;
@@ -25,17 +21,11 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@ParameterizedClass
-@MethodSource("io.strimzi.test.container.StrimziKafkaCluster#getLatestPatchVersions")
 public class TestConsumerMetricsIT {
 
     private static final int PORT = Listener.parseListener(ClientMetricsReporterConfig.LISTENER_CONFIG_DEFAULT).port;
     private StrimziKafkaCluster cluster;
     private Map<String, String> env;
-
-    @Parameter
-    protected String kafkaVersion;
 
     @BeforeEach
     public void setUp() {
@@ -62,7 +52,7 @@ public class TestConsumerMetricsIT {
 
     @Test
     public void testConsumerMetrics() {
-        try (GenericContainer<?> consumer = MetricsUtils.clientContainer(env, PORT, kafkaVersion)) {
+        try (GenericContainer<?> consumer = MetricsUtils.clientContainer(env, PORT)) {
             consumer.start();
 
             List<String> patterns = List.of(
@@ -83,7 +73,7 @@ public class TestConsumerMetricsIT {
         env.put("ADDITIONAL_CONFIG",
                 "metric.reporters=" + ClientMetricsReporter.class.getName() + "\n" +
                         "prometheus.metrics.reporter.allowlist=kafka_consumer_kafka_metrics_.*,kafka_consumer_consumer_coordinator_metrics_.*");
-        try (GenericContainer<?> consumer = MetricsUtils.clientContainer(env, PORT, kafkaVersion)) {
+        try (GenericContainer<?> consumer = MetricsUtils.clientContainer(env, PORT)) {
             consumer.start();
 
             List<String> allowedPatterns = List.of(
