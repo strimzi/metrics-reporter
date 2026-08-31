@@ -50,7 +50,7 @@ public class KafkaMetricWrapper extends MetricWrapper {
         Labels.Builder builder = Labels.builder();
         Set<String> labelNames = new HashSet<>();
         for (Map.Entry<String, String> label : tags.entrySet()) {
-            String newLabelName = PrometheusNaming.sanitizeLabelName(label.getKey());
+            String newLabelName = PrometheusNaming.prometheusName(PrometheusNaming.sanitizeLabelName(label.getKey()));
             if (labelNames.add(newLabelName)) {
                 builder.label(newLabelName, label.getValue());
             } else {

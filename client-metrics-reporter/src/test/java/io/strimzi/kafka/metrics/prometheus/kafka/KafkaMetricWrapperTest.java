@@ -47,7 +47,7 @@ public class KafkaMetricWrapperTest {
         tags.put("k-1", "v1");
         tags.put("k_1", "v2");
         labels = KafkaMetricWrapper.labelsFromTags(tags, "");
-        assertEquals("k_1", PrometheusNaming.sanitizeLabelName("k-1"));
+        assertEquals("k_1", PrometheusNaming.prometheusName(PrometheusNaming.sanitizeLabelName("k-1")));
         assertEquals("v1", labels.get("k_1"));
         assertEquals(1, labels.size());
     }
