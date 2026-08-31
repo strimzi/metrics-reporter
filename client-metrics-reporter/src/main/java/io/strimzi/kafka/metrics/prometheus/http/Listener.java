@@ -75,6 +75,11 @@ public class Listener {
      */
     public static class ListenerValidator implements ConfigDef.Validator {
 
+        /**
+         * Default constructor
+         */
+        public ListenerValidator() {}
+
         @Override
         public void ensureValid(String name, Object value) {
             parseListener(String.valueOf(value));
