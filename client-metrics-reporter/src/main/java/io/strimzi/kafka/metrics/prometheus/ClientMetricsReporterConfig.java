@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 public class ClientMetricsReporterConfig extends AbstractConfig {
 
     private static final Logger LOG = LoggerFactory.getLogger(ClientMetricsReporterConfig.class);
-    private static final String CONFIG_PREFIX = "prometheus.metrics.reporter.";
+    static final String CONFIG_PREFIX = "prometheus.metrics.reporter.";
 
     /**
      * Configuration key for the listener to expose the metrics.
