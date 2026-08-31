@@ -72,7 +72,7 @@ public class YammerMetricWrapper extends MetricWrapper {
                 String value = property.substring(eqIdx + 1);
                 // Example labels: {topic="env.topicname.version"} - type and name properties are ignored as not in scope
                 if (!labelKeys.contains(key)) continue;
-                String labelName = PrometheusNaming.sanitizeLabelName(key);
+                String labelName = PrometheusNaming.prometheusName(PrometheusNaming.sanitizeLabelName(key));
                 if (labelNames.add(labelName)) {
                     builder.label(labelName, value);
                 } else {
