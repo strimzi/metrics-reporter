@@ -8,6 +8,7 @@ import io.strimzi.kafka.metrics.prometheus.kafka.KafkaMetricWrapper;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.KafkaMetricsContext;
+import org.apache.kafka.server.telemetry.ClientTelemetryExporter;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -16,10 +17,22 @@ import static io.strimzi.kafka.metrics.prometheus.KafkaMetricsUtils.newKafkaMetr
 import static io.strimzi.kafka.metrics.prometheus.MetricsUtils.getMetrics;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ServerKafkaMetricsReporterTest extends ClientMetricsReporterTest {
+
+    @Test
+    public void testClientTelemetryExporter() {
+        try (ServerKafkaMetricsReporter reporter = new ServerKafkaMetricsReporter(registry, kafkaCollector)) {
+            reporter.configure(configs);
+            reporter.contextChange(new KafkaMetricsContext("kafka.server"));
+
+            ClientTelemetryExporter exporter = reporter.clientTelemetryExporter();
+            assertNotNull(exporter);
+        }
+    }
 
     @Test
     public void testReconfigurableConfigs() {
