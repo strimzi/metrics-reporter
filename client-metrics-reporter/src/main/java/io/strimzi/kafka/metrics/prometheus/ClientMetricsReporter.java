@@ -58,7 +58,12 @@ public class ClientMetricsReporter extends AbstractReporter implements MetricsRe
         kafkaCollector.addReporter(this);
     }
 
-    // for testing
+    /**
+     * Constructor
+     *
+     * @param registry       The Prometheus registry.
+     * @param kafkaCollector The Kafka metrics collector.
+     */
     ClientMetricsReporter(PrometheusRegistry registry, KafkaCollector kafkaCollector) {
         this.registry = registry;
         this.kafkaCollector = kafkaCollector;
@@ -120,7 +125,11 @@ public class ClientMetricsReporter extends AbstractReporter implements MetricsRe
         this.prefix = PrometheusNaming.prometheusName(prefix);
     }
 
-    // for testing
+    /**
+     * Gets the port used by the HTTP server.
+     *
+     * @return The HTTP server port, or empty if the HTTP server is not running.
+     */
     Optional<Integer> getPort() {
         return httpServer.map(HttpServers.ServerCounter::port);
     }

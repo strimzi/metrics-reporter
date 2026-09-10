@@ -8,6 +8,7 @@ import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class ListenerTest {
@@ -19,8 +20,12 @@ public class ListenerTest {
         assertEquals(new Listener("::1", 8080), Listener.parseListener("http://::1:8080"));
         assertEquals(new Listener("::1", 8080), Listener.parseListener("http://[::1]:8080"));
         assertEquals(new Listener("random", 8080), Listener.parseListener("http://random:8080"));
+        assertEquals(new Listener("https", "", 8080), Listener.parseListener("https://:8080"));
+        assertEquals(new Listener("https", "random", 8080), Listener.parseListener("https://random:8080"));
+        assertEquals("https://random:8080", Listener.parseListener("https://random:8080").toString());
 
         assertThrows(ConfigException.class, () -> Listener.parseListener("http"));
+        assertThrows(ConfigException.class, () -> Listener.parseListener("ftp://:8080"));
         assertThrows(ConfigException.class, () -> Listener.parseListener("http://"));
         assertThrows(ConfigException.class, () -> Listener.parseListener("http://random"));
         assertThrows(ConfigException.class, () -> Listener.parseListener("http://random:"));
@@ -32,6 +37,13 @@ public class ListenerTest {
     }
 
     @Test
+    public void testSchemeIsPartOfListenerIdentity() {
+        assertNotEquals(
+                Listener.parseListener("http://localhost:8080"),
+                Listener.parseListener("https://localhost:8080"));
+    }
+
+    @Test
     public void testValidator() {
         Listener.ListenerValidator validator = new Listener.ListenerValidator();
         validator.ensureValid("name", "http://:0");
@@ -39,8 +51,11 @@ public class ListenerTest {
         validator.ensureValid("name", "http://::1:8080");
         validator.ensureValid("name", "http://[::1]:8080");
         validator.ensureValid("name", "http://random:8080");
+        validator.ensureValid("name", "https://:0");
+        validator.ensureValid("name", "https://random:8080");
 
         assertThrows(ConfigException.class, () -> validator.ensureValid("name", "http"));
+        assertThrows(ConfigException.class, () -> validator.ensureValid("name", "ftp://:8080"));
         assertThrows(ConfigException.class, () -> validator.ensureValid("name", "http://"));
         assertThrows(ConfigException.class, () -> validator.ensureValid("name", "http://random"));
         assertThrows(ConfigException.class, () -> validator.ensureValid("name", "http://random:"));
