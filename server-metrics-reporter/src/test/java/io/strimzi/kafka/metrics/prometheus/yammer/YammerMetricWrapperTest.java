@@ -24,7 +24,7 @@ public class YammerMetricWrapperTest {
         assertEquals(Labels.EMPTY, YammerMetricWrapper.labelsFromScopeAndMBeanName("", "group:type=T,name=N,k1=v1", "name"));
         assertEquals(Labels.EMPTY, YammerMetricWrapper.labelsFromScopeAndMBeanName("k1.v1", null, "name"));
         Labels labels = YammerMetricWrapper.labelsFromScopeAndMBeanName("k-1.v1.k_1.v2", "group:k-1=v1,k_1=v2", "name");
-        assertEquals("k_1", PrometheusNaming.sanitizeLabelName("k-1"));
+        assertEquals("k_1", PrometheusNaming.prometheusName(PrometheusNaming.sanitizeLabelName("k-1")));
         assertEquals("v1", labels.get("k_1"));
         assertEquals(1, labels.size());
         // Dots in topic names are preserved: scope determines which keys are labels, MBean name provides the original (unsanitized) values
