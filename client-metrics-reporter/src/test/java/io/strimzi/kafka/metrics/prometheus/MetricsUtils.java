@@ -12,9 +12,12 @@ import io.strimzi.test.container.StrimziConnectCluster;
 import org.junit.jupiter.api.function.ThrowingConsumer;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -40,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Utility class to create and retrieve metrics
  */
+@SuppressWarnings("ClassFanOutComplexity")
 public class MetricsUtils {
 
     public static final String VERSION = "1.0.0-SNAPSHOT";
@@ -86,11 +90,27 @@ public class MetricsUtils {
      * @return The lines from the output
      */
     public static List<String> getMetrics(String host, int port, boolean includeComments) {
+        return getMetrics(host, port, includeComments, null);
+    }
+
+    /**
+     * Query the metrics endpoint and returns the output
+     * @param host The host to query
+     * @param port The port to query
+     * @param includeComments Whether to include comment lines starting with #
+     * @param sslContext The SSL context for HTTPS, or {@code null} to use HTTP
+     * @return The lines from the output
+     */
+    public static List<String> getMetrics(String host, int port, boolean includeComments, SSLContext sslContext) {
         List<String> metrics = new ArrayList<>();
         assertTimeoutPreemptively(TIMEOUT, () -> {
             try {
-                URL url = new URL("http://" + host + ":" + port + "/metrics");
+                String scheme = sslContext == null ? "http" : "https";
+                URL url = new URL(scheme + "://" + host + ":" + port + "/metrics");
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
+                if (sslContext != null) {
+                    ((HttpsURLConnection) con).setSSLSocketFactory(sslContext.getSocketFactory());
+                }
                 con.setRequestMethod("GET");
                 try (BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()))) {
                     String inputLine;
@@ -155,8 +175,26 @@ public class MetricsUtils {
      * @param condition the assertion to execute on the metrics matching the patterns
      */
     public static void verify(GenericContainer<?> container, List<String> patterns, int port, ThrowingConsumer<List<String>> condition) {
+        verify(container, patterns, port, condition, null);
+    }
+
+    /**
+     * Verify the container exposes metrics that match a condition
+     * @param container the container to check
+     * @param patterns the expected metrics patterns
+     * @param port the port on which metrics are exposed
+     * @param condition the assertion to execute on the metrics matching the patterns
+     * @param sslContext the SSL context for HTTPS, or {@code null} to use HTTP
+     */
+    public static void verify(
+            GenericContainer<?> container,
+            List<String> patterns,
+            int port,
+            ThrowingConsumer<List<String>> condition,
+            SSLContext sslContext) {
         assertTimeoutPreemptively(TIMEOUT, () -> {
-            List<String> metrics = getMetrics(container.getHost(), container.getMappedPort(port));
+            String host = scrapeHost(container, sslContext);
+            List<String> metrics = getMetrics(host, container.getMappedPort(port), false, sslContext);
             List<Pattern> expectedPatterns = patterns.stream().map(Pattern::compile).collect(Collectors.toList());
             for (Pattern pattern : expectedPatterns) {
                 while (true) {
@@ -166,11 +204,16 @@ public class MetricsUtils {
                         break;
                     } catch (AssertionError e) {
                         TimeUnit.MILLISECONDS.sleep(100L);
-                        metrics = getMetrics(container.getHost(), container.getMappedPort(port));
+                        metrics = getMetrics(host, container.getMappedPort(port), false, sslContext);
                     }
                 }
             }
         });
+    }
+
+    private static String scrapeHost(GenericContainer<?> container, SSLContext sslContext) {
+        // The test certificate is issued to localhost, so HTTPS scrapes must use that hostname.
+        return sslContext == null ? container.getHost() : "localhost";
     }
 
     /**
@@ -180,12 +223,27 @@ public class MetricsUtils {
      * @return the container instance
      */
     public static GenericContainer<?> clientContainer(Map<String, String> env, int port) {
+        return clientContainer(env, port, false);
+    }
+
+    /**
+     * Start a test-clients container
+     * @param env the environment variables
+     * @param port the port to expose
+     * @param https whether the metrics endpoint uses HTTPS
+     * @return the container instance
+     */
+    public static GenericContainer<?> clientContainer(Map<String, String> env, int port, boolean https) {
+        HttpWaitStrategy waitStrategy = Wait.forHttp("/metrics").forStatusCode(200);
+        if (https) {
+            waitStrategy = waitStrategy.usingTls().allowInsecure();
+        }
         return new GenericContainer<>(CLIENTS_IMAGE)
                 .withNetwork(Network.SHARED)
                 .withExposedPorts(port)
                 .withCopyFileToContainer(MountableFile.forHostPath(REPORTER_JARS), MOUNT_PATH)
                 .withEnv(env)
-                .waitingFor(Wait.forHttp("/metrics").forStatusCode(200));
+                .waitingFor(waitStrategy);
     }
 
     /**

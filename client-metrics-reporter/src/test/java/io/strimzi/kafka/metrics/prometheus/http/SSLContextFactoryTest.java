@@ -11,20 +11,20 @@ import org.junit.jupiter.api.io.TempDir;
 import javax.net.ssl.SSLContext;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.util.Base64;
 
 import static io.strimzi.kafka.metrics.prometheus.http.SslTestUtils.CERTIFICATE;
-import static io.strimzi.kafka.metrics.prometheus.http.SslTestUtils.EC_CERTIFICATE;
-import static io.strimzi.kafka.metrics.prometheus.http.SslTestUtils.EC_PRIVATE_KEY;
 import static io.strimzi.kafka.metrics.prometheus.http.SslTestUtils.PRIVATE_KEY;
 import static io.strimzi.kafka.metrics.prometheus.http.SslTestUtils.RSA_CERTIFICATE;
 import static io.strimzi.kafka.metrics.prometheus.http.SslTestUtils.RSA_PRIVATE_KEY;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SSLContextFactoryTest {
+
+    private static final String PKCS1_RSA_PRIVATE_KEY = "-----BEGIN RSA PRIVATE KEY-----\nMIIE\n-----END RSA PRIVATE KEY-----\n";
+    private static final String SEC1_EC_PRIVATE_KEY = "-----BEGIN EC PRIVATE KEY-----\nMHcC\n-----END EC PRIVATE KEY-----\n";
+    private static final String ENCRYPTED_PRIVATE_KEY = "-----BEGIN ENCRYPTED PRIVATE KEY-----\nMIIE\n-----END ENCRYPTED PRIVATE KEY-----\n";
 
     @TempDir
     private Path tempDir;
@@ -65,37 +65,53 @@ public class SSLContextFactoryTest {
 
     @Test
     public void testMissingCertificateFails() {
-        assertThrows(ConfigException.class, () -> new SSLContextFactory(null, null, null, PRIVATE_KEY).create());
+        ConfigException exception = assertThrows(
+                ConfigException.class,
+                () -> new SSLContextFactory(null, null, null, PRIVATE_KEY).create());
+
+        assertTrue(exception.getMessage().contains("SSL certificate"));
     }
 
     @Test
     public void testMissingKeyFails() {
-        assertThrows(ConfigException.class, () -> new SSLContextFactory(null, null, CERTIFICATE, null).create());
+        ConfigException exception = assertThrows(
+                ConfigException.class,
+                () -> new SSLContextFactory(null, null, CERTIFICATE, null).create());
+
+        assertTrue(exception.getMessage().contains("SSL private key"));
     }
 
     @Test
-    public void testCreateFromPkcs1RsaPrivateKey() {
+    public void testCreateFromPkcs8RsaPrivateKey() {
         SSLContext sslContext = new SSLContextFactory(null, null, RSA_CERTIFICATE, RSA_PRIVATE_KEY).create();
 
         assertNotNull(sslContext);
     }
 
     @Test
-    public void testCreateFromSec1EcPrivateKey() {
-        SSLContext sslContext = new SSLContextFactory(null, null, EC_CERTIFICATE, EC_PRIVATE_KEY).create();
+    public void testPkcs1RsaPrivateKeyIsRejected() {
+        ConfigException exception = assertThrows(
+                ConfigException.class,
+                () -> new SSLContextFactory(null, null, CERTIFICATE, PKCS1_RSA_PRIVATE_KEY).create());
 
-        assertNotNull(sslContext);
+        assertTrue(exception.getMessage().contains("PKCS#8"));
     }
 
     @Test
-    public void testPrivateKeyThatDoesNotMatchCertificateFails() throws Exception {
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC");
-        keyPairGenerator.initialize(256);
-        KeyPair keyPair = keyPairGenerator.generateKeyPair();
-        String key = "-----BEGIN PRIVATE KEY-----\n" +
-                Base64.getMimeEncoder(64, "\n".getBytes()).encodeToString(keyPair.getPrivate().getEncoded()) +
-                "\n-----END PRIVATE KEY-----\n";
+    public void testSec1EcPrivateKeyIsRejected() {
+        ConfigException exception = assertThrows(
+                ConfigException.class,
+                () -> new SSLContextFactory(null, null, CERTIFICATE, SEC1_EC_PRIVATE_KEY).create());
 
-        assertThrows(ConfigException.class, () -> new SSLContextFactory(null, null, CERTIFICATE, key).create());
+        assertTrue(exception.getMessage().contains("PKCS#8"));
+    }
+
+    @Test
+    public void testEncryptedPrivateKeyIsRejected() {
+        ConfigException exception = assertThrows(
+                ConfigException.class,
+                () -> new SSLContextFactory(null, null, CERTIFICATE, ENCRYPTED_PRIVATE_KEY).create());
+
+        assertTrue(exception.getMessage().contains("PKCS#8"));
     }
 }
