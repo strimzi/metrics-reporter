@@ -57,7 +57,7 @@ public class ClientMetricsReporterConfig extends AbstractConfig {
      */
     public static final String LISTENER_SSL_KEY_LOCATION_CONFIG = LISTENER_SSL_CONFIG_PREFIX + "key.location";
     private static final String LISTENER_SSL_KEY_LOCATION_CONFIG_DOC =
-            "The path to the PEM file containing the server private key.";
+            "The path to the PEM file containing the unencrypted PKCS#8 private key.";
 
     /**
      * Configuration key for the inline PEM server certificate or certificate chain.
@@ -72,7 +72,7 @@ public class ClientMetricsReporterConfig extends AbstractConfig {
      */
     public static final String LISTENER_SSL_KEY_CONFIG = LISTENER_SSL_CONFIG_PREFIX + "key";
     private static final String LISTENER_SSL_KEY_CONFIG_DOC =
-            "The server private key in PEM format. This takes precedence over " +
+            "The unencrypted PKCS#8 private key in PEM format. This takes precedence over " +
                     LISTENER_SSL_KEY_LOCATION_CONFIG + ".";
 
     /**

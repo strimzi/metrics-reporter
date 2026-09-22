@@ -35,9 +35,9 @@ The metrics reporter has the following configurations:
 - `prometheus.metrics.reporter.listener.enable`: Enable the listener to expose the metrics. This defaults to `true`.
 - `prometheus.metrics.reporter.allowlist`: A comma separated list of regex patterns to specify the metrics to collect. This defaults to `.*`.
 - `prometheus.metrics.reporter.listener.ssl.certificate.location`: The path to the PEM file containing the server certificate or certificate chain.
-- `prometheus.metrics.reporter.listener.ssl.key.location`: The path to the PEM file containing the unencrypted private key.
+- `prometheus.metrics.reporter.listener.ssl.key.location`: The path to the PEM file containing the unencrypted PKCS#8 private key (`BEGIN PRIVATE KEY`).
 - `prometheus.metrics.reporter.listener.ssl.certificate`: The server certificate or certificate chain in PEM format, provided as an inline string. This takes precedence over `prometheus.metrics.reporter.listener.ssl.certificate.location`.
-- `prometheus.metrics.reporter.listener.ssl.key`: The unencrypted private key in PEM format, provided as an inline string. This takes precedence over `prometheus.metrics.reporter.listener.ssl.key.location`.
+- `prometheus.metrics.reporter.listener.ssl.key`: The unencrypted PKCS#8 private key in PEM format, provided as an inline string. This takes precedence over `prometheus.metrics.reporter.listener.ssl.key.location`.
 - `prometheus.metrics.reporter.listener.ssl.enabled.protocols`: A comma separated list of enabled secure transport protocols. This defaults to `TLSv1.2,TLSv1.3`.
 - `prometheus.metrics.reporter.listener.ssl.enabled.cipher.suites`: A comma separated list of cipher suites that the server will support. Empty uses Java's default cipher suites.
 
@@ -49,7 +49,7 @@ prometheus.metrics.reporter.listener.ssl.certificate.location=/path/to/tls.crt
 prometheus.metrics.reporter.listener.ssl.key.location=/path/to/tls.key
 ```
 
-The HTTPS listener accepts PEM certificate chains and unencrypted PEM private keys. If the TLS configuration is invalid, such as a missing certificate, unsupported key format, mismatched key, unsupported protocol, or unsupported cipher suite, the reporter fails to start with a configuration error.
+The HTTPS listener accepts PEM certificate chains and unencrypted PKCS#8 private keys. If the TLS configuration is invalid, such as a missing certificate, unsupported key format, unsupported protocol, or unsupported cipher suite, the reporter fails to start with a configuration error.
 
 ## Running
 
