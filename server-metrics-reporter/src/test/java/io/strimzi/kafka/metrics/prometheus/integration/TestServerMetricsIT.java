@@ -256,7 +256,8 @@ public class TestServerMetricsIT {
             }
         }
 
-        Thread.sleep(interval * 2);
+        // Client data is retained for max(60s, 3x push interval)
+        Thread.sleep(Math.max(60000, interval * 3L) + interval);
         for (GenericContainer<?> broker : cluster.getNodes()) {
             MetricsUtils.verify(broker, List.of("clients_.*"), PORT, metrics ->
                 assertTrue(metrics.isEmpty(), "Expected no client telemetry metrics"));

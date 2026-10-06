@@ -213,14 +213,14 @@ public class ClientTelemetryCollectorTest {
 
         assertEquals(1, collector.clientCount());
 
-        // Before push interval: metrics still present
-        clock.set(10500);
+        // Before retention period (max(60000, 1000*3) = 60000ms): metrics still present
+        clock.set(69999);
         List<MetricSnapshot> snapshots = collector.collect();
         assertEquals(1, snapshots.size());
         assertEquals(1, collector.clientCount());
 
-        // After push interval: metrics are removed
-        clock.set(12000);
+        // After retention period: metrics are removed
+        clock.set(70001);
         snapshots = collector.collect();
         assertTrue(snapshots.isEmpty());
         assertEquals(0, collector.clientCount());

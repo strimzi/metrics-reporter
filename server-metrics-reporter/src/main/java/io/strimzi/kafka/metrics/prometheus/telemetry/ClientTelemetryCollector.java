@@ -213,7 +213,8 @@ public class ClientTelemetryCollector implements MetricsCollector, ClientTelemet
         while (it.hasNext()) {
             Map.Entry<String, ClientData> entry = it.next();
             ClientData clientData = entry.getValue();
-            if (now - clientData.lastPushTime > clientData.pushIntervalMs) {
+            // Retain client data for max(60s, 3x push interval) to tolerate transient push delays, matching Kafka's ClientMetricsManager
+            if (now - clientData.lastPushTime > Math.max(60000, clientData.pushIntervalMs * 3L)) {
                 it.remove();
                 continue;
             }

@@ -42,6 +42,7 @@ public class ServerMetricsReporterConfigTest {
 
     @Test
     public void testTelemetryLabelsCustom() {
+        // principal is repeated to verify deduplication
         Map<String, String> props = Map.of(CLIENT_TELEMETRY_LABELS_CONFIG, "client_id,listener_name,principal,principal");
         ServerMetricsReporterConfig config = new ServerMetricsReporterConfig(props, new PrometheusRegistry());
         assertEquals(List.of("client_id", "listener_name", "principal"), config.telemetryLabels());
