@@ -33,7 +33,7 @@ public class DataPointSnapshotBuilder {
      * @return The {@link InfoSnapshot.InfoDataPointSnapshot} datapoint
      */
     public static InfoSnapshot.InfoDataPointSnapshot infoDataPoint(Labels labels, Object value, String metricName) {
-        String newLabelName = PrometheusNaming.sanitizeLabelName(metricName);
+        String newLabelName = PrometheusNaming.prometheusName(PrometheusNaming.sanitizeLabelName(metricName));
         Labels newLabels = labels;
         String existingValue = labels.get(newLabelName);
         if (existingValue != null) {

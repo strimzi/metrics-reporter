@@ -31,3 +31,7 @@ hs_err_pid*
 
 .DS_Store
 
+# AI assistants configuration
+.claude/
+.mcp.json
+.bob/
