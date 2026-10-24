@@ -10,9 +10,8 @@ import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import javax.net.ssl.HttpsURLConnection;
 import java.net.BindException;
-import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -23,15 +22,19 @@ import static io.strimzi.kafka.metrics.prometheus.ClientMetricsReporterConfig.LI
 import static io.strimzi.kafka.metrics.prometheus.ClientMetricsReporterConfig.LISTENER_ENABLE_CONFIG;
 import static io.strimzi.kafka.metrics.prometheus.ClientMetricsReporterConfig.LISTENER_SSL_CERTIFICATE_CONFIG;
 import static io.strimzi.kafka.metrics.prometheus.ClientMetricsReporterConfig.LISTENER_SSL_CERTIFICATE_LOCATION_CONFIG;
+import static io.strimzi.kafka.metrics.prometheus.ClientMetricsReporterConfig.LISTENER_SSL_ENABLED_CIPHER_SUITES_CONFIG;
 import static io.strimzi.kafka.metrics.prometheus.ClientMetricsReporterConfig.LISTENER_SSL_ENABLED_PROTOCOLS_CONFIG;
 import static io.strimzi.kafka.metrics.prometheus.ClientMetricsReporterConfig.LISTENER_SSL_KEY_CONFIG;
 import static io.strimzi.kafka.metrics.prometheus.ClientMetricsReporterConfig.LISTENER_SSL_KEY_LOCATION_CONFIG;
 import static io.strimzi.kafka.metrics.prometheus.http.SslTestUtils.CERTIFICATE;
 import static io.strimzi.kafka.metrics.prometheus.http.SslTestUtils.PRIVATE_KEY;
+import static io.strimzi.kafka.metrics.prometheus.http.SslTestUtils.RSA_CERTIFICATE;
+import static io.strimzi.kafka.metrics.prometheus.http.SslTestUtils.RSA_PRIVATE_KEY;
 import static io.strimzi.kafka.metrics.prometheus.http.SslTestUtils.trustingClientSslContext;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -148,8 +151,8 @@ public class ClientMetricsReporterConfigTest {
     public void testStartHttpsServerFromCertificateAndKeyLocations() throws Exception {
         Path certificate = tempDir.resolve("tls.crt");
         Path key = tempDir.resolve("tls.key");
-        Files.writeString(certificate, CERTIFICATE);
-        Files.writeString(key, PRIVATE_KEY);
+        Files.writeString(certificate, CERTIFICATE, StandardCharsets.US_ASCII);
+        Files.writeString(key, PRIVATE_KEY, StandardCharsets.US_ASCII);
 
         Map<String, String> props = Map.of(
                 LISTENER_CONFIG, "https://localhost:0",
@@ -226,14 +229,85 @@ public class ClientMetricsReporterConfigTest {
         assertTrue(exception.getMessage().contains("TLSv1.9000"));
     }
 
+    @Test
+    public void testStartHttpsServerWithInvalidCipherSuiteFails() {
+        ClientMetricsReporterConfig config = new ClientMetricsReporterConfig(
+                Map.of(
+                        LISTENER_CONFIG, "https://localhost:0",
+                        LISTENER_SSL_CERTIFICATE_CONFIG, CERTIFICATE,
+                        LISTENER_SSL_KEY_CONFIG, PRIVATE_KEY,
+                        LISTENER_SSL_ENABLED_CIPHER_SUITES_CONFIG, "TLS_FAKE_WITH_NOTHING_SHA256"),
+                new PrometheusRegistry());
+
+        ConfigException exception = assertThrows(ConfigException.class, config::startHttpServer);
+
+        assertTrue(exception.getMessage().contains(LISTENER_SSL_ENABLED_CIPHER_SUITES_CONFIG));
+        assertTrue(exception.getMessage().contains("TLS_FAKE_WITH_NOTHING_SHA256"));
+    }
+
+    @Test
+    public void testStartHttpsServerWithPkcs1KeyFails() {
+        ClientMetricsReporterConfig config = new ClientMetricsReporterConfig(
+                Map.of(
+                        LISTENER_CONFIG, "https://localhost:0",
+                        LISTENER_SSL_CERTIFICATE_CONFIG, CERTIFICATE,
+                        LISTENER_SSL_KEY_CONFIG, "-----BEGIN RSA PRIVATE KEY-----\nMIIE\n-----END RSA PRIVATE KEY-----\n"),
+                new PrometheusRegistry());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, config::startHttpServer);
+
+        assertTrue(exception.getMessage().contains("PRIVATE KEY"));
+    }
+
+    @Test
+    public void testHttpsListenerReusesMatchingSettings() {
+        Map<String, String> props = Map.of(
+                LISTENER_CONFIG, "https://localhost:0",
+                LISTENER_SSL_CERTIFICATE_CONFIG, CERTIFICATE,
+                LISTENER_SSL_KEY_CONFIG, PRIVATE_KEY);
+        Optional<HttpServers.ServerCounter> first = Optional.empty();
+        Optional<HttpServers.ServerCounter> second = Optional.empty();
+        try {
+            first = new ClientMetricsReporterConfig(props, new PrometheusRegistry()).startHttpServer();
+            second = new ClientMetricsReporterConfig(props, new PrometheusRegistry()).startHttpServer();
+
+            assertTrue(first.isPresent());
+            assertSame(first.get(), second.get());
+        } finally {
+            second.ifPresent(HttpServers::release);
+            first.ifPresent(HttpServers::release);
+        }
+    }
+
+    @Test
+    public void testHttpsListenerRejectsDifferentCertificate() {
+        Optional<HttpServers.ServerCounter> first = new ClientMetricsReporterConfig(
+                Map.of(
+                        LISTENER_CONFIG, "https://localhost:0",
+                        LISTENER_SSL_CERTIFICATE_CONFIG, CERTIFICATE,
+                        LISTENER_SSL_KEY_CONFIG, PRIVATE_KEY),
+                new PrometheusRegistry()).startHttpServer();
+
+        try {
+            ClientMetricsReporterConfig differentCertificate = new ClientMetricsReporterConfig(
+                    Map.of(
+                            LISTENER_CONFIG, "https://localhost:0",
+                            LISTENER_SSL_CERTIFICATE_CONFIG, RSA_CERTIFICATE,
+                            LISTENER_SSL_KEY_CONFIG, RSA_PRIVATE_KEY),
+                    new PrometheusRegistry());
+
+            ConfigException exception = assertThrows(ConfigException.class, differentCertificate::startHttpServer);
+
+            assertTrue(exception.getMessage().contains("different SSL settings"));
+            assertTrue(httpsListenerStarted("localhost", first.get().port()));
+        } finally {
+            HttpServers.release(first.get());
+        }
+    }
+
     private boolean httpsListenerStarted(String host, int port) {
         try {
-            URL url = new URL("https://" + host + ":" + port + "/metrics");
-            HttpsURLConnection con = (HttpsURLConnection) url.openConnection();
-            con.setSSLSocketFactory(trustingClientSslContext().getSocketFactory());
-            con.setRequestMethod("HEAD");
-            con.connect();
-            return con.getResponseCode() == HttpsURLConnection.HTTP_OK;
+            return MetricsUtils.metricsEndpointReachable(host, port, trustingClientSslContext());
         } catch (Exception e) {
             return false;
         }

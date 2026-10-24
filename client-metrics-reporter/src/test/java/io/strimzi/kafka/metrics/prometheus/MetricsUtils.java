@@ -105,12 +105,7 @@ public class MetricsUtils {
         List<String> metrics = new ArrayList<>();
         assertTimeoutPreemptively(TIMEOUT, () -> {
             try {
-                String scheme = sslContext == null ? "http" : "https";
-                URL url = new URL(scheme + "://" + host + ":" + port + "/metrics");
-                HttpURLConnection con = (HttpURLConnection) url.openConnection();
-                if (sslContext != null) {
-                    ((HttpsURLConnection) con).setSSLSocketFactory(sslContext.getSocketFactory());
-                }
+                HttpURLConnection con = openMetricsConnection(host, port, sslContext);
                 con.setRequestMethod("GET");
                 try (BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()))) {
                     String inputLine;
@@ -125,6 +120,36 @@ public class MetricsUtils {
             }
         });
         return metrics;
+    }
+
+    /**
+     * Check whether the metrics endpoint accepts a connection.
+     * An empty registry still returns HTTP 200, with a body that may contain only comments.
+     *
+     * @param host the host to query
+     * @param port the port to query
+     * @param sslContext the SSL context for HTTPS, or {@code null} to use HTTP
+     * @return {@code true} when the endpoint responds with HTTP 200
+     */
+    public static boolean metricsEndpointReachable(String host, int port, SSLContext sslContext) {
+        try {
+            HttpURLConnection con = openMetricsConnection(host, port, sslContext);
+            con.setRequestMethod("HEAD");
+            con.connect();
+            return con.getResponseCode() == HttpURLConnection.HTTP_OK;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    private static HttpURLConnection openMetricsConnection(String host, int port, SSLContext sslContext) throws IOException {
+        String scheme = sslContext == null ? "http" : "https";
+        URL url = new URL(scheme + "://" + host + ":" + port + "/metrics");
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        if (sslContext != null) {
+            ((HttpsURLConnection) con).setSSLSocketFactory(sslContext.getSocketFactory());
+        }
+        return con;
     }
 
     /**

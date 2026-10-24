@@ -12,6 +12,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -44,44 +45,23 @@ public class HttpsConfiguratorFactory {
 
     /**
      * Creates the HTTPS configurator for the supplied SSL context.
+     * Two configurators are equal when the certificate PEM, PKCS#8 key, protocols, and cipher suites match.
+     * {@link io.strimzi.kafka.metrics.prometheus.http.HttpServers} uses that equality to reuse a listener.
      *
-     * @param sslContext The SSL context to use for HTTPS.
+     * @param sslContext  The SSL context to use for HTTPS.
+     * @param certificate The PEM certificate bytes used to build {@code sslContext}.
+     * @param privateKey  The PKCS#8 private key bytes used to build {@code sslContext}.
      * @return The HTTPS configurator.
      */
-    public HttpsConfigurator create(SSLContext sslContext) {
+    public HttpsConfigurator create(SSLContext sslContext, byte[] certificate, byte[] privateKey) {
         validateConfiguredValues(sslContext);
 
-        return new HttpsConfigurator(sslContext) {
-            @Override
-            public void configure(HttpsParameters params) {
-                SSLParameters sslParameters = getSSLContext().getDefaultSSLParameters();
-
-                if (!enabledProtocols.isEmpty()) {
-                    sslParameters.setProtocols(enabledProtocols.toArray(String[]::new));
-                }
-
-                if (!enabledCipherSuites.isEmpty()) {
-                    sslParameters.setCipherSuites(enabledCipherSuites.toArray(String[]::new));
-                }
-                params.setSSLParameters(sslParameters);
-            }
-        };
-    }
-
-    /**
-     * @return SSL enabled Protocols.
-     */
-    @SuppressWarnings("doclint:missing")
-    public List<String> enabledProtocols() {
-        return enabledProtocols;
-    }
-
-    /**
-     * @return SSL cipher suites.
-     */
-    @SuppressWarnings("doclint:missing")
-    public List<String> enabledCipherSuites() {
-        return enabledCipherSuites;
+        return new MetricsHttpsConfigurator(
+                sslContext,
+                certificate,
+                privateKey,
+                enabledProtocols,
+                enabledCipherSuites);
     }
 
     private void validateConfiguredValues(SSLContext sslContext) {
@@ -121,5 +101,76 @@ public class HttpsConfiguratorFactory {
                 "enabledProtocols=" + enabledProtocols +
                 ", enabledCipherSuites=" + enabledCipherSuites +
                 '}';
+    }
+
+    /**
+     * HTTPS configurator whose equality is the certificate, private key, protocols, and cipher suites.
+     * The private key is kept only so a second reporter on the same listener can be compared.
+     * It is not included in {@link #toString()}.
+     */
+    static final class MetricsHttpsConfigurator extends HttpsConfigurator {
+        private final byte[] certificate;
+        private final byte[] privateKey;
+        private final List<String> enabledProtocols;
+        private final List<String> enabledCipherSuites;
+
+        private MetricsHttpsConfigurator(
+                SSLContext sslContext,
+                byte[] certificate,
+                byte[] privateKey,
+                List<String> enabledProtocols,
+                List<String> enabledCipherSuites) {
+            super(sslContext);
+            this.certificate = certificate.clone();
+            this.privateKey = privateKey.clone();
+            this.enabledProtocols = List.copyOf(enabledProtocols);
+            this.enabledCipherSuites = List.copyOf(enabledCipherSuites);
+        }
+
+        @Override
+        public void configure(HttpsParameters params) {
+            SSLParameters sslParameters = getSSLContext().getDefaultSSLParameters();
+
+            if (!enabledProtocols.isEmpty()) {
+                sslParameters.setProtocols(enabledProtocols.toArray(String[]::new));
+            }
+
+            if (!enabledCipherSuites.isEmpty()) {
+                sslParameters.setCipherSuites(enabledCipherSuites.toArray(String[]::new));
+            }
+            params.setSSLParameters(sslParameters);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof MetricsHttpsConfigurator)) {
+                return false;
+            }
+            MetricsHttpsConfigurator that = (MetricsHttpsConfigurator) o;
+            return Arrays.equals(certificate, that.certificate)
+                    && Arrays.equals(privateKey, that.privateKey)
+                    && enabledProtocols.equals(that.enabledProtocols)
+                    && enabledCipherSuites.equals(that.enabledCipherSuites);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(
+                    Arrays.hashCode(certificate),
+                    Arrays.hashCode(privateKey),
+                    enabledProtocols,
+                    enabledCipherSuites);
+        }
+
+        @Override
+        public String toString() {
+            return "MetricsHttpsConfigurator{" +
+                    "enabledProtocols=" + enabledProtocols +
+                    ", enabledCipherSuites=" + enabledCipherSuites +
+                    '}';
+        }
     }
 }

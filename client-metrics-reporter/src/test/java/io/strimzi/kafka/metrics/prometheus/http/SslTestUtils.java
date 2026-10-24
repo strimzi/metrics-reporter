@@ -7,6 +7,7 @@ package io.strimzi.kafka.metrics.prometheus.http;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.security.cert.Certificate;
@@ -14,8 +15,11 @@ import java.security.cert.CertificateFactory;
 
 /**
  * Test-only SSL helper.
- * The Certificates and private keys are used only for tests. They are self-signed, localhost-only, and must never be
- * used in production or documentation examples.
+ * The certificates and private keys are used only for tests. They are self-signed, issued to localhost, and must never
+ * be used in production or documentation examples.
+ * <p>
+ * {@link #trustingClientSslContext()} trusts only {@link #CERTIFICATE}. It is not a trust-all manager, and callers
+ * keep the platform hostname verifier. That verifier succeeds because the fixture certificate is issued to localhost.
  */
 public class SslTestUtils {
 
@@ -91,7 +95,7 @@ public class SslTestUtils {
 
     public static SSLContext trustingClientSslContext() throws Exception {
         Certificate certificate = CertificateFactory.getInstance("X.509")
-                .generateCertificate(new ByteArrayInputStream(CERTIFICATE.getBytes()));
+                .generateCertificate(new ByteArrayInputStream(CERTIFICATE.getBytes(StandardCharsets.US_ASCII)));
         KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
         trustStore.load(null, null);
         trustStore.setCertificateEntry("metrics-reporter-test", certificate);

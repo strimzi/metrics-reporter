@@ -8,6 +8,7 @@ import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
+import java.security.spec.PKCS8EncodedKeySpec;
 
 import static io.strimzi.kafka.metrics.prometheus.http.SslTestUtils.CERTIFICATE;
 import static io.strimzi.kafka.metrics.prometheus.http.SslTestUtils.PRIVATE_KEY;
@@ -43,8 +44,8 @@ public class SSLContextFactoryTest {
 
     @Test
     public void testPkcs1RsaPrivateKeyIsRejected() {
-        ConfigException exception = assertThrows(
-                ConfigException.class,
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
                 () -> PemUtils.readPrivateKey(PKCS1_RSA_PRIVATE_KEY));
 
         assertTrue(exception.getMessage().contains("PRIVATE KEY"));
@@ -52,17 +53,29 @@ public class SSLContextFactoryTest {
 
     @Test
     public void testSec1EcPrivateKeyIsRejected() {
-        ConfigException exception = assertThrows(
-                ConfigException.class,
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
                 () -> PemUtils.readPrivateKey(SEC1_EC_PRIVATE_KEY));
 
         assertTrue(exception.getMessage().contains("PRIVATE KEY"));
     }
 
     @Test
-    public void testEncryptedPrivateKeyIsRejected() {
+    public void testInvalidPkcs8ReportsKeyAlgorithms() {
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(new byte[]{1, 2, 3, 4});
+
         ConfigException exception = assertThrows(
                 ConfigException.class,
+                () -> new SSLContextFactory().create(keySpec, PemUtils.readCertificates(CERTIFICATE)));
+
+        assertTrue(exception.getMessage().contains("RSA"));
+        assertTrue(exception.getMessage().contains("EC"));
+    }
+
+    @Test
+    public void testEncryptedPrivateKeyIsRejected() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
                 () -> PemUtils.readPrivateKey(ENCRYPTED_PRIVATE_KEY));
 
         assertTrue(exception.getMessage().contains("PRIVATE KEY"));

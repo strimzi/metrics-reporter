@@ -16,6 +16,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.MountableFile;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -33,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 public class ClientMetricsReporterHttpsIT {
 
     private static final int PORT = Listener.parseListener(ClientMetricsReporterConfig.LISTENER_CONFIG_DEFAULT).port;
+    // Paths inside the container. The host files are created under @TempDir.
     private static final String CONTAINER_CERTIFICATE = "/tmp/tls.crt";
     private static final String CONTAINER_KEY = "/tmp/tls.key";
 
@@ -68,8 +70,8 @@ public class ClientMetricsReporterHttpsIT {
     public void testHttpsMetricsWithCertificateAndKeyLocations() throws Exception {
         Path certificate = tempDir.resolve("tls.crt");
         Path key = tempDir.resolve("tls.key");
-        Files.writeString(certificate, CERTIFICATE);
-        Files.writeString(key, PRIVATE_KEY);
+        Files.writeString(certificate, CERTIFICATE, StandardCharsets.US_ASCII);
+        Files.writeString(key, PRIVATE_KEY, StandardCharsets.US_ASCII);
 
         env.put("ADDITIONAL_CONFIG", additionalConfig(Map.of(
                 LISTENER_CONFIG, "https://:" + PORT,

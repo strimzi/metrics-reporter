@@ -16,6 +16,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.MountableFile;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -35,6 +36,7 @@ public class TestServerHttpsMetricsIT {
 
     private static final String REPORTER_JARS = "../target/metrics-reporter-" + VERSION + "/metrics-reporter-" + VERSION + "/libs/";
     private static final int PORT = Listener.parseListener(ServerMetricsReporterConfig.LISTENER_CONFIG_DEFAULT).port;
+    // Paths inside the container. The host files are created under @TempDir.
     private static final String CONTAINER_CERTIFICATE = "/tmp/tls.crt";
     private static final String CONTAINER_KEY = "/tmp/tls.key";
 
@@ -54,8 +56,8 @@ public class TestServerHttpsMetricsIT {
     public void testBrokerHttpsMetrics() throws Exception {
         Path certificate = tempDir.resolve("tls.crt");
         Path key = tempDir.resolve("tls.key");
-        Files.writeString(certificate, CERTIFICATE);
-        Files.writeString(key, PRIVATE_KEY);
+        Files.writeString(certificate, CERTIFICATE, StandardCharsets.US_ASCII);
+        Files.writeString(key, PRIVATE_KEY, StandardCharsets.US_ASCII);
 
         Map<String, String> configs = new HashMap<>();
         configs.put("metric.reporters", ServerKafkaMetricsReporter.class.getName());

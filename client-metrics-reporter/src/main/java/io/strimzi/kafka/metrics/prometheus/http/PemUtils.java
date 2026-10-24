@@ -6,7 +6,6 @@ package io.strimzi.kafka.metrics.prometheus.http;
 
 import org.apache.kafka.common.config.ConfigException;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -21,30 +20,42 @@ import java.util.regex.Pattern;
  */
 public final class PemUtils {
 
-    // Header/footer patterns allow a flexible number of dashes and whitespace, but keep labels strict:
-    // only "CERTIFICATE" and unencrypted PKCS#8 "PRIVATE KEY" (not RSA/EC/ENCRYPTED PRIVATE KEY).
-    private static final Pattern CERT_HEADER = Pattern.compile(
-            "-+BEGIN\\s+CERTIFICATE-+[\\s\\r\\n]+");
-    private static final Pattern CERT_FOOTER = Pattern.compile(
-            "-+END\\s+CERTIFICATE-+(?:\\s|\\r|\\n)*");
-    private static final Pattern KEY_HEADER = Pattern.compile(
-            "-+BEGIN\\s+PRIVATE\\s+KEY-+(?:\\s|\\r|\\n)+");
-    private static final Pattern KEY_FOOTER = Pattern.compile(
-            "-+END\\s+PRIVATE\\s+KEY-+(?:\\s|\\r|\\n)*");
-    private static final Pattern BODY = Pattern.compile(
-            "[a-z0-9+/=][a-z0-9+/=\\r\\n]*", Pattern.CASE_INSENSITIVE);
+    private static final Pattern CERTIFICATE_PEM = Pattern.compile(
+            "-----BEGIN CERTIFICATE-----(.*?)-----END CERTIFICATE-----",
+            Pattern.DOTALL);
+    private static final Pattern PRIVATE_KEY_PEM = Pattern.compile(
+            "-----BEGIN PRIVATE KEY-----(.*?)-----END PRIVATE KEY-----",
+            Pattern.DOTALL);
 
     private PemUtils() {
     }
 
     /**
      * Reads an unencrypted PKCS#8 private key from PEM content.
+     * The key must be an RSA or EC key in {@code BEGIN PRIVATE KEY} form.
      *
      * @param key the PEM content
      * @return the PKCS#8 key spec
      */
     public static PKCS8EncodedKeySpec readPrivateKey(String key) {
-        return new PKCS8EncodedKeySpec(decodeBlock(key));
+        Matcher matcher = PRIVATE_KEY_PEM.matcher(key);
+
+        if (!matcher.find()) {
+            throw new IllegalArgumentException("No PRIVATE KEY PEM block found");
+        }
+
+        String encoded = matcher.group(1).replaceAll("\\s", "");
+        if (encoded.isEmpty()) {
+            throw new IllegalArgumentException("Empty PRIVATE KEY PEM block");
+        }
+        byte[] decodedKey;
+        try {
+            decodedKey = Base64.getDecoder().decode(encoded);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Failed to decode PRIVATE KEY: " + e.getMessage());
+        }
+
+        return new PKCS8EncodedKeySpec(decodedKey);
     }
 
     /**
@@ -54,78 +65,37 @@ public final class PemUtils {
      * @return the PKCS#8 key spec
      */
     public static PKCS8EncodedKeySpec readPrivateKey(File file) {
-        return readPrivateKey(readFile(file, "SSL private key"));
+        try {
+            return readPrivateKey(Files.readString(file.toPath(), StandardCharsets.US_ASCII));
+        } catch (IOException e) {
+            throw new ConfigException("Failed to read SSL private key from " + file + ": " + e.getMessage());
+        }
     }
 
     /**
-     * Validates PEM certificate content and returns it as a stream for {@code CertificateFactory}.
+     * Checks that {@code certificate} contains a {@code CERTIFICATE} block and returns the original PEM text.
      *
      * @param certificate the PEM content
-     * @return the certificate bytes
+     * @return the original certificate PEM
      */
-    public static ByteArrayInputStream readCertificates(String certificate) {
-        if (!containsBlock(certificate)) {
-            throw new ConfigException("No CERTIFICATE PEM block found");
+    public static byte[] readCertificates(String certificate) {
+        if (!CERTIFICATE_PEM.matcher(certificate).find()) {
+            throw new IllegalArgumentException("No CERTIFICATE PEM block found");
         }
-        return new ByteArrayInputStream(certificate.getBytes(StandardCharsets.UTF_8));
+        return certificate.getBytes(StandardCharsets.US_ASCII);
     }
 
     /**
-     * Validates a PEM certificate file and returns it as a stream for {@code CertificateFactory}.
+     * Checks that a PEM file contains a {@code CERTIFICATE} block and returns the original PEM text.
      *
      * @param file the PEM file
-     * @return the certificate bytes
+     * @return the original certificate PEM
      */
-    public static ByteArrayInputStream readCertificates(File file) {
-        return readCertificates(readFile(file, "SSL certificate"));
-    }
-
-    private static byte[] decodeBlock(String pem) {
-        Matcher header = PemUtils.KEY_HEADER.matcher(pem);
-        if (!header.find()) {
-            throw new ConfigException("No " + "PRIVATE KEY" + " PEM block found");
-        }
-
-        Matcher body = BODY.matcher(pem);
-        body.region(header.end(), pem.length());
-        if (!body.lookingAt()) {
-            throw new ConfigException("Empty " + "PRIVATE KEY" + " PEM block");
-        }
-
-        Matcher footer = PemUtils.KEY_FOOTER.matcher(pem);
-        footer.region(body.end(), pem.length());
-        if (!footer.lookingAt()) {
-            throw new ConfigException("No " + "PRIVATE KEY" + " PEM block found");
-        }
-
-        String encoded = body.group().replaceAll("\\s", "");
+    public static byte[] readCertificates(File file) {
         try {
-            return Base64.getDecoder().decode(encoded);
-        } catch (IllegalArgumentException e) {
-            throw new ConfigException("Failed to decode " + "PRIVATE KEY" + ": " + e.getMessage());
-        }
-    }
-
-    private static boolean containsBlock(String pem) {
-        Matcher header = PemUtils.CERT_HEADER.matcher(pem);
-        if (!header.find()) {
-            return false;
-        }
-        Matcher body = BODY.matcher(pem);
-        body.region(header.end(), pem.length());
-        if (!body.lookingAt()) {
-            return false;
-        }
-        Matcher footer = PemUtils.CERT_FOOTER.matcher(pem);
-        footer.region(body.end(), pem.length());
-        return footer.lookingAt();
-    }
-
-    private static String readFile(File file, String description) {
-        try {
-            return Files.readString(file.toPath(), StandardCharsets.UTF_8);
+            return readCertificates(Files.readString(file.toPath(), StandardCharsets.US_ASCII));
         } catch (IOException e) {
-            throw new ConfigException("Failed to read " + description + " from " + file + ": " + e.getMessage());
+            throw new ConfigException("Failed to read SSL certificate from " + file + ": " + e.getMessage());
         }
     }
 }

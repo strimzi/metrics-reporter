@@ -28,7 +28,7 @@ public class HttpsConfiguratorFactoryTest {
         HttpsConfiguratorFactory factory = new HttpsConfiguratorFactory(
                 List.of("TLSv1.3"),
                 List.of("TLS_AES_128_GCM_SHA256"));
-        HttpsConfigurator configurator = factory.create(sslContext);
+        HttpsConfigurator configurator = factory.create(sslContext, new byte[0], new byte[0]);
         TestHttpsParameters params = new TestHttpsParameters(configurator);
 
         configurator.configure(params);
@@ -41,7 +41,7 @@ public class HttpsConfiguratorFactoryTest {
     public void testCreateLeavesDefaultCipherSuitesWhenEmpty() throws Exception {
         SSLContext sslContext = SSLContext.getDefault();
         HttpsConfiguratorFactory factory = new HttpsConfiguratorFactory(List.of("TLSv1.2"), List.of());
-        HttpsConfigurator configurator = factory.create(sslContext);
+        HttpsConfigurator configurator = factory.create(sslContext, new byte[0], new byte[0]);
         TestHttpsParameters params = new TestHttpsParameters(configurator);
 
         configurator.configure(params);
@@ -56,7 +56,9 @@ public class HttpsConfiguratorFactoryTest {
     public void testCreateRejectsUnsupportedProtocol() throws Exception {
         HttpsConfiguratorFactory factory = new HttpsConfiguratorFactory(List.of("TLSv1.9000"), List.of());
 
-        ConfigException exception = assertThrows(ConfigException.class, () -> factory.create(SSLContext.getDefault()));
+        ConfigException exception = assertThrows(
+                ConfigException.class,
+                () -> factory.create(SSLContext.getDefault(), new byte[0], new byte[0]));
 
         assertTrue(exception.getMessage().contains(LISTENER_SSL_ENABLED_PROTOCOLS_CONFIG));
         assertTrue(exception.getMessage().contains("TLSv1.9000"));
@@ -68,7 +70,9 @@ public class HttpsConfiguratorFactoryTest {
                 List.of("TLSv1.3"),
                 List.of("TLS_FAKE_WITH_NOTHING_SHA256"));
 
-        ConfigException exception = assertThrows(ConfigException.class, () -> factory.create(SSLContext.getDefault()));
+        ConfigException exception = assertThrows(
+                ConfigException.class,
+                () -> factory.create(SSLContext.getDefault(), new byte[0], new byte[0]));
 
         assertTrue(exception.getMessage().contains(LISTENER_SSL_ENABLED_CIPHER_SUITES_CONFIG));
         assertTrue(exception.getMessage().contains("TLS_FAKE_WITH_NOTHING_SHA256"));

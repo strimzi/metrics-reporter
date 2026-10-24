@@ -7,6 +7,7 @@ package io.strimzi.kafka.metrics.prometheus.http;
 import com.sun.net.httpserver.HttpsConfigurator;
 import io.prometheus.metrics.exporter.httpserver.HTTPServer;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
+import org.apache.kafka.common.config.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,10 +40,13 @@ public class HttpServers {
 
     /**
      * Get or create a new HTTP server if there isn't an existing instance for the specified listener.
+     * A listener that is already bound is reused when the HTTPS settings match.
+     *
      * @param listener The host and port
      * @param registry The Prometheus registry to expose
      * @param httpsConfigurator The HTTPS configurator, or {@code null} to use HTTP.
      * @return A ServerCounter instance
+     * @throws ConfigException when {@code listener} is already started with different SSL settings
      */
     public synchronized static ServerCounter getOrCreate(
             Listener listener,
@@ -53,6 +57,8 @@ public class HttpServers {
             serverCounter = new ServerCounter(listener, registry, httpsConfigurator);
             serverCounter.start();
             SERVERS.put(listener, serverCounter);
+        } else if (!serverCounter.sameTls(httpsConfigurator)) {
+            throw new ConfigException("Listener " + listener + " is already started with different SSL settings");
         }
         serverCounter.count.incrementAndGet();
         return serverCounter;
@@ -74,6 +80,7 @@ public class HttpServers {
     public static class ServerCounter {
         private final HTTPServer.Builder builder;
         private final Listener listener;
+        private final HttpsConfigurator httpsConfigurator;
         private final AtomicInteger count;
         private HTTPServer server;
 
@@ -93,7 +100,15 @@ public class HttpServers {
             }
 
             this.listener = listener;
+            this.httpsConfigurator = httpsConfigurator;
             this.count = new AtomicInteger();
+        }
+
+        private boolean sameTls(HttpsConfigurator requested) {
+            if (httpsConfigurator == null) {
+                return requested == null;
+            }
+            return httpsConfigurator.equals(requested);
         }
 
         /**
