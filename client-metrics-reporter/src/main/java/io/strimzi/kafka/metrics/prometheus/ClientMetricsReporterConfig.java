@@ -10,6 +10,7 @@ import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import io.strimzi.kafka.metrics.prometheus.http.HttpServers;
 import io.strimzi.kafka.metrics.prometheus.http.HttpsConfiguratorFactory;
 import io.strimzi.kafka.metrics.prometheus.http.Listener;
+import io.strimzi.kafka.metrics.prometheus.http.PemUtils;
 import io.strimzi.kafka.metrics.prometheus.http.SSLContextFactory;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
@@ -17,6 +18,9 @@ import org.apache.kafka.common.config.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -150,8 +154,6 @@ public class ClientMetricsReporterConfig extends AbstractConfig {
     final boolean listenerEnabled;
     final PrometheusRegistry registry;
     final Pattern allowlist;
-    final SSLContextFactory sslContextFactory;
-    final HttpsConfiguratorFactory httpsConfiguratorFactory;
 
     /**
      * Constructor.
@@ -166,19 +168,6 @@ public class ClientMetricsReporterConfig extends AbstractConfig {
         this.allowlist = compileAllowlist(getList(ALLOWLIST_CONFIG));
         this.listenerEnabled = getBoolean(LISTENER_ENABLE_CONFIG);
         this.registry = registry;
-        if (listener.isHttps()) {
-            this.sslContextFactory = new SSLContextFactory(
-                    getString(LISTENER_SSL_CERTIFICATE_LOCATION_CONFIG),
-                    getString(LISTENER_SSL_KEY_LOCATION_CONFIG),
-                    passwordValue(LISTENER_SSL_CERTIFICATE_CONFIG),
-                    passwordValue(LISTENER_SSL_KEY_CONFIG));
-            this.httpsConfiguratorFactory = new HttpsConfiguratorFactory(
-                    getList(LISTENER_SSL_ENABLED_PROTOCOLS_CONFIG),
-                    getList(LISTENER_SSL_ENABLED_CIPHER_SUITES_CONFIG));
-        } else {
-            this.sslContextFactory = null;
-            this.httpsConfiguratorFactory = null;
-        }
     }
 
     private String passwordValue(String config) {
@@ -238,8 +227,6 @@ public class ClientMetricsReporterConfig extends AbstractConfig {
         return "ClientMetricsReporterConfig{" +
                 "listener=" + listener +
                 ", listenerEnabled=" + listenerEnabled +
-                ", sslContextFactory=" + sslContextFactory +
-                ", httpsConfiguratorFactory=" + httpsConfiguratorFactory +
                 ", allowlist=" + allowlist +
                 '}';
     }
@@ -256,10 +243,44 @@ public class ClientMetricsReporterConfig extends AbstractConfig {
         }
         HttpsConfigurator httpsConfigurator = null;
         if (listener.isHttps()) {
-            httpsConfigurator = httpsConfiguratorFactory.create(sslContextFactory.create());
+            SSLContextFactory sslContextFactory = new SSLContextFactory();
+            HttpsConfiguratorFactory httpsConfiguratorFactory = new HttpsConfiguratorFactory(
+                    getList(LISTENER_SSL_ENABLED_PROTOCOLS_CONFIG),
+                    getList(LISTENER_SSL_ENABLED_CIPHER_SUITES_CONFIG));
+            httpsConfigurator = httpsConfiguratorFactory.create(
+                    sslContextFactory.create(privateKey(), certificates()));
         }
         HttpServers.ServerCounter server = HttpServers.getOrCreate(listener, registry, httpsConfigurator);
         LOG.info("HTTP server listening on {}://{}:{}", listener.scheme, listener.host, server.port());
         return Optional.of(server);
+    }
+
+    /**
+     * Loads private key from the config chain.
+     *
+     * @return
+     */
+    private PKCS8EncodedKeySpec privateKey() {
+        String inline = passwordValue(LISTENER_SSL_KEY_CONFIG);
+        if (inline != null) {
+            return PemUtils.readPrivateKey(inline);
+        }
+        String location = getString(LISTENER_SSL_KEY_LOCATION_CONFIG);
+        if (location != null) {
+            return PemUtils.readPrivateKey(new File(location));
+        }
+        throw new ConfigException("SSL private key must be configured for HTTPS listeners");
+    }
+
+    private ByteArrayInputStream certificates() {
+        String inline = passwordValue(LISTENER_SSL_CERTIFICATE_CONFIG);
+        if (inline != null) {
+            return PemUtils.readCertificates(inline);
+        }
+        String location = getString(LISTENER_SSL_CERTIFICATE_LOCATION_CONFIG);
+        if (location != null) {
+            return PemUtils.readCertificates(new File(location));
+        }
+        throw new ConfigException("SSL certificate must be configured for HTTPS listeners");
     }
 }
