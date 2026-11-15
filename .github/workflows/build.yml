@@ -29,19 +29,18 @@ jobs:
             mainBuild: true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Java and Maven
-        uses: strimzi/github-actions/.github/actions/dependencies/setup-java@v1
+        uses: strimzi/github-actions/.github/actions/dependencies/setup-java@bb4758d4afacd9c0ff8f426395bbbece41fd142a # v4.0
         with:
           javaVersion: ${{ matrix.java.version }}
 
       - name: Build binaries using build-binaries action
-        uses: strimzi/github-actions/.github/actions/build/build-binaries@v1
+        uses: strimzi/github-actions/.github/actions/build/build-binaries@bb4758d4afacd9c0ff8f426395bbbece41fd142a # v4.0
         with:
           mainJavaBuild: ${{ matrix.java.mainBuild }}
           artifactSuffix: "metrics-reporter"
-          clusterOperatorBuild: "false"
   
   deploy-java:
     name: Deploy Java artifacts to Maven Central
@@ -50,15 +49,15 @@ jobs:
     if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Java and Maven
-        uses: strimzi/github-actions/.github/actions/dependencies/setup-java@v1
+        uses: strimzi/github-actions/.github/actions/dependencies/setup-java@bb4758d4afacd9c0ff8f426395bbbece41fd142a # v4.0
         with:
           javaVersion: "17"
 
       - name: Deploy to Maven Central
-        uses: strimzi/github-actions/.github/actions/build/deploy-java@v1
+        uses: strimzi/github-actions/.github/actions/build/deploy-java@bb4758d4afacd9c0ff8f426395bbbece41fd142a # v4.0
         with:
           modules: "./,client-metrics-reporter,server-metrics-reporter"
           gpgPassphrase: ${{ secrets.GPG_PASSPHRASE }}
