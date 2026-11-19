@@ -44,8 +44,8 @@ public class ClientMetricsReporter extends AbstractReporter implements MetricsRe
     final PrometheusRegistry registry;
     final KafkaCollector kafkaCollector;
 
-    private ClientMetricsReporterConfig config;
-    Optional<HttpServers.ServerCounter> httpServer = Optional.empty();
+    private volatile ClientMetricsReporterConfig config;
+    volatile Optional<HttpServers.ServerCounter> httpServer = Optional.empty();
     @SuppressFBWarnings({"UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"}) // This field is initialized in the contextChange method
     String prefix;
 
@@ -66,7 +66,7 @@ public class ClientMetricsReporter extends AbstractReporter implements MetricsRe
     }
 
     @Override
-    public void configure(Map<String, ?> map) {
+    public synchronized void configure(Map<String, ?> map) {
         config = new ClientMetricsReporterConfig(map, registry);
         httpServer = config.startHttpServer();
         LOG.debug("ClientMetricsReporter configured with {}", config);
@@ -92,9 +92,11 @@ public class ClientMetricsReporter extends AbstractReporter implements MetricsRe
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         kafkaCollector.removeReporter(this);
-        httpServer.ifPresent(HttpServers::release);
+        Optional<HttpServers.ServerCounter> server = httpServer;
+        httpServer = Optional.empty();
+        server.ifPresent(HttpServers::release);
     }
 
     @Override

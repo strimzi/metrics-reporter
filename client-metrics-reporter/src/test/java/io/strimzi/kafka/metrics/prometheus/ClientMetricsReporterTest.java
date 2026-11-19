@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import static io.strimzi.kafka.metrics.prometheus.ClientMetricsReporter.PREFIXES;
 import static io.strimzi.kafka.metrics.prometheus.KafkaMetricsUtils.newKafkaMetric;
@@ -108,6 +109,52 @@ public class ClientMetricsReporterTest {
         assertEquals(1, getMetrics(port1.get()).size());
 
         reporter2.close();
+    }
+
+    @Test
+    public void testRepeatedCloseDoesNotStopSharedListener() {
+        try (ClientMetricsReporter resident = new ClientMetricsReporter(registry, kafkaCollector);
+                ClientMetricsReporter transientReporter = new ClientMetricsReporter(registry, kafkaCollector)) {
+            resident.configure(configs);
+            transientReporter.configure(configs);
+            resident.contextChange(new KafkaMetricsContext("kafka.producer"));
+            transientReporter.contextChange(new KafkaMetricsContext("kafka.admin.client"));
+
+            int port = resident.getPort().orElseThrow();
+            assertEquals(resident.getPort(), transientReporter.getPort());
+
+            KafkaMetric metric = newKafkaMetric("name", "group", (config, now) -> 1, LABELS);
+            resident.metricChange(metric);
+
+            assertEquals(1, getMetrics(port).size());
+            transientReporter.close();
+            transientReporter.close();
+
+            assertTrue(transientReporter.getPort().isEmpty());
+            assertEquals(1, getMetrics(port).size());
+        }
+    }
+
+    @Test
+    public void testConcurrentCloseDoesNotStopSharedListener() {
+        try (ClientMetricsReporter resident = new ClientMetricsReporter(registry, kafkaCollector);
+                ClientMetricsReporter transientReporter = new ClientMetricsReporter(registry, kafkaCollector)) {
+            resident.configure(configs);
+            transientReporter.configure(configs);
+            resident.contextChange(new KafkaMetricsContext("kafka.producer"));
+            transientReporter.contextChange(new KafkaMetricsContext("kafka.admin.client"));
+
+            int port = resident.getPort().orElseThrow();
+            KafkaMetric metric = newKafkaMetric("name", "group", (config, now) -> 1, LABELS);
+            resident.metricChange(metric);
+
+            CompletableFuture.allOf(
+                    CompletableFuture.runAsync(transientReporter::close),
+                    CompletableFuture.runAsync(transientReporter::close)).join();
+
+            assertTrue(transientReporter.getPort().isEmpty());
+            assertEquals(1, getMetrics(port).size());
+        }
     }
 
     @Test
