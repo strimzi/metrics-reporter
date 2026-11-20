@@ -3,6 +3,7 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.strimzi/metrics-reporter)](https://search.maven.org/artifact/io.strimzi/metrics-reporter)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Twitter Follow](https://img.shields.io/twitter/follow/strimziio?style=social)](https://twitter.com/strimziio)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fstrimzi%2Fmetrics-reporter.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fstrimzi%2Fmetrics-reporter?ref=badge_shield)
 
 # Strimzi Prometheus Metrics Reporter
 
@@ -164,6 +165,9 @@ If you want to get in touch with us first before contributing, you can use:
 
 ## License
 Strimzi is licensed under the [Apache License](./LICENSE), Version 2.0
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fstrimzi%2Fmetrics-reporter.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fstrimzi%2Fmetrics-reporter?ref=badge_large)
 
 ## Artifact attestations
 
